@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id           String      @id @default(cuid())
+  name         String
+  services     Service[]
+  customers    Customer[]
+  staff        Staff[]
+  appointments Appointment[]
+}
+
+/// Service porte la durée (en minutes) et le prix
+model Service {
+  id              String        @id @default(cuid())
+  name            String
+  durationMinutes Int
+  price           Float
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  appointments    Appointment[]
+}
+
+model Customer {
+  id             String        @id @default(cuid())
+  firstName      String
+  lastName       String
+  phone          String
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  appointments   Appointment[]
+}
+
+model Staff {
+  id             String        @id @default(cuid())
+  firstName      String
+  lastName       String
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  appointments   Appointment[]
+}
+
+/// Appointment: startTime, endTime (calculé), relations obligatoires et organizationId pour isolation
+model Appointment {
+  id             String      @id @default(cuid())
+  startTime      DateTime
+  endTime        DateTime
+  serviceId      String
+  service        Service     @relation(fields: [serviceId], references: [id])
+  customerId     String
+  customer       Customer    @relation(fields: [customerId], references: [id])
+  staffId        String
+  staff          Staff       @relation(fields: [staffId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
