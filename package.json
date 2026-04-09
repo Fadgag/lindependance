@@ -6,7 +6,7 @@
     "dev": "pnpm exec prisma generate && pnpm exec prisma db seed && next dev",
     "seed": "pnpm exec prisma db seed",
     "check-env": "node ./scripts/check-nextauth-secret.js",
-    "prebuild": "pnpm run check-env && (mv src/middleware.ts src/_middleware_disabled.ts || true)",
+    "prebuild": "pnpm run check-env && prisma generate && (mv src/middleware.ts src/_middleware_disabled.ts || true)",
     "build": "next build",
     "prestart": "pnpm run check-env",
     "start": "next start",
