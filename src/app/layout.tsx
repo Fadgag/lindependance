@@ -1,6 +1,7 @@
 import { Noto_Serif, Manrope } from "next/font/google";
 import Sidebar from "@/components/layout/Sidebar";
 import AuthProvider from '@/components/AuthProvider'
+import { Toaster } from 'sonner'
 import "./globals.css";
 
 const notoSerif = Noto_Serif({ variable: "--font-noto-serif", subsets: ["latin"] });
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-1 h-full flex flex-col min-w-0 relative">
               {children}
           </main>
+          <Toaster position="top-right" richColors />
         </AuthProvider>
         </body>
         </html>

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm exec prisma generate && pnpm exec prisma db seed && next dev",
     "seed": "pnpm exec prisma db seed",
+    "create-admin": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/create-admin.ts",
     "check-env": "node ./scripts/check-nextauth-secret.js",
     "prebuild": "pnpm run check-env && prisma generate && (mv src/middleware.ts src/_middleware_disabled.ts || true)",
     "build": "next build",

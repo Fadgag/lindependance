@@ -10,7 +10,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     const tabs = [
         { name: "Général & CA", href: "/settings", icon: Landmark, disabled: false },
         { name: "Prestations", href: "/settings/services", icon: Scissors, disabled: false },
-        { name: "Mon Compte", href: "#", icon: User, disabled: true },
+        { name: "Mon Compte", href: "/settings/account", icon: User, disabled: false },
     ];
 
     return (

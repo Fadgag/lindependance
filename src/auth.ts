@@ -24,7 +24,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       // RAISON: user shape declared in src/types/next-auth.d.ts — narrow to expected fields
       if (user && typeof user === 'object') {
-        const u = user as { organizationId?: string | null; role?: string | null }
+        const u = user as { id?: string; organizationId?: string | null; role?: string | null }
+        if (u.id) token.id = u.id
         if (u.organizationId) token.organizationId = u.organizationId
         if (u.role) token.role = u.role
       }
@@ -33,7 +34,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       // RAISON: token (JWT) may contain organizationId/role claims
       if (session?.user && token && typeof token === 'object') {
-        const t = token as { organizationId?: string | null; role?: string | null }
+        const t = token as { id?: string; sub?: string; organizationId?: string | null; role?: string | null }
+        session.user.id = (t.id ?? t.sub) as string
         session.user.organizationId = t.organizationId ?? null
         session.user.role = t.role ?? 'USER'
       }
