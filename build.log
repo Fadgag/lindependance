@@ -1,0 +1,59 @@
+
+> independance@0.1.0 prebuild /Users/mac-MBOUVE21/Desktop/Perso/independance
+> pnpm run check-env
+
+
+> independance@0.1.0 check-env /Users/mac-MBOUVE21/Desktop/Perso/independance
+> node ./scripts/check-nextauth-secret.js
+
+Warning: NEXTAUTH_SECRET is not set. In development this may be acceptable but is insecure.
+
+> independance@0.1.0 build /Users/mac-MBOUVE21/Desktop/Perso/independance
+> next build
+
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 19.8s
+  Running TypeScript ...
+  Finished TypeScript in 6.1s ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/22) ...
+  Generating static pages using 9 workers (5/22) 
+  Generating static pages using 9 workers (10/22) 
+  Generating static pages using 9 workers (16/22) 
+✓ Generating static pages using 9 workers (22/22) in 748ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /agenda
+├ ○ /analyse
+├ ƒ /api/appointments
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/auth/forgot-password
+├ ƒ /api/auth/reset-password
+├ ƒ /api/customers
+├ ƒ /api/customers/[id]/packages
+├ ƒ /api/packages
+├ ƒ /api/services
+├ ƒ /api/staff
+├ ƒ /api/stats
+├ ƒ /api/users
+├ ○ /auth
+├ ○ /auth/forgot-password
+├ ○ /auth/new-password
+├ ○ /auth/signin
+├ ○ /customers
+├ ƒ /customers/[id]
+├ ○ /settings/services
+└ ○ /stats
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

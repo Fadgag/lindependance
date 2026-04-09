@@ -1,40 +1,11 @@
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import GoogleProvider from 'next-auth/providers/google'
-import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+// Legacy next-auth v4 configuration file.
+// This project now uses `src/auth.ts` (Auth.js v5). Keep a minimal
+// shim here to avoid accidental imports failing in tools or tests.
 
-export const authOptions = {
-  adapter: PrismaAdapter(prisma as any),
-  providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'text' },
-        password: { label: 'Password', type: 'password' }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        const user = await prisma.user.findUnique({ where: { email: credentials.email } })
-        if (!user || !user.hashedPassword) return null
-        const valid = await bcrypt.compare(credentials.password, user.hashedPassword)
-        if (!valid) return null
-        return { id: user.id, name: user.name, email: user.email }
-      }
-    }),
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
-      GoogleProvider({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET })
-    ] : [])
-  ],
-  session: { strategy: 'database' },
-  pages: { signIn: '/auth/signin' },
-  callbacks: {
-    async session({ session, user }) {
-      ;(session as any).user = { ...(session.user ?? {}), id: user.id, name: user.name ?? undefined, email: user.email ?? undefined, organizationId: (user as any).organizationId ?? null }
-      return session
-    }
-  }
-}
+// If you want to permanently remove this legacy file, delete or archive it.
+const legacyNextAuthOptions = {}
+export default legacyNextAuthOptions
 
-export default authOptions
+
+
 

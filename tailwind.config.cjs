@@ -1,8 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './src/**/*.{ts,tsx,js,jsx}',
-    './app/**/*.{ts,tsx,js,jsx}',
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -20,5 +19,14 @@ module.exports = {
     },
   },
   plugins: [],
+  // `safelist` permet de forcer la génération de classes parfois omises par le JIT
+  // si elles ne sont pas encore présentes dans le code. Utile pour tester.
+  safelist: [
+    'bg-atelier-primary',
+    'text-atelier-primary',
+    'bg-atelier-dark',
+    'bg-atelier-light',
+    'text-atelier-dark',
+  ],
 }
 

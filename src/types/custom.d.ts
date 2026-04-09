@@ -1,19 +1,24 @@
 declare module '@fullcalendar/react' {
-  const FullCalendar: any
+  import * as React from 'react'
+  const FullCalendar: React.ComponentType<Record<string, unknown>>
   export default FullCalendar
 }
 
 declare module '@fullcalendar/resource-timegrid' {
-  const resourceTimeGridPlugin: any
+  const resourceTimeGridPlugin: unknown
   export default resourceTimeGridPlugin
 }
 
 declare module '@fullcalendar/interaction' {
-  const interactionPlugin: any
+  const interactionPlugin: unknown
   export default interactionPlugin
 }
 
 declare module '@shadcn/ui' {
-  export const Button: any
+  export const Button: unknown
 }
+
+// Note: do NOT declare '@prisma/client' here — use the real types from the package.
+// This file keeps shims only for packages that lack types (fullcalendar, shadcn UI).
+
 

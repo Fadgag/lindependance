@@ -1,0 +1,46 @@
+
+> independance@0.1.0 dev /Users/mac-MBOUVE21/Desktop/Perso/independance
+> pnpm exec prisma generate && pnpm exec prisma db seed && next dev
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (4.16.2 | library) to ./node_modules/.pnpm/@prisma+client@4.16.2_prisma@4.16.2/node_modules/@prisma/client in 79ms
+You can now start using Prisma Client in your code. Reference: https://pris.ly/d/client
+```
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+```
+Environment variables loaded from .env
+Running seed command `ts-node --compiler-options {"module":"CommonJS"} prisma/seed.ts` ...
+--- Début du Seed ---
+✅ Organisation prête
+✅ Admin créé (admin@studio.com / Admin123!)
+✅ Clients créés
+✅ Données de démo terminées !
+
+🌱  The seed command has been executed.
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.16:3000
+- Environments: .env
+✓ Ready in 352ms
+
+ GET /auth/signin?callbackUrl=http%3A%2F%2Flocalhost%3A3000%2Fagenda 200 in 342ms (next.js: 67ms, proxy.ts: 144ms, application-code: 131ms)
+ GET /api/auth/csrf 200 in 186ms (next.js: 168ms, proxy.ts: 2ms, application-code: 15ms)
+ GET /api/auth/session 200 in 579ms (next.js: 554ms, proxy.ts: 3ms, application-code: 21ms)
+ GET /api/auth/session 200 in 12ms (next.js: 4ms, proxy.ts: 3ms, application-code: 6ms)
+✓ Compiled in 112ms
+✓ Compiled in 28ms
+  Reload env: .env
+COOKIE_PRESENT: next-auth.csrf-token=a2915694b025464b343ac838a846d2d69290ca1ca466c27146b78e38a1ad6dad%7C12eac448ce20487f74e03bc35d61f359df3d4f922adc945ffd1bbb8ee9fafd58; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fsignin; next-auth.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..2_OIG3iqGNnb2j39._VM-PnkpmVXmUvBx337GVJ1CSQSTuTxBHTgM54d0b2YgMhrF4SPTk0H_Sxc2k8nF5PO0ym6NnCOjGiLq4xIbg1mw73GYAiIQjNKSflQuTIpkg-WqZZrCwV_UCd4ygwwftgtGco60i5UkS__7OEKoBBtzT4OU2Mqllu05t6oFmnDjfUSeyTKid-FVlrFvqPLjPXBGDUB6esHXyBEbPy3DHQLDV_xY9B4YUuJtAu2xccrg7aY49vJCppJMAN0fJRksMiJranQRtazdHsxZiwz-56RRlHuvaVEsyMjlqZ0cd4zNthU6FhhddAuI32QGMybNUkGLnQQ.M6r8DafXkn1TBlm6frHx7Q; __next_hmr_refresh_hash__=11; authjs.csrf-token=bb5e6f77c4951101afa0b1db874ccf5c373a6d05fbdf4d8dad58d5e760574c4c%7Cfdc99d7746f746ca59b93d83772643321327ce545158f9dcd2925ee6afeaa46b; authjs.callback-url=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fsignin%3FcallbackUrl%3Dhttp%253A%252F%252Flocalhost%253A3000%252Fagenda; authjs.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiWEY2cExBb3lBZUdTU2QwUnVjaXlORk1HZ3BsOFBMaUE1UFBYb0VONG5sSXh5TGltREtncEN6c3VMcXJFQ0FtX0VBczg3dm03UlFFTHpJVmVKWmtRZXcifQ..4yZTchsgjrmibWgPil1mkA.NHxKS-PJL3_qyDXGnqF5Ry1B0D9ldhKCmjrd2AwGinKHF8ozUMO93X2L72yy5-nh1tecwaDjqjv1Jd2-baEOGOWTZ2Ls6WuVYrr0Cfsji9JEuMddB-FwUN6_5h-FAtccWzAuz8ukL0ftj2I_MdK6LtCmsPWlVGKlDnScj7yp_Lg87ZIOsXHZkqz0KhZdM8Jv9p_JMxnH5SnvLq2-voT8nRJP8zEszHFjsHYe6ZH0s1ORFEKDWFuRm92pibmYt-1jdFKoT6WufAYU-pvEMGJ3tlkGtnK6StZKM29BS0_BBzAlJHqzTxR6GXwPwXCUcPu9xbuBN52OEek65_SHvG-IvQ.eCQdG0Ve0ZaGkihMwHyphtk-pd26-jeX1MfofdQ02AQ
+ GET /auth/signin?callbackUrl=http%3A%2F%2Flocalhost%3A3000%2Fagenda 200 in 110ms (next.js: 42ms, proxy.ts: 36ms, application-code: 31ms)
+✓ Compiled in 26ms
+✓ Compiled in 28ms
+✓ Compiled in 51ms
+✓ Compiled in 96ms
+✓ Compiled in 98ms
+✓ Compiled in 17ms
+✓ Compiled in 29ms
+✓ Compiled in 19ms
+✓ Compiled in 20ms

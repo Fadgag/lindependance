@@ -1,5 +1,5 @@
 const CACHE_NAME = 'appointments-cache-v1'
-const urlsToCache = ['/', '/api/appointments', '/api/staff', '/styles/globals.css']
+const urlsToCache = ['/', '/api/appointments', '/api/staff']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

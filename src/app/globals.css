@@ -1,26 +1,47 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-studio-bg: #FAF9F6;
+  --color-studio-card: #FFFFFF;
+  --color-studio-text: #2D2424;
+  --color-studio-muted: #948B89;
+  --color-studio-primary: #D4A3A1;
+  --color-studio-accent: #EAE3E1;
+  --color-studio-border: #EAE3E1;
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-noto-serif);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html, body {
+    @apply h-full m-0 p-0 overflow-hidden bg-studio-bg text-studio-text antialiased;
+    font-family: var(--font-sans);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility studio-card {
+  background-color: white;
+  border: 1px solid var(--color-studio-border);
+  border-radius: 2rem;
+  box-shadow: 0 4px 20px -10px rgba(0,0,0,0.05);
 }
+
+/* --- FIX FULLCALENDAR --- */
+.fc {
+  height: 100% !important;
+  --fc-border-color: var(--color-studio-border);
+  --fc-today-bg-color: rgba(212, 163, 161, 0.05);
+}
+.fc-view-harness { flex: 1 1 0% !important; min-height: 0 !important; display: flex !important; }
+.fc-event { cursor: pointer; border: none !important; }
+
+/* --- THEME TIPPY (Fix Noir sur Noir) --- */
+.tippy-box[data-theme~='studio-light'] {
+  background-color: white !important;
+  color: #2D2424 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #EAE3E1 !important;
+  border-radius: 12px !important;
+}
+.tippy-box[data-theme~='studio-light'] .tippy-arrow { color: white !important; }
+.tippy-content { padding: 12px !important; }
