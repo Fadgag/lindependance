@@ -143,7 +143,8 @@ export default function ClientDetail() {
                           </div>
                         </div>
                       </div>
-                  )}))
+                  )
+              })
               ) : (
                   <div className="text-center py-12 text-studio-muted italic border-2 border-dashed border-gray-50 rounded-3xl">
                     Aucune prestation enregistrée pour le moment.

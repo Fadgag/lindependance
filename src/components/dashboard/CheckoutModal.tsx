@@ -108,6 +108,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
         : basePrice + extras.reduce((sum, item) => sum + item.price, 0);
 
     const handleConfirm = async () => {
+        if (!appointment) return;
         setLoading(true);
         try {
             const res = await fetch(`/api/appointments/${appointment.id}/checkout`, {

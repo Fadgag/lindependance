@@ -77,7 +77,16 @@ export interface AppointmentSummary {
   finalPrice?: number | null
   service?: { id?: string; name?: string; price?: number } | null
   customer?: { id?: string; name?: string } | null
-  extendedProps?: Record<string, unknown>
+  extendedProps?: {
+    status?: string
+    finalPrice?: number | null
+    service?: { id?: string; name?: string; price?: number } | null
+    customer?: { id?: string; name?: string } | null
+    note?: string
+    paymentMethod?: string
+    extras?: string | Extra[]
+    [key: string]: unknown
+  }
 }
 
 export interface Client {

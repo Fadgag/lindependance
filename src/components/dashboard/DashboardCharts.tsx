@@ -80,7 +80,7 @@ export default function DashboardCharts({ data }: { data: ChartData[] }) {
             boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
     }}
     itemStyle={{ color: '#6366f1', fontWeight: 'bold' }}
-    formatter={(value: number | string | undefined) => [`${Number(value ?? 0)} €`, "Revenu"]}
+    formatter={(value) => [`${Number(value ?? 0)} €`, "Revenu"]}
     labelStyle={{ color: '#6b7280', marginBottom: '4px' }}
     />
 
