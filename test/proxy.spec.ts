@@ -5,7 +5,8 @@ let mockSession: unknown = null
 
 vi.mock('../src/auth', () => ({
   // auth(callback) retourne un handler qui injecte req.auth avant d'appeler le callback
-  auth: (callback: (req: unknown) => unknown) => async (req: unknown) => {
+  // _ctx est requis par next-auth v5 AppRouteHandlerFn mais non utilisé dans les tests unitaires
+  auth: (callback: (req: unknown) => unknown) => async (req: unknown, _ctx?: unknown) => {
     return callback({ ...(req as object), auth: mockSession })
   },
 }))

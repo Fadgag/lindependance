@@ -1,5 +1,8 @@
-const CACHE_NAME = 'appointments-cache-v1'
-const urlsToCache = ['/', '/api/appointments', '/api/staff']
+// SECURITY: cache version bump forces purge of any previously cached /api/ responses
+const CACHE_NAME = 'appointments-cache-v2'
+// Only cache the app shell — NEVER cache authenticated API endpoints
+// (caching /api/* would cause IDOR: User A's data could be served to User B on a shared device)
+const urlsToCache = ['/']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -11,18 +14,13 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
 
+  // SECURITY: never intercept authenticated API calls — always go to the network
+  if (request.url.includes('/api/')) return
+
   event.respondWith(
     caches.match(request).then((response) => {
       if (response) return response
       return fetch(request)
-        .then((networkResponse) => {
-          // Cache API responses for future offline use
-          if (request.url.includes('/api/')) {
-            const copy = networkResponse.clone()
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
-          }
-          return networkResponse
-        })
         .catch(() => caches.match('/'))
     })
   )
