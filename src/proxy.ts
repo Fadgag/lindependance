@@ -1,12 +1,13 @@
 // Middleware Next.js — seul point d'entrée pour l'auth.
 // Utilise auth() de next-auth v5 pour valider la session et rediriger si nécessaire.
 import { auth } from "./auth"
-import type { NextRequest } from 'next/server'
+import type { NextAuthRequest } from 'next-auth'
 
-async function middlewareFn(req: NextRequest) {
-  // RAISON: next-auth v5 injecte req.auth dynamiquement sur NextRequest — non typé nativement
-  const maybeReq = req as unknown as Record<string, unknown>
-  const authClaim = maybeReq['auth'] ?? null
+// RAISON: NextAuthRequest étend NextRequest avec `auth: Session | null` (next-auth v5).
+// On utilise NextAuthRequest plutôt qu'un cast ou une augmentation de module pour avoir
+// un typage correct sans double cast unsafe.
+async function middlewareFn(req: NextAuthRequest) {
+  const authClaim = req.auth ?? null
   const isLoggedIn = !!authClaim
   const isAuthPage = String(req.nextUrl?.pathname ?? '').startsWith("/auth")
 

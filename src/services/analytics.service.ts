@@ -1,6 +1,16 @@
 import { prisma } from '../lib/prisma'
 import Decimal from 'decimal.js'
 
+/** Convertit une valeur Prisma Decimal ou primitive en number de manière sûre */
+function toNumber(val: unknown): number {
+  // RAISON: Prisma Decimal expose `.toNumber()` — cast nécessaire car `val` est `unknown`
+  const obj = val as { toNumber?: () => number }
+  if (obj && typeof obj.toNumber === 'function') {
+    try { return obj.toNumber() } catch { /* fallthrough */ }
+  }
+  return Number(val ?? 0)
+}
+
 export async function getOrgStats(orgId: string, startDate?: Date, endDate?: Date) {
   const where: Record<string, unknown> = { organizationId: orgId }
   if (startDate) where.startTime = { gte: startDate }
@@ -13,14 +23,7 @@ export async function getOrgStats(orgId: string, startDate?: Date, endDate?: Dat
   const appointments = await prisma.appointment.findMany({ where, include: { service: { select: { price: true } } } })
   let total = new Decimal(0)
   for (const a of appointments) {
-    const price = a.service?.price ?? 0
-    let n: number
-    const pobj = price as unknown as { toNumber?: () => number }
-    if (pobj && typeof pobj.toNumber === 'function') {
-      try { n = pobj.toNumber() } catch { n = Number(price ?? 0) }
-    } else {
-      n = Number(price ?? 0)
-    }
+    const n = toNumber(a.service?.price ?? 0)
     total = total.plus(new Decimal(n))
   }
 
@@ -61,15 +64,7 @@ export async function getOrgDashboard(orgId: string, startDate?: Date, endDate?:
     const key = `${ad.getUTCFullYear()}-${String(ad.getUTCMonth() + 1).padStart(2, '0')}-${String(ad.getUTCDate()).padStart(2, '0')}`
     const cur = map.get(key) ?? { revenue: new Decimal(0), count: 0 }
 
-    const price = a.service?.price ?? 0
-    const pobj = price as unknown as { toNumber?: () => number }
-    let n: number
-    if (pobj && typeof pobj.toNumber === 'function') {
-      try { n = pobj.toNumber() } catch { n = Number(price ?? 0) }
-    } else {
-      n = Number(price ?? 0)
-    }
-
+    const n = toNumber(a.service?.price ?? 0)
     const dec = new Decimal(n)
     total = total.plus(dec)
     cur.revenue = cur.revenue.plus(dec)
@@ -97,6 +92,8 @@ export async function getOrgDashboard(orgId: string, startDate?: Date, endDate?:
     timeSeries
   }
 }
+
+
 
 
 

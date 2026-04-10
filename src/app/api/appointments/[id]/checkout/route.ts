@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import apiErrorResponse from '@/lib/api'
 import { auth } from "@/auth"
 import { UpdatePaymentDetailsSchema } from '@/schemas/appointments'
+import { z } from 'zod'
 
 export async function POST(
     request: Request,
@@ -15,7 +16,16 @@ export async function POST(
         }
 
         const { id } = await params;
-        const { totalPrice, extras, note, paymentMethod } = await request.json()
+        const body = await request.json()
+        const CheckoutSchema = z.object({
+            totalPrice: z.number(),
+            extras: z.array(z.object({ label: z.string(), price: z.number() })).optional().nullable(),
+            note: z.string().optional().nullable(),
+            paymentMethod: z.string().optional(),
+        })
+        const parsed = CheckoutSchema.safeParse(body)
+        if (!parsed.success) return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 })
+        const { totalPrice, extras, note, paymentMethod } = parsed.data
 
         const updateResult = await prisma.appointment.updateMany({
             where: {
@@ -38,8 +48,7 @@ export async function POST(
 
         return NextResponse.json({ success: true })
     } catch (err) {
-        console.error('Checkout Error:', err)
-        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+        return apiErrorResponse(err)
     }
 }
 

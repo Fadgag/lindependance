@@ -27,6 +27,8 @@ export interface DashboardSummary {
   totalRevenue: number
   realizedRevenue: number
   projectedRevenue: number
+  // legacy alias kept for backward compatibility with older tests/consumers
+  totalProjected?: number
   appointmentCount: number
   newCustomerCount: number
   staffCount: number

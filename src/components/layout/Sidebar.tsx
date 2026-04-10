@@ -3,23 +3,17 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, Scissors, Users, LayoutDashboard, LogOut, BarChart2, Settings } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
-const menuItems = [
-    { name: 'Accueil', icon: CalendarDays, href: '/', adminOnly: false },
-    { name: 'Agenda', icon: CalendarDays, href: '/agenda', adminOnly: false },
-    { name: 'Clients', icon: Users, href: '/customers', adminOnly: false },
-    { name: 'Statistiques', icon: BarChart2, href: '/dashboard', adminOnly: true },
-    { name: 'Configuration', icon: Settings, href: '/settings', adminOnly: true },
-]
+import { menuItems, type MenuItem } from './menuItems'
 
 export default function Sidebar() {
     const pathname = usePathname()
     const { data: session } = useSession()
 
     return (
-        <aside className="w-72 bg-[var(--studio-bg)] border-r border-[var(--studio-border)] flex flex-col h-screen sticky top-0 px-6 py-8">
+        <aside data-testid="sidebar-desktop" className="hidden md:flex w-72 bg-[var(--studio-bg)] border-r border-[var(--studio-border)] flex-col h-screen sticky top-0 px-6 py-8">
 
             {/* LOGO ELÉGANT */}
             <Link href="/" className="mb-12 px-4 block no-underline" aria-label="Accueil - Atelier">
@@ -39,13 +33,12 @@ export default function Sidebar() {
             )}
 
             {/* NAVIGATION MODULES */}
-            <nav className="space-y-2 flex-1">
-                {menuItems.map((item) => {
+            <nav data-testid="nav-desktop" className="space-y-2 flex-1">
+                {menuItems.map((item: MenuItem) => {
                     const isActive = pathname === item.href
                     // if adminOnly and user is not admin, skip
                     if (item.adminOnly) {
-                        const user = session?.user as Record<string, unknown> | undefined
-                        if (!user || typeof user.role !== 'string' || user.role !== 'ADMIN') return null
+                        if (!session?.user || session.user.role !== 'ADMIN') return null
                     }
 
                     return (
@@ -57,6 +50,7 @@ export default function Sidebar() {
                                     ? 'bg-white text-[var(--studio-text)] shadow-sm border border-[var(--studio-border)]'
                                     : 'text-[var(--studio-muted)] hover:text-[var(--studio-text)] hover:bg-white/50'
                             }`}
+                            data-testid={`nav-link-${item.href.replace('/', '') || 'home'}`}
                         >
                             <item.icon size={20} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'text-[var(--studio-primary)]' : ''} />
                             <span className={`text-sm tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>

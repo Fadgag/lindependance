@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
 import dashboardService from '../../../../services/dashboard.service'
 import { auth } from '../../../../auth'
+import apiErrorResponse from '../../../../lib/api'
+import { z } from 'zod'
+
+const paramsSchema = z.object({
+  // Accepte YYYY-MM-DD et ISO 8601 complet — refine vérifie que la date est parseable
+  start: z.string().refine(v => !isNaN(new Date(v).getTime()), { message: 'Invalid start date' }).optional(),
+  end: z.string().refine(v => !isNaN(new Date(v).getTime()), { message: 'Invalid end date' }).optional(),
+})
 
 export async function GET(request: Request) {
   try {
@@ -10,15 +18,21 @@ export async function GET(request: Request) {
     if (!orgId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const url = new URL(request.url)
-    const startParam = url.searchParams.get('start')
-    const endParam = url.searchParams.get('end')
-    const start = startParam ? new Date(startParam) : undefined
-    const end = endParam ? new Date(endParam) : undefined
+    const parsed = paramsSchema.safeParse({
+      start: url.searchParams.get('start') ?? undefined,
+      end: url.searchParams.get('end') ?? undefined,
+    })
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid date params', details: parsed.error.format() }, { status: 400 })
+    }
+
+    const start = parsed.data.start ? new Date(parsed.data.start) : undefined
+    const end = parsed.data.end ? new Date(parsed.data.end) : undefined
 
     const data = await dashboardService.getDashboardForOrg(orgId, { start, end })
     return NextResponse.json(data)
   } catch (err) {
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return apiErrorResponse(err)
   }
 }
 

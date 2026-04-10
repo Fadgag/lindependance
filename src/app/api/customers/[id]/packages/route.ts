@@ -16,12 +16,19 @@ export async function GET(_request: Request) {
         const orgId = session?.user?.organizationId;
         if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+        // Anti-IDOR : vérifier que le customer appartient à l'organisation du requêteur
+        const customerCheck = await prisma.customer.findFirst({
+            where: { id: customerId, organizationId: orgId }
+        });
+        if (!customerCheck) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
         const serviceId = url.searchParams.get('serviceId');
         const now = new Date();
 
         const packs = await prisma.customerPackage.findMany({
             where: {
                 customerId,
+                customer: { organizationId: orgId }, // double guard Anti-IDOR
                 sessionsRemaining: { gt: 0 },
                 OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
                 // Filtre optionnel par service

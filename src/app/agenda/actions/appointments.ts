@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { CreateAppointmentSchema, CreateAppointmentInput } from '@/schemas/appointments'
 import { auth } from '@/auth'
+import { logger } from '@/lib/logger'
 
 // Use centralized schema (organizationId must come from session)
 export async function createAppointmentAction(input: CreateAppointmentInput) {
@@ -21,7 +22,7 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
   if (!session || !session.user?.organizationId) {
     return { error: 'Unauthorized' }
   }
-  const orgId = session.user.organizationId as string
+  const orgId = session.user.organizationId as string // RAISON: narrowing garanti par la vérification !organizationId ligne 21
 
   // Récupérer la durée du service si besoin (scoped to organization to avoid IDOR)
   const service = await prisma.service.findFirst({ where: { id: serviceId, organizationId: orgId } })
@@ -32,10 +33,19 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
 
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return { error: 'Invalid start or end date' }
 
+  // Determine assigned staff: prefer provided staffId, else fallback to first staff in the org
+  let assignedStaffId = staffId
+  if (!assignedStaffId) {
+    const fallback = await prisma.staff.findFirst({ where: { organizationId: orgId } })
+    assignedStaffId = fallback?.id
+  }
+  if (!assignedStaffId) return { error: 'No staff available to assign' }
+
   // Anti-overlap : verifier si le staff a un rendez-vous qui chevauche [startDate, endDate)
+  // NOTE: use assignedStaffId (never undefined) to avoid Prisma ignoring the filter when staffId is undefined
   const conflict = await prisma.appointment.findFirst({
     where: {
-      staffId,
+      staffId: assignedStaffId,
       organizationId: orgId,
       AND: [
         { startTime: { lt: endDate } },
@@ -47,14 +57,6 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
   if (conflict) {
     return { error: "Ce membre du personnel est déjà occupé sur ce créneau." }
   }
-
-  // Determine assigned staff: prefer provided staffId, else fallback to first staff in the org
-  let assignedStaffId = staffId
-  if (!assignedStaffId) {
-    const fallback = await prisma.staff.findFirst({ where: { organizationId: orgId } })
-    assignedStaffId = fallback?.id
-  }
-  if (!assignedStaffId) return { error: 'No staff available to assign' }
 
   // Créer le rendez-vous
   const appointment = await prisma.appointment.create({
@@ -72,7 +74,7 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
   try {
     revalidatePath('/')
   } catch (e) {
-    console.warn('revalidatePath failed', e)
+    logger.warn('revalidatePath failed', e)
   }
 
   return appointment

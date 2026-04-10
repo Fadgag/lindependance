@@ -119,7 +119,13 @@ export async function PUT(request: Request) {
         if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
         const body = await request.json()
-        const { id, start, end, duration, serviceId, customerId, note, force } = body
+        // validate input with Zod schema to avoid malformed updates
+        const { UpdateAppointmentSchema } = await import('@/schemas/appointments')
+        const parsed = UpdateAppointmentSchema.safeParse(body)
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 })
+        }
+        const { id, start, end, duration, serviceId, customerId, note, force } = parsed.data
 
         if (!id) return NextResponse.json({ error: 'Missing appointment id' }, { status: 400 })
 

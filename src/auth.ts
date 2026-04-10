@@ -11,6 +11,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        // RAISON: `credentials` est typé par next-auth comme Partial<Record<string, unknown>>
+        // Les champs `email`/`password` sont garantis par la configuration du provider.
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         })

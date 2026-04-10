@@ -1,226 +1,155 @@
 # 🧪 Next.js Code Review Report - V4
 
-**Date :** 2026-04-07
-**Reviewer :** Quality Gate Automatique (Skill V3.1)
-**Scope :** Audit post-features (Auth.js v5 migration, Dashboard dénormalisé, dailyTarget, Settings UI)
-**Baseline :** V3 → 82/100 ⚠️ CHANGES REQUIRED
+> **Date :** 2026-04-10
+> **Scope :** Audit post-autofixer V3 — codebase complet, branche `feature/mobile-navigation`
+> **Baseline :** V3 (score 47/100 — BLOCK)
 
 ---
 
 ## 🧾 Summary
 
-- **Score :** 17/100
-- **Verdict :** ❌ BLOCK
-- **Stats :** Critical: 1 | Major: 4 | Minor: 6
+- **Score:** 75/100
+- **Verdict:** ⚠️ CHANGES REQUIRED
+- **Stats:** Critical: 0 | Major: 1 | Minor: 5
+- **Progression vs V3 :** +28 pts
 
-> **Contexte :** Régression sévère par rapport à V3. Les nouvelles features introduisent un bug financier critique (données CA sur mauvaise période), orphelinent le test proxy, et propagent les violations `any` dans les nouveaux composants. L'architecture Auth.js v5 est correcte en soi mais son intégration brise la suite de tests.
+---
+
+## ✅ Points résolus depuis V3
+
+| Item V3 | Statut |
+|---|---|
+| 🔴 IDOR `customers/[id]/packages` GET | ✅ Corrigé — double guard `customer.findFirst + customer: { organizationId }` |
+| 🟠 Zod manquant `reset-password/route.ts` | ✅ `ResetPasswordSchema.safeParse` ajouté |
+| 🟠 bcrypt rounds 10 → 12 | ✅ Corrigé — constante `BCRYPT_ROUNDS = 12` |
+| 🟠 `prisma as PrismaClient` x3 | ✅ Supprimés — `prisma` direct partout |
+| 🟠 DRY `analytics.service.ts` | ✅ Helper `toNumber(val)` extrait |
+| 🟡 `String(err)` → `apiErrorResponse` | ✅ `organization/settings/route.ts` corrigé |
+| 🟡 Sidebar `as Record<string,unknown>` | ✅ → `session?.user?.role` direct |
+| 🟡 `menuItems.ts` icône dupliquée | ✅ `Home` pour Accueil, `CalendarDays` pour Agenda |
+| 🟡 `console.error` prod code | ✅ → `clientLogger` dans `customers/[id]/page.tsx` + `useAppointments.ts` |
+| TypeScript (`tsc --noEmit`) | ✅ 0 erreur |
+| Tests (Vitest) | ✅ 11/11 (1 E2E skippé) |
+| 0 `as any` dans tout le code source | ✅ Confirmé |
+| 0 `as PrismaClient` dans tout le code source | ✅ Confirmé |
 
 ---
 
 ## 🔴 Critical Issues (Blocking)
 
-### [DATA] Signature mismatch dans `dashboard.service.ts` → Dashboard CA toujours sur "30days" quel que soit l'onglet
-
-**Fichiers concernés :**
-- `src/services/dashboard.service.ts` L13 — signature : `getDashboardForOrg(orgId: string, period: string = "30days")`
-- `src/app/api/stats/route.ts` L55 — appel : `getDashboardForOrg(orgId, { start: startDate, end: endDate })`
-- `src/app/api/stats/dashboard/route.ts` L18 — appel : `getDashboardForOrg(orgId, { start, end })`
-
-**Violation :** `global-rules.md` — "bug de paiement/compteur". Les deux routes API passent un objet `{ start, end }` là où la fonction attend une `string` (`"today"` | `"week"` | `"month"` | `"30days"`). Le `switch(period)` ne matche aucun case → fallback silencieux sur `"30days"` pour **toutes les requêtes avec dates personnalisées**. Le CA affiché dans le dashboard est **toujours celui des 30 derniers jours**, peu importe l'onglet sélectionné.
-
-**Impact :** L'utilisateur croit voir son CA du jour ou de la semaine ; il voit en réalité les 30 derniers jours. Faux pilotage financier.
-
-**Fix pour l'AutoFixer :** Unifier la signature. Deux approches possibles — choisir l'une :
-
-**Option A (recommandée) — aligner les routes sur la signature existante :**
-```typescript
-// src/app/api/stats/route.ts & src/app/api/stats/dashboard/route.ts
-// Remplacer :
-const stats = await dashboardService.getDashboardForOrg(orgId, { start: startDate, end: endDate })
-// Par :
-const period = url.searchParams.get('period') ?? '30days'
-const stats = await dashboardService.getDashboardForOrg(orgId, period)
-```
-
-**Option B — étendre la signature du service pour accepter les deux formes :**
-```typescript
-// src/services/dashboard.service.ts
-type PeriodParam = string | { start?: Date; end?: Date }
-export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodParam = "30days") {
-  // Si objet, override start/end directement après le switch
-}
-```
+_Aucune — zéro IDOR détecté. Tous les endpoints API scopernt correctement par `organizationId`._
 
 ---
 
 ## 🟠 Major Issues
 
-### [TYPES] `src/auth.ts` — 4 violations `any` documentées mais non conformes
+### [TYPES] `RoleGuard.tsx` — Doubles casts `as unknown as Record<string, unknown>` inutiles
 
-**Lignes :** 27, 29, 34, 36
-**Problem :**
-```typescript
-async jwt({ token, user }: any)              // L27 — any interdit
-token.organizationId = (user as any).organizationId  // L29
-async session({ session, token }: any)       // L34 — any interdit
-;(session.user as any).organizationId = ...  // L36
-```
-Le commentaire justificatif ("aligns with NextAuth v5 callback signatures") est insuffisant — `global-rules.md` exige un typage strict ou une déclaration dans `@/types/`.
+**Fichier :** `src/components/RoleGuard.tsx` L15, L22
 
-**Fix :**
-```typescript
-// src/types/next-auth.d.ts — à créer
-import 'next-auth'
-declare module 'next-auth' {
-  interface User { organizationId?: string | null; role?: string }
-  interface Session { user: { organizationId?: string | null; role?: string } & DefaultSession['user'] }
-}
-declare module 'next-auth/jwt' {
-  interface JWT { organizationId?: string | null; role?: string }
-}
+**Violation :** Global Rules — *"Interdiction du `unknown` : doit être réduit immédiatement via un type guard. Type Casting `as` : uniquement en dernier recours avec commentaire `// RAISON:`."*
 
-// src/auth.ts — callbacks typés, zéro any
-async jwt({ token, user }) {
-  if (user?.organizationId) token.organizationId = user.organizationId
-  if (user?.role) token.role = user.role
-  return token
-},
-async session({ session, token }) {
-  if (session.user) {
-    session.user.organizationId = token.organizationId ?? null
-    session.user.role = token.role ?? 'USER'
+**Problem :** Le type `session.user.role` est déjà déclaré `string | null` via l'augmentation de module `next-auth.d.ts` :
+```ts
+// next-auth.d.ts (déjà présent dans le projet)
+interface Session extends DefaultSession {
+  user: DefaultSession['user'] & {
+    id: string
+    organizationId?: string | null
+    role?: string | null   // ← DÉJÀ TYPÉ
   }
-  return session
-},
-```
-
----
-
-### [TESTS] `test/proxy.spec.ts` — Suite de tests orpheline, 0/3 tests passent
-
-**Violation :** `global-rules.md` — "Non-Régression : aucun agent n'a le droit de modifier un test existant pour faire passer son code."
-
-**Problem :**
-1. Le test mocke `../src/lib/nextAuthAdapter` → ce module a été **supprimé** lors de la migration Auth.js v5. Le mock ne peut jamais s'instancier.
-2. Le test importe `{ middleware }` depuis `../src/middleware` → `src/middleware.ts` n'exporte qu'un **default**, pas d'export nommé `middleware`.
-3. Résultat : la suite `proxy.spec.ts` échoue en import, bloquant le runner sur ce fichier.
-
-**Fix :** Le code source doit être adapté pour que le test puisse fonctionner SANS modifier le test :
-```typescript
-// src/lib/nextAuthAdapter.ts — recréer comme thin-wrapper mocquable
-export async function getTokenFromRequest(req: unknown): Promise<Record<string, unknown> | null> {
-  // Délègue à auth() de next-auth v5
 }
-export async function getTypedServerSession(): Promise<Record<string, unknown> | null> {
-  // Délègue à auth()
-}
-const nextAuthAdapter = { getTokenFromRequest, getTypedServerSession }
-export default nextAuthAdapter
-
-// src/middleware.ts — ajouter l'export nommé attendu par le test
-export { middleware } // en plus du default
 ```
 
----
-
-### [TYPES] `src/services/analytics.service.ts` — Code mort + 5 violations `any`
-
-**Problem :**
-1. `getOrgDashboard` (L35–95) **duplique exactement** `getDashboardForOrg` de `dashboard.service.ts`. Code mort non supprimé.
-2. 5 occurrences de `(price as any)?.toNumber` et `a.startTime as any`, en violation directe de `global-rules.md`.
-3. `getOrgStats` (L5) ignore `status` et les champs `finalPrice`/`PAID` → calcule un CA incorrect.
-
-**Fix :** Supprimer `getOrgDashboard` entièrement. Refactorer `getOrgStats` :
-```typescript
-// Remplacer (price as any)?.toNumber par :
-const priceVal = typeof (price as { toNumber?: () => number })?.toNumber === 'function'
-  ? (price as { toNumber: () => number }).toNumber()
-  : Number(price ?? 0)
+Pourtant `RoleGuard.tsx` contourne ce type avec :
+```ts
+// ❌ Actuel — bypass complet du système de types
+const user = session.user as unknown as Record<string, unknown>
+const userRole = typeof (user.role as unknown) === 'string' ? (user.role as string) : undefined
 ```
 
----
-
-### [DATA] `src/components/settings/FinanceSettings.tsx` — `dailyTarget` non chargé au montage
-
-**Ligne :** 8 — `const [target, setTarget] = useState(0)` 
-
-**Problem :** Le formulaire démarre toujours à `0` même si l'organisation a un objectif défini. L'utilisateur qui ouvre la page Settings voit `0 €`, croit que la valeur est réinitialisée, et peut écraser par accident sa configuration. La route `GET /api/organization/settings` existe mais n'est jamais appelée.
+Et `useIsAdmin` :
+```ts
+// ❌ Actuel
+const user = session?.user as unknown as Record<string, unknown> | undefined
+return (user && typeof (user.role as unknown) === 'string' && (user.role as string) === 'ADMIN')
+```
 
 **Fix :**
-```typescript
-useEffect(() => {
-  fetch('/api/organization/settings')
-    .then(r => r.json())
-    .then(data => { if (typeof data.dailyTarget === 'number') setTarget(data.dailyTarget) })
-    .catch(() => {}) // silencieux : state reste à 0 par défaut
-}, [])
+```ts
+// ✅ Utiliser le type augmenté directement
+export default function RoleGuard({ role, children }: RoleGuardProps) {
+  const { data: session, status } = useSession()
+  if (status === 'loading') return null
+  if (!session?.user) return null
+  return session.user.role === role ? <>{children}</> : null
+}
+
+export function useIsAdmin() {
+  const { data: session } = useSession()
+  return session?.user?.role === 'ADMIN'
+}
 ```
 
 ---
 
 ## 🟡 Minor Issues
 
-1. **`src/services/dashboard.service.ts` (L46–47)** — Clé `startTime` dupliquée dans l'objet `where` : `startTime: { gte: start }` est immédiatement écrasée par `startTime: { gte: start, lte: end }`. La première ligne est morte. Supprimer L46.
+1. **`src/app/api/auth/reset-password/route.ts` L10** — `token: z.string().min(1)` trop permissif. Le token est généré par `crypto.randomBytes(32).toString('hex')` → exactement **64 caractères hex**. La validation Zod devrait imposer `.min(64).max(64)` pour rejeter dès la couche HTTP les tokens manifestement invalides.
 
-2. **`src/app/(dashboard)/settings/layout.tsx` (L13)** — Onglet `"Mon Compte"` pointe vers `/settings/profile` — page inexistante → 404 garanti. Désactiver ou créer la page.
+2. **`src/app/agenda/actions/appointments.ts` L75** — `console.warn('revalidatePath failed', e)` dans une Server Action. Doit être remplacé par `logger.warn` de `@/lib/logger` (disponible côté serveur).
 
-3. **`src/app/dashboard/page.tsx` (L17)** — `redirect("/login")` → la page de login est à `/auth/signin`. Incohérence de routing.
+3. **`src/app/agenda/actions/appointments.ts` L24** — `const orgId = session.user.organizationId as string` — cast `as string` sans commentaire `// RAISON:`. La vérification `!session.user?.organizationId` à la ligne 21 garantit la valeur non-null, mais TypeScript ne la narrowe pas jusqu'à `string`. À documenter : `// RAISON: narrowing garanti par la vérification ligne 21`.
 
-4. **`src/components/dashboard/DashboardCharts.tsx` (L35)** — Faute typographique : `"Chiffre d affaires"` → `"Chiffre d'affaires"`.
+4. **`src/app/api/auth/reset-password/route.ts` L7** — `const BCRYPT_ROUNDS = 12` défini localement. La même valeur est utilisée hardcodée dans `password.service.ts` (ligne 31). Créer une constante partagée dans `@/lib/crypto.ts` pour éviter une dérive future.
 
-5. **`src/app/api/appointments/route.ts` (L85, L101)** et **`src/app/api/packages/route.ts` (L25, L41)** — `console.log` / `console.error` directs, non passés par `logger`. Issue **non résolue depuis V3**.
-
-6. **`src/app/api/organization/settings/route.ts` (L27–29, PATCH)** — Validation manuelle (`Number.isNaN`) sans schéma Zod. Violation de `global-rules.md` ("Toute donnée provenant de l'extérieur doit être validée par un schéma Zod").
+5. **`test/e2e/stats.dashboard.e2e.spec.ts`** — Test E2E toujours skippé (provider `postgresql` vs SQLite local). Recommandation : ajouter un job CI GitHub Actions avec un service Postgres (`services: postgres:`) pour réactiver ce test en intégration continue.
 
 ---
 
 ## 🧠 Global Recommendations
 
-1. **Signature unifiée du service dashboard** : décider d'une interface unique (`period: string` vs `{ start, end }`) et l'appliquer à toutes les routes. Actuellement `/api/stats` et `/api/stats/dashboard` font doublon — envisager de n'en garder qu'une.
+1. **Constante partagée BCRYPT_ROUNDS** : Créer `src/lib/crypto.ts` :
+   ```ts
+   export const BCRYPT_ROUNDS = 12
+   ```
+   Importer depuis `reset-password/route.ts` et `password.service.ts`.
 
-2. **`src/types/next-auth.d.ts`** : créer ce fichier une bonne fois pour toutes et supprimer tous les `as any` dans `auth.ts`. C'est la solution recommandée par la doc Next-Auth v5.
+2. **`RoleGuard` et `useIsAdmin`** : Après le fix, supprimer le `"as unknown as Record<string, unknown>"` pattern définitivement — le type augmenté est correctement configuré et ne devrait jamais nécessiter ce niveau de casting.
 
-3. **`analytics.service.ts`** : si conservé pour les tests unitaires, le nettoyer (retirer `getOrgDashboard`, corriger les `any`). Sinon le supprimer et pointer les tests vers `dashboard.service.ts`.
+3. **CI E2E** : Configurer `.github/workflows/ci.yml` avec :
+   ```yaml
+   services:
+     postgres:
+       image: postgres:16
+       env:
+         POSTGRES_PASSWORD: test
+       options: --health-cmd pg_isready
+   ```
 
-4. **Test coverage** : `proxy.spec.ts` doit redevenir vert. La priorité est de recréer `nextAuthAdapter.ts` comme adapter mocquable. Le middleware garde Auth.js v5 sous le capot mais expose les primitives testables.
-
-5. **`FinanceSettings.tsx`** : convertir en composant hybride (Server → `initialValue` en prop + Client) pour éviter le fetch côté client au montage. Pattern Next.js App Router recommandé.
+4. **Centraliser les Zod token schemas** : Le schema `ResetPasswordSchema` et le schema inline dans `forgot-password` pourraient partager un `z.string().min(64).max(64)` via `src/schemas/auth.ts`.
 
 ---
 
 ## 🧩 Refactoring Plan (Pour l'AutoFixer)
 
-### Priorité 1 — Corriger le bug financier (🔴 Critical)
-- `src/services/dashboard.service.ts` OU `src/app/api/stats/route.ts` + `src/app/api/stats/dashboard/route.ts` : aligner les signatures (Option A recommandée).
+### Priorité 1 — Types 🟠
+- **`src/components/RoleGuard.tsx`** : Supprimer les `as unknown as Record<string, unknown>`, utiliser `session.user.role` directement (type déjà déclaré dans `next-auth.d.ts`).
 
-### Priorité 2 — Restaurer les tests (🟠 Major)
-- Recréer `src/lib/nextAuthAdapter.ts` (thin-wrapper Auth.js v5).
-- Ajouter `export { middleware }` dans `src/middleware.ts`.
-- Vérifier que `pnpm test` passe à **3/3 suites**.
-
-### Priorité 3 — Typage strict (🟠 Major)
-- Créer `src/types/next-auth.d.ts`.
-- Refactorer `src/auth.ts` pour zéro `any`.
-- Refactorer `src/services/analytics.service.ts` : supprimer les `any` + supprimer `getOrgDashboard` (dead code).
-
-### Priorité 4 — Data integrity (🟠 Major)
-- `src/components/settings/FinanceSettings.tsx` : ajouter le `useEffect` de chargement initial.
-
-### Priorité 5 — Clean Code (🟡 Minor)
-- `dashboard.service.ts` L46 : supprimer la clé `startTime` dupliquée.
-- `settings/layout.tsx` : corriger le lien `/settings/profile`.
-- `dashboard/page.tsx` : corriger le `redirect`.
-- `DashboardCharts.tsx` : corriger la typographie.
-- Routes API : remplacer `console.log/error` par `logger`.
-- `settings/route.ts` PATCH : ajouter un schéma Zod.
+### Priorité 2 — Clean Code 🟡
+- **`src/app/api/auth/reset-password/route.ts`** : Renforcer `token: z.string().min(64).max(64)`.
+- **`src/app/agenda/actions/appointments.ts`** : `console.warn` → `logger.warn` + ajouter commentaire `// RAISON:` sur le cast `as string`.
+- **`src/lib/crypto.ts`** : Créer le fichier avec `export const BCRYPT_ROUNDS = 12`, l'importer dans `reset-password` et `password.service.ts`.
 
 ---
 
 ## 🧮 Final Decision
 
-**❌ BLOCK**
+**⚠️ CHANGES REQUIRED** — Score 75/100.
 
-Score calculé : 100 − 1×25 − 4×10 − 6×3 = **17/100**
+0 IDOR, 0 `as any`, 0 `as PrismaClient`. TypeScript clean, tests au vert.
+1 Major : `RoleGuard.tsx` bypasse le système de types avec `as unknown as Record<string,unknown>` alors que `session.user.role` est déjà typé via `next-auth.d.ts`.
+5 Minors : token Zod trop permissif, `console.warn` non loggé, cast non documenté, BCRYPT_ROUNDS non centralisé, E2E skippé.
 
-Le projet est sécurisé côté IDOR (tous les accès Prisma sont scopés `organizationId`) et l'authentification Auth.js v5 fonctionne. Cependant, le dashboard financier affiche des données erronées (régression critique sur le filtrage par période), la suite de tests est cassée à 33%, et la dette en `any` a augmenté avec les nouvelles features. L'AutoFixer doit traiter les 5 priorités dans l'ordre avant toute mise en production.
+Lance `/autofixer` pour atteindre 100/100.
 

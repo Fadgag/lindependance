@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { isAbortError } from '@/lib/utils'
 import { format, addMinutes, isValid, parse, differenceInMinutes } from "date-fns"
 import { Trash2, AlertTriangle, Zap } from "lucide-react"
@@ -93,6 +94,7 @@ export default function AppointmentModal({
             const svcId = String(initialData.serviceId ?? initialData.extendedProps?.serviceId ?? '')
             const noteVal = String(initialData.note ?? initialData.extendedProps?.note ?? '')
             const cId = String(initialData.customerId ?? initialData.extendedProps?.customerId ?? '')
+            // RAISON: customers est CustomerType[] — find() reçoit le type générique de la prop, cast vers CustomerType nécessaire
             const selected = customers.find((c) => (c as CustomerType).id === cId) || null
 
             setSelectedCustomerState(selected)
@@ -112,7 +114,8 @@ export default function AppointmentModal({
         // otherwise, if a range was selected in the calendar, use that
         if (selectedRange) {
             // selectedRange is a FullCalendar DateSelectArg; extract safely
-            const sr = selectedRange as DateSelectArg
+            // RAISON: selectedRange est passé comme DateSelectArg depuis FullCalendar — prop typée Range (alias local)
+        const sr = selectedRange as DateSelectArg
             const start = new Date(sr.start)
             const end = new Date(sr.end)
             const startStr = isValid(start) ? format(start, "HH:mm") : ""
@@ -148,6 +151,7 @@ export default function AppointmentModal({
                 if (res.ok) {
                     const data = await res.json()
                     // data: array of CustomerPackage with package info
+                    // RAISON: l'API retourne CustomerPackage[] — res.json() est unknown, shape vérifiée par le contrat API
                     setCustomerPackages((data || []) as CustomerPackage[])
                 }
             } catch (err) {
@@ -264,9 +268,9 @@ export default function AppointmentModal({
                 } catch (err) {
                     import('../../lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed', err))
                     // If the modal is still mounted, show an error and keep saving state
-                                    if (mountedRef.current) {
-                                                        alert("Erreur lors de la mise à jour de l&apos;agenda.")
-                                                    }
+                    if (mountedRef.current) {
+                        toast.error("Erreur lors de la mise à jour de l'agenda.")
+                    }
                 } finally {
                     if (mountedRef.current) setIsSaving(false)
                 }
@@ -279,8 +283,8 @@ export default function AppointmentModal({
                     setIsSaving(false)
                 } else {
                     const msg = extractErrorMessage(payload) || (String(payload) || `HTTP ${res.status}`)
-                    // show a user-friendly alert and keep modal open for fixes
-                    alert('Erreur serveur: ' + msg)
+                    // show a user-friendly toast and keep modal open for fixes
+                    toast.error('Erreur serveur: ' + msg)
                     setIsSaving(false)
                 }
             }
@@ -301,7 +305,7 @@ export default function AppointmentModal({
                     await onSuccess()
                 } catch (err) {
                     import('../../lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed (delete)', err))
-                    if (mountedRef.current) alert('Erreur lors de la mise à jour de l&apos;agenda.')
+                    if (mountedRef.current) toast.error("Erreur lors de la mise à jour de l'agenda.")
                 } finally {
                     if (mountedRef.current) setIsSaving(false)
                 }
@@ -309,7 +313,7 @@ export default function AppointmentModal({
                 let payload: unknown = null
                 try { payload = await res.json() } catch { /* ignore */ }
                 const msg = extractErrorMessage(payload) || `HTTP ${res.status}`
-                alert('Erreur suppression: ' + msg)
+                toast.error('Erreur suppression: ' + msg)
                 if (mountedRef.current) setIsSaving(false)
             }
         } catch (err) {

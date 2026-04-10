@@ -1,175 +1,171 @@
 # 🧪 Next.js Code Review Report - V1
 
-**Date :** 2026-04-01
-**Reviewer :** Quality Gate Automatique (Skill V3.1)
-**Scope :** Intégralité du code source post-migration Auth.js v5
+> **Date :** 2026-04-10
+> **Scope :** Feature `mobile-navigation` + codebase API routes + services
 
 ---
 
 ## 🧾 Summary
 
-- **Score:** 0/100
-- **Verdict:** ❌ BLOCK
-- **Stats:** Critical: 3 | Major: 5 | Minor: 4
+- **Score:** 68/100
+- **Verdict:** ⚠️ CHANGES REQUIRED
+- **Stats:** Critical: 0 | Major: 8 | Minor: 5
 
 ---
 
 ## 🔴 Critical Issues (Blocking)
 
-### [SÉCURITÉ] Middleware Next.js jamais exécuté — Toutes les routes sont publiques
-
-**Fichier :** `src/proxy.ts`
-**Violation :** Next.js 13+ (App Router) charge UNIQUEMENT `src/middleware.ts` ou `middleware.ts` à la racine. Un fichier nommé `proxy.ts` est invisible pour le framework.
-**Impact :** La protection de l'ensemble des routes protégées est **non-opérationnelle**. N'importe quel utilisateur non authentifié peut accéder à `/agenda`, `/customers`, `/stats`, etc. sans token valide. Faille de sécurité totale en production.
-**Fix :** Renommer `src/proxy.ts` → `src/middleware.ts`. Le contenu est fonctionnel, seul le nom de fichier est incorrect.
-
----
-
-### [IDOR] `actions/appointments.ts` — `service.findUnique` sans scope `organizationId`
-
-**Fichier :** `src/app/actions/appointments.ts`, ligne 27
-**Violation :** `global-rules.md` — "Aucune donnée ne doit être lue ou écrite sans vérifier l'appartenance à `session.organizationId`."
-**Code problématique :**
-```typescript
-// ❌ Pas de filtre organizationId
-const service = await prisma.service.findUnique({ where: { id: serviceId } })
-```
-**Impact :** Un attaquant authentifié dans `Org A` peut fournir un `serviceId` appartenant à `Org B`. Le RDV est créé dans son org, mais avec les données métier (prix, nom, durée) de l'autre organisation. Fuite de données inter-organisation.
-**Fix :**
-```typescript
-// ✅ Scoper par organizationId
-const service = await prisma.service.findFirst({
-  where: { id: serviceId, organizationId: orgId }
-})
-```
-
----
-
-### [TESTS] `test/proxy.spec.ts` — Import cassé sur une export inexistante
-
-**Fichier :** `test/proxy.spec.ts`, ligne 18
-**Violation :** `global-rules.md` — "Intégrité des Tests : Non-Régression". La migration vers Auth.js v5 a cassé ce test sans le corriger.
-**Code problématique :**
-```typescript
-import { middleware } from '../src/proxy'
-// ❌ src/proxy.ts n'exporte pas de named export "middleware".
-// Il exporte "default" (la fonction auth wrappée) et "config".
-```
-**Impact :** Ce test échoue à l'import. La suite de tests entière est considérée en erreur. La régression introduite par la migration n'a pas été détectée.
-**Fix :** Soit (a) adapter le test pour importer `default`, soit (b) exporter explicitement `export const middleware = auth(...)` dans `src/proxy.ts` (ou `middleware.ts`). Le test lui-même est cohérent avec son intention (tester le comportement du proxy), il faut corriger la source.
+_Aucune faille IDOR critique détectée. Toutes les routes API vérifient `organizationId`._
 
 ---
 
 ## 🟠 Major Issues
 
-### [TYPES] `src/auth.ts` — Usage de `as any` interdit
+### [TYPES] `menuItems.ts` — `any` interdit (x5)
 
-**Fichier :** `src/auth.ts`, lignes 28, 29, 35, 36
-**Problem :** Les callbacks `jwt` et `session` utilisent `(user as any)` et `(session.user as any)` alors que les types augmentés sont déjà déclarés dans `src/types/next-auth.d.ts`. Le cast est inutile et viole `global-rules.md`.
+**Problem :** Les 5 entrées du tableau `menuItems` castent l'icône en `as any`, et le type `icon: React.ComponentType<any>` viole la règle "0% `any`".
+
+```ts
+// ❌ Actuel
+icon: React.ComponentType<any>
+{ name: 'Accueil', icon: CalendarDays as any, ... }
+
+// ✅ Fix attendu
+import type { LucideProps } from 'lucide-react'
+icon: React.ComponentType<LucideProps>
+{ name: 'Accueil', icon: CalendarDays, ... }  // pas de cast nécessaire
+```
+
+**Fix :** Remplacer `ComponentType<any>` par `ComponentType<LucideProps>` depuis `lucide-react` et supprimer tous les `as any`.
+
+---
+
+### [TYPES] `CheckoutModal.tsx` — `as any` x3
+
+**Problem :** Lignes 88, 90, 94, 97 utilisent `as any` pour contourner le narrowing entre `CheckoutAppointment` et `AppointmentSummary`.
+
+**Fix :** Créer un type union discriminé ou une fonction de narrowing typée dans `@/types/models.ts` pour accéder à `extras`, `note`, `paymentMethod` sans `as any`.
+
+---
+
+### [CLEAN CODE] `checkout/route.ts` POST — `console.error` de debug (ligne 41)
+
+**Problem :** `console.error('Checkout Error:', err)` laissé dans le handler POST au lieu d'utiliser `apiErrorResponse(err)` (qui wrapping le logger correctement).
+
 **Fix :**
-```typescript
-// ✅ Les types JWT et Session sont augmentés dans next-auth.d.ts
-async jwt({ token, user }) {
-  if (user) {
-    token.organizationId = user.organizationId  // typed via JWT augmentation
-    token.role = user.role
-  }
-  return token
-},
-async session({ session, token }) {
-  if (session.user) {
-    session.user.organizationId = token.organizationId
-    session.user.role = token.role
-  }
-  return session
-},
+```ts
+// ❌ Actuel
+} catch (err) {
+    console.error('Checkout Error:', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+}
+
+// ✅ Fix
+} catch (err) {
+    return apiErrorResponse(err)
+}
 ```
 
 ---
 
-### [DEAD CODE] `src/lib/nextAuthOptions.ts` — Fichier legacy avec `as any` massif
+### [CLEAN CODE] `forgot-password/route.ts` — `console.error` de debug (ligne 40) + `prisma as PrismaClient` inutile
 
-**Fichier :** `src/lib/nextAuthOptions.ts`, lignes 15, 75, 90
-**Problem :** Ce fichier est la configuration de l'ancienne v4 de NextAuth. Il n'est plus utilisé par `src/auth.ts` mais reste dans le dépôt avec `adapter: PrismaAdapter(prisma) as any` et `} as any` à l'export. Il représente une dette technique et une source de confusion. Le `session: { strategy: 'jwt' }` ici n'est plus opérationnel.
-**Fix :** Supprimer `src/lib/nextAuthOptions.ts`. Vérifier qu'aucun fichier ne l'importe encore (`grep -r "nextAuthOptions" src/`).
+**Problem 1 :** `console.error('Resend API key not configured')` doit être remplacé par `logger.error(...)`.
 
----
+**Problem 2 :** `const db = prisma as PrismaClient` est un cast inutile — `prisma` est déjà typé `PrismaClient` (viol de la règle "as en dernier recours documenté").
 
-### [SPEC] `src/app/api/stats/route.ts` — Non-conforme à la spec `dashboard.md`
-
-**Fichier :** `src/app/api/stats/route.ts`
-**Problem (3 violations) :**
-1. `findMany` + JS `reduce` pour calculer le CA : extrêmement inefficace sur des volumes importants (charge tous les enregistrements en mémoire). Doit utiliser l'agrégat Prisma `_sum`.
-2. Aucun filtre `status: 'COMPLETED'` — la spec impose de ne compter que les RDV complétés.
-3. Aucune validation Zod des query params `startDate`/`endDate` — la spec l'impose (`global-rules.md` + `dashboard.md`).
 **Fix :**
-```typescript
-// ✅ Utiliser l'agrégat Prisma + filtre status
-const result = await db.appointment.aggregate({
-  where: { organizationId: orgId, status: 'COMPLETED' },
-  _sum: { price: true }
-})
-const total = result._sum.price ?? 0
+```ts
+// Supprimer :
+const db = prisma as PrismaClient
+// Utiliser prisma directement
+
+// Remplacer :
+console.error('Resend API key not configured')
+// Par :
+logger.error('Resend API key not configured')
 ```
 
 ---
 
-### [SPEC] `src/services/analytics.service.ts` — Couche service absente
+### [CLEAN CODE] `users/route.ts` — `prisma as PrismaClient` inutile (ligne 6)
 
-**Problem :** La spec `specs/features/dashboard.md` exige la création de `src/services/analytics.service.ts` avec la méthode `getOrgStats(orgId, startDate, endDate)`. Cette couche est totalement absente. La logique métier est directement dans le handler API, violant l'architecture DRY imposée.
-**Fix :** Créer `src/services/analytics.service.ts` et y déplacer toute la logique de calcul du CA, du comptage clients et du taux d'occupation. Le handler API ne doit faire que appeler ce service.
+**Problem :** Même pattern que `forgot-password` : `const db = prisma as PrismaClient`. Cast non documenté et inutile.
+
+**Fix :** Utiliser `prisma` directement (même type).
 
 ---
 
-### [DRY] Double définition de `apiErrorResponse`
+### [ZOD MANQUANT] `appointments/route.ts` PUT — Corps non validé via Zod
 
-**Fichiers :** `src/lib/api.ts` ET `src/lib/utils.ts`
-**Problem :** La fonction `apiErrorResponse` est définie deux fois avec des signatures légèrement différentes. `src/app/api/customers/route.ts` importe depuis `utils.ts`, les autres routes depuis `lib/api.ts`. Incohérence garantie.
-**Fix :** Supprimer la version de `utils.ts`, conserver uniquement celle de `src/lib/api.ts`, et corriger l'import dans `customers/route.ts`.
+**Problem :** Le handler `PUT` (ligne 122) déstructure `body` directement sans validation Zod :
+```ts
+const { id, start, end, duration, serviceId, customerId, note, force } = body
+```
+Le schéma `UpdateAppointmentSchema` existe dans `@/schemas/appointments.ts` mais n'est pas utilisé ici.
+
+**Fix :** Utiliser `UpdateAppointmentSchema.safeParse(body)` avant toute déstructuration.
+
+---
+
+### [ARCHITECTURE] `MobileSheet.tsx` — `onClose` passé comme prop sans ESLint-disable justifié
+
+**Problem :** Le warning TS71007 "Props must be serializable" est contourné en silence (`// eslint-disable-next-line react-hooks/exhaustive-deps`). La prop `onClose` est une fonction non-sérialisable passée entre deux composants `"use client"`, ce qui est acceptable techniquement, mais le commentaire de suppression ne documente pas la raison.
+
+**Fix :** Ajouter un commentaire explicite `// RAISON: onClose est un callback client-to-client, non exposé au serveur.`
+
+---
+
+### [ARCHITECTURE] `MobileNav.tsx` — Import `React` manquant (implicite)
+
+**Problem :** `menuItems.ts` importe `React` (pour `ComponentType`) mais `MobileNav.tsx` n'importe pas `React` alors que le projet cible peut ne pas avoir le JSX transform automatique activé.
+
+**Fix :** Ajouter `import React from 'react'` dans `MobileNav.tsx` pour garantir la compatibilité.
 
 ---
 
 ## 🟡 Minor Issues
 
-- **`src/app/api/packages/route.ts` (L25, L41) :** Utilise `console.error` directement au lieu du `logger` centralisé (`src/lib/logger.ts`). Violation de `global-rules.md` ("Pas de Logs de Debug").
-- **`src/lib/api.ts` (L6) :** Idem, `console.error` au lieu du `logger`.
-- **`src/app/actions/appointments.ts` (L75) :** `console.warn` résiduel.
-- **`src/app/api/customers/route.ts` (L23, L36, L65, L116) :** Usage répété de `session.user?.organizationId as string`. Préférer une assertion propre après la vérification de nullité déjà présente en amont.
+- **`Sidebar.tsx` L16 :** Double classe conflictuelle `hidden md:flex ... flex` (Tailwind warning lint). Supprimer le `flex` nu et garder uniquement `hidden md:flex flex-col`.
+- **`MobileHeader.tsx` :** Deux classes background `bg-[var(--studio-bg)] bg-white` en concurrence. Garder uniquement `bg-white` ou introduire une variable Tailwind `bg-studio-bg` cohérente.
+- **`MobileSheet.tsx` :** Lignes vides superflues en fin de fichier (x4). Supprimer.
+- **`MobileNav.tsx` :** Lignes vides superflues en fin de fichier (x2). Supprimer.
+- **`menuItems.ts` :** `import React from 'react'` importé uniquement pour le typage — utiliser `import type React from 'react'` ou simplement `import type { ComponentType } from 'react'`.
 
 ---
 
 ## 🧠 Global Recommendations
 
-1. **Renommage critique immédiat :** Le seul renommage `proxy.ts → middleware.ts` suffit à rétablir la sécurité de base. C'est la priorité absolue.
-2. **Supprimer le fichier `nextAuthOptions.ts`** : Il est source de confusion (double config auth), contient du `any` massif et n'est plus nécessaire.
-3. **Implémenter la couche `services/`** : La logique d'agrégation des stats doit sortir des handlers API pour être testable unitairement (exigence spec + architecture).
-4. **Type Augmentation Auth.js :** Les types `next-auth.d.ts` sont bien définis — exploiter ces types systématiquement au lieu de recourir à `as any`.
-5. **Tests E2E manquants** : La spec `dashboard.md` exige un test Playwright comparant les chiffres entre deux organisations (isolation multi-tenant). Aucun test de ce type n'existe dans `test/`.
+1. **LucideIcon type :** Adopter `LucideIcon` (depuis `lucide-react`) comme type standard pour toutes les icônes dans le projet — évite les `as any` et `ComponentType<any>` dans les menus, boutons et modals.
+2. **Zod systématique sur tous les PUT/PATCH body :** Le PUT de `/api/appointments` est le seul handler sans validation Zod du body — appliquer la règle uniformément.
+3. **`prisma as PrismaClient` à supprimer partout :** Pattern détecté dans 2 fichiers. `lib/prisma.ts` exporte déjà un client typé, ce cast crée une fausse confiance.
+4. **Tests manquants pour feature mobile :** `MobileHeader` et `MobileSheet` n'ont pas de tests unitaires (Vitest + RTL). Ajouter `test/components/mobile-header.spec.tsx` et `test/components/mobile-sheet.spec.tsx` pour garantir la non-régression.
+5. **`console.error` centralisé :** 2 `console.error` bruts (checkout + forgot-password) contournent le logger centralisé. Unifier via `logger.error`.
 
 ---
 
 ## 🧩 Refactoring Plan (Pour l'AutoFixer)
 
-1. **Priorité 1 — Sécurité (CRITIQUE) :**
-   - Renommer `src/proxy.ts` → `src/middleware.ts`
-   - Corriger l'import `{ middleware }` dans `test/proxy.spec.ts` (ou exporter correctement depuis le middleware)
-   - Corriger `actions/appointments.ts` L27 : `findUnique` → `findFirst` avec `organizationId`
+1. **Priorité 1 — Types :**
+   - `menuItems.ts` : `LucideIcon` à la place de `ComponentType<any>`, supprimer tous `as any`.
+   - `CheckoutModal.tsx` : Créer fonction de narrowing typée, supprimer `as any` x3.
+   - `users/route.ts` + `forgot-password/route.ts` : Supprimer `prisma as PrismaClient`.
 
-2. **Priorité 2 — Types/Zod :**
-   - Supprimer les 4 `as any` de `src/auth.ts` en utilisant les types augmentés
-   - Supprimer `src/lib/nextAuthOptions.ts`
-   - Unifier `apiErrorResponse` dans `src/lib/api.ts` uniquement
+2. **Priorité 2 — Zod / Validation :**
+   - `appointments/route.ts` PUT : Ajouter `UpdateAppointmentSchema.safeParse(body)`.
 
-3. **Priorité 3 — Clean Code & Conformité Spec :**
-   - Réécrire `src/app/api/stats/route.ts` avec Prisma `_sum` + filtre `COMPLETED`
-   - Créer `src/services/analytics.service.ts` avec `getOrgStats`
-   - Remplacer tous les `console.error` orphelins par `logger.error`
+3. **Priorité 3 — Clean Code :**
+   - `checkout/route.ts` : Remplacer `console.error` + `NextResponse` brut par `apiErrorResponse`.
+   - `forgot-password/route.ts` : Remplacer `console.error` par `logger.error`.
+   - `Sidebar.tsx` : Corriger classe Tailwind conflictuelle.
+   - `MobileHeader.tsx` : Unifier les classes background.
+   - Nettoyer lignes vides dans `MobileSheet.tsx` et `MobileNav.tsx`.
 
 ---
 
 ## 🧮 Final Decision
 
-**❌ REJECTED**
+**⚠️ CHANGES REQUIRED** — Aucune faille de sécurité IDOR bloquante. Le scoping `organizationId` est correctement appliqué sur toutes les routes API auditées. Les blocages sont des violations de type (`any`) et de clean code (`console.error`, `prisma as PrismaClient`, PUT sans Zod) à corriger avant merge en `main`.
 
-Le projet est **non-déployable en l'état**. La faille critique (middleware non chargé par Next.js) rend l'ensemble des routes protégées accessibles sans authentification. L'AutoFixer doit corriger les 3 issues Critical avant tout autre travail.
+Lancer `/autofixer` pour appliquer automatiquement les correctifs.
 

@@ -4,7 +4,7 @@ import { GET } from '../../src/app/api/stats/dashboard/route'
 // Mock prisma groupBy and counts used by the service
 vi.mock('../../src/lib/prisma', () => ({
   prisma: {
-    appointment: { groupBy: vi.fn() },
+    appointment: { findMany: vi.fn() },
     customer: { count: vi.fn() },
     staff: { count: vi.fn() },
   },
@@ -25,9 +25,11 @@ beforeEach(() => {
 describe('/api/stats/dashboard', () => {
   it('returns correct totals when groupBy yields Decimal-like strings', async () => {
     ;(auth as any).mockResolvedValueOnce({ user: { organizationId: 'org-1' } })
-    ;(prisma.appointment.groupBy as any).mockResolvedValueOnce([
-      { startDate: '2026-03-30', _sum: { price: '50.5' }, _count: { _all: 1 } },
-      { startDate: '2026-03-31', _sum: { price: '100.25' }, _count: { _all: 2 } },
+    // The service uses findMany to fetch appointments for the period; mock that
+    ;(prisma.appointment.findMany as any).mockResolvedValueOnce([
+      { startTime: new Date('2026-03-30T10:00:00Z'), service: { price: 50.5 }, status: 'CONFIRMED', finalPrice: null },
+      { startTime: new Date('2026-03-31T12:00:00Z'), service: { price: 100.25 }, status: 'CONFIRMED', finalPrice: null },
+      { startTime: new Date('2026-03-31T15:00:00Z'), service: { price: null }, status: 'CONFIRMED', finalPrice: null },
     ])
     ;(prisma.customer.count as any).mockResolvedValueOnce(3)
     ;(prisma.staff.count as any).mockResolvedValueOnce(2)
@@ -45,8 +47,8 @@ describe('/api/stats/dashboard', () => {
 
   it('enforces organization isolation', async () => {
     // auth returns org-A; groupBy mock should receive where.organizationId === 'org-A'
-    const groupByMock = (prisma.appointment.groupBy as any)
-    groupByMock.mockImplementationOnce((opts: any) => {
+    const findManyMock = (prisma.appointment.findMany as any)
+    findManyMock.mockImplementationOnce((opts: any) => {
       if (opts.where.organizationId !== 'org-A') throw new Error('organization leak')
       return []
     })

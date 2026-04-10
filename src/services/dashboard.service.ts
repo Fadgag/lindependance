@@ -151,6 +151,7 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
       totalRevenue: totalProjected.toNumber(),       // legacy
       realizedRevenue: totalRealized.toNumber(),     // CA encaissé (PAID × finalPrice)
       projectedRevenue: totalProjected.toNumber(),   // CA prévisionnel (tous RDV × prix service)
+        totalProjected: totalProjected.toNumber(),
       appointmentCount: appointments.length,
       newCustomerCount,
       staffCount,

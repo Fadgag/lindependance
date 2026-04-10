@@ -1,150 +1,165 @@
 # 🧪 Next.js Code Review Report - V8
 
-**Date :** 2026-04-07
-**Reviewer :** Quality Gate Automatique (Skill V3.1)
-**Scope :** Audit post-AutoFixer V7
-**Baseline :** V7 → 76/100 ⚠️ CHANGES REQUIRED
-**Tests :** 8/8 fichiers ✅ — 12/12 tests ✅
-**Build :** ✅ next build SUCCESS
+> **Date :** 2026-04-10
+> **Scope :** Audit post-autofixer V7 — branche `feature/mobile-navigation`
+> **Baseline :** V7 (score 68/100 — CHANGES REQUIRED → autofixer appliqué)
 
 ---
 
 ## 🧾 Summary
 
-- **Score :** 95/100
-- **Verdict :** ✅ APPROVED
-- **Stats :** Critical: 0 | Major: 0 | Minor: 2
-
-> **Contexte :** Progression de +19 points vs V7. Les 2 Major sont éliminés. `auth.ts` utilise maintenant les types `next-auth.d.ts` directement. `getOrgDashboard` (dead code) est supprimé. `analytics.service.ts` utilise `new Decimal(String(price))` sans double-cast. `api.ts` utilise `logger.error`. `CheckoutModal.tsx` n'a plus de `as any` non documentés. `DashboardCharts.tsx` documente son cast Recharts. Il reste 2 Minor acceptables : un `as any` Recharts inline documenté et des `console.error` natifs dans quelques routes secondaires non critiques.
-
----
-
-## ✅ Correctifs Confirmés (AutoFixer V7)
-
-| Issue V7 | Statut |
-|----------|--------|
-| `src/auth.ts` — casts `as { organizationId?... }` inutiles (🟠 Major) | ✅ FIXED — accès direct via `next-auth.d.ts` |
-| `src/services/analytics.service.ts` — `as unknown as { toNumber?... }` (🟠 Major) | ✅ FIXED — `new Decimal(String(price))` |
-| `getOrgDashboard` dead code dans `analytics.service.ts` (🟡 Minor) | ✅ FIXED — fonction supprimée |
-| `test/analytics.service.spec.ts` — testait `getOrgDashboard` (🟡 Minor) | ✅ FIXED — migré vers `getDashboardForOrg` |
-| `src/lib/api.ts` — `console.error` brut (🟡 Minor) | ✅ FIXED — `logger.error` |
-| `CheckoutModal.tsx` — `as any` non documentés (🟡 Minor) | ✅ FIXED — casts typés + commentaires `// RAISON:` |
-| `DashboardCharts.tsx` — `formatter: any` sans commentaire (🟡 Minor) | ✅ FIXED — `// RAISON:` ajouté |
-| `dashboard.service.ts` — `totalRealized`/`totalProjected` absents du summary (🟡 Minor) | ✅ FIXED — champs explicites exposés |
+- **Score:** 81/100
+- **Verdict:** ⚠️ CHANGES REQUIRED
+- **Stats:** Critical: 0 | Major: 1 | Minor: 3
+- **Progression vs V7 post-fix :** +13 pts nets (régression corrigée + nouvelles issues de fond détectées)
 
 ---
 
-## 🔴 Critical Issues
+## ✅ Points résolus depuis V7
 
-_Aucune issue critique détectée._ ✅
+| Item V7 | Statut |
+|---|---|
+| 🟠 `src/proxy.ts` — TS2339 `auth` inexistant sur `NextRequest` | ✅ Corrigé — `NextAuthRequest` depuis `next-auth` |
+| 🟠 `users/route.ts` — bcrypt `10` hardcodé | ✅ Corrigé — `BCRYPT_ROUNDS` importé |
+| 🟡 `api.ts` — `console.error` hors lib | ✅ Corrigé — `logger.error` |
+| 🟡 `AppointmentScheduler.tsx` — 5 `alert()` | ✅ Corrigés — `toast.error()` |
+| 🟡 `AppointmentModal.tsx` — 4 `alert()` | ✅ Corrigés — `toast.error()` |
+| 🟡 `analytics.service.ts` — cast sans RAISON | ✅ Commentaire `// RAISON:` ajouté |
+| TypeScript `tsc --noEmit` (src/) | ✅ **0 erreur** |
+| Tests (Vitest) | ✅ **11/11** (1 E2E skippé) |
+| `as any` dans le code source | ✅ **0** |
+| `console.*` hors `lib/` | ✅ **0** |
+| `alert()` dans composants | ✅ **0** |
+
+---
+
+## 🔴 Critical Issues (Blocking)
+
+_Aucune. Zéro IDOR confirmé sur toutes les routes._
 
 ---
 
 ## 🟠 Major Issues
 
-_Aucune issue majeure détectée._ ✅
+### [OBSERVABILITÉ] `src/app/api/stats/dashboard/route.ts` — Erreur silencieuse en prod
+
+**Fichier :** `src/app/api/stats/dashboard/route.ts` L20-22
+
+**Problem :**
+```ts
+// ❌ catch muet — erreur perdue, aucune trace en prod
+} catch (err) {
+  return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+}
+```
+
+Contrairement à toutes les autres routes du projet qui utilisent `apiErrorResponse(err)` (qui appelle `logger.error`), cette route swallow silencieusement toute exception. En production, une panne de Prisma ou du service dashboard est invisible dans les logs.
+
+**Impact :** Opaque en prod — impossible de diagnostiquer les pannes du dashboard. Viole la règle `global-rules.md` "Pas de Logs de Debug" (par extension : les erreurs serveur doivent être loggées).
+
+**Fix :**
+```ts
+import apiErrorResponse from '@/lib/api'
+// ...
+} catch (err) {
+  return apiErrorResponse(err)
+}
+```
 
 ---
 
 ## 🟡 Minor Issues
 
-### 1. `src/app/api/appointments/[id]/checkout/route.ts` (L39) — `console.error` natif
+### 1. `src/components/calendar/AppointmentModal.tsx` — 461 lignes (seuil global-rules : 200)
 
-```typescript
-console.error('Checkout Error:', err)
+**Règle violée :** `global-rules.md` — "composants < 200 lignes, logique métier hors de l'UI".
+
+Le composant combine :
+- Logique de fetch des forfaits clients (lignes 130-160)
+- Logique de calcul horaire / validation (lignes 165-185)
+- Logique de sauvegarde + suppression (lignes 220-320)
+- Rendu JSX (lignes 330-461)
+
+**Fix recommandé :**
+- Extraire `useCustomerPackages(customerId, serviceId)` → `src/hooks/useCustomerPackages.ts`
+- Extraire `useAppointmentForm(initialData, selectedRange)` → `src/hooks/useAppointmentForm.ts`
+- Le composant ne devrait contenir que le JSX + les appels aux hooks
+
+### 2. Casts `as` sans commentaire `// RAISON:` dans 4 fichiers
+
+| Fichier | Ligne | Cast |
+|---|---|---|
+| `src/app/api/staff/route.ts` | L12 | `(staff as StaffRow[])` |
+| `src/components/calendar/AppointmentModal.tsx` | L97 | `(c as CustomerType).id` |
+| `src/components/calendar/AppointmentModal.tsx` | L116 | `selectedRange as DateSelectArg` |
+| `src/components/calendar/AppointmentModal.tsx` | L152 | `(data || []) as CustomerPackage[]` |
+
+**Fix :** Ajouter `// RAISON:` sur chacun :
+- `staff/route.ts` → `// RAISON: Prisma retourne StaffRow[] — type local aligné sur la sélection Prisma`
+- `AppointmentModal.tsx L97` → `// RAISON: customers est CustomerType[] — cast nécessaire car find() reçoit le type générique`
+- `AppointmentModal.tsx L116` → `// RAISON: selectedRange est passé comme DateSelectArg depuis FullCalendar`
+- `AppointmentModal.tsx L152` → `// RAISON: API retourne CustomerPackage[] — res.json() est unknown`
+
+### 3. `src/app/api/stats/dashboard/route.ts` — Dates non validées via Zod
+
+```ts
+// Validation absente : new Date("garbage") crée un Invalid Date silencieux
+const start = startParam ? new Date(startParam) : undefined
+const end = endParam ? new Date(endParam) : undefined
 ```
 
-**Problem :** Console directe au lieu de `logger.error`. Le pattern `logger.error` a été adopté dans `lib/api.ts` mais pas encore propagé à toutes les routes.
+Contrairement à `stats/route.ts` qui valide les params avec `z.object({ start: z.string().optional(), end: z.string().optional() })`, `stats/dashboard/route.ts` ne fait aucune validation des searchParams. Une date invalide produit un `Invalid Date` qui corrompt silencieusement les requêtes Prisma.
 
 **Fix :**
-```typescript
-import { logger } from '@/lib/logger'
-// ...
-logger.error('Checkout Error:', err)
+```ts
+const paramsSchema = z.object({
+  start: z.string().datetime({ offset: true }).optional(),
+  end: z.string().datetime({ offset: true }).optional(),
+})
+const params = paramsSchema.safeParse({
+  start: url.searchParams.get('start') ?? undefined,
+  end: url.searchParams.get('end') ?? undefined,
+})
+if (!params.success) return NextResponse.json({ error: 'Invalid date params' }, { status: 400 })
+const start = params.data.start ? new Date(params.data.start) : undefined
+const end = params.data.end ? new Date(params.data.end) : undefined
 ```
-
----
-
-### 2. `src/app/customers/[id]/page.tsx` (L31) + `src/hooks/useAppointments.ts` (L22) — `console.error` côté client
-
-```typescript
-console.error('Erreur chargement client', err)   // page.tsx
-if (!isAbortError(err)) console.error(err)        // useAppointments.ts
-```
-
-**Problem :** Composants client logguent directement. `src/lib/clientLogger.ts` existe et expose `clientLogger.error(...)` avec guard dev/prod.
-
-**Fix :**
-```typescript
-import { clientLogger } from '@/lib/clientLogger'
-// ...
-clientLogger.error('Erreur chargement client', err)
-```
-
----
-
-## 🛡️ Bilan Sécurité (Anti-IDOR)
-
-**Aucune faille IDOR détectée.** Vérifications exhaustives :
-
-| Route | Scoping `organizationId` | Verdict |
-|-------|--------------------------|---------|
-| `GET /api/appointments` | `where: { organizationId: session.user.organizationId }` | ✅ |
-| `POST /api/appointments` | `organizationId: session.user.organizationId` à la création | ✅ |
-| `POST /api/appointments/[id]/checkout` | `updateMany where: { organizationId }` | ✅ |
-| `GET /api/customers` | `where: { organizationId: orgId }` | ✅ |
-| `PUT /api/customers` | `where: { id, organizationId: orgId }` | ✅ |
-| `GET /api/customers/[id]/packages` | `findFirst where: { organizationId: orgId }` sur customer et package | ✅ |
-| `GET /api/stats/dashboard` | `getDashboardForOrg(orgId, ...)` — scoping au service | ✅ |
-| `PATCH /api/organization/settings` | Zod + `where: { id: orgId }` | ✅ |
-| `GET /api/users` | `where: { organizationId }` | ✅ |
-| `dashboard.service.getDashboardForOrg` | Tous les Prisma queries scopés par `organizationId: orgId` | ✅ |
-| E2E isolation test | `stats.dashboard.e2e.spec.ts` valide Org A ≠ Org B | ✅ |
-
----
-
-## 🟰 Bilan Typage
-
-| Règle | Statut |
-|-------|--------|
-| Zéro `any` non documenté | ✅ — 1 seul `as any` résiduel dans `DashboardCharts.tsx`, documenté `// RAISON: Recharts` |
-| Zéro `as unknown as` non documenté | ✅ — `dashboard.service.ts` L62 documenté `// RAISON:` |
-| Validation Zod sur inputs externes | ✅ — PATCH settings, POST appointments |
-| Types `next-auth.d.ts` cohérents | ✅ — `auth.ts` utilise les types directement sans cast |
-| `AppointmentSummary` / `CheckoutAppointment` partagés | ✅ — `models.ts` à jour |
 
 ---
 
 ## 🧠 Global Recommendations
 
-1. **Logger uniforme côté client :** Propager `clientLogger` dans `customers/[id]/page.tsx` et `useAppointments.ts` (2 lignes chacun). Faible effort, bonne pratique.
+1. **`AppointmentModal.tsx` refactoring** : La décomposition en hooks personnalisés est la priorité architecture pour descendre sous 200 lignes. C'est la plus grande dette technique UI du projet.
 
-2. **Logger uniforme côté serveur :** Propager `logger.error` dans `checkout/route.ts`, `forgot-password/route.ts`, et `agenda/actions/appointments.ts`. Sprint nettoyage 15 min.
+2. **Uniformiser le pattern error-handler** : `stats/dashboard/route.ts` était la seule route sans `apiErrorResponse`. Après ce fix, 100% des routes utiliseront `logger.error` via `apiErrorResponse` — pattern cohérent.
 
-3. **`proxy.ts` — cast résiduel :** `const maybeReq = req as unknown as Record<string, unknown>` reste nécessaire car `auth()` de next-auth injecte `.auth` de manière dynamique sur la request. Le commentaire `// Avoid using any` est insuffisant — ajouter `// RAISON: next-auth v5 injecte req.auth dynamiquement, non typé dans NextRequest`.
+3. **Ajouter `tsconfig.tsbuildinfo` au `.gitignore`** (recommandation V7 ouverte) : le cache stale avait généré 21 fausses erreurs TS en cascade.
 
-4. **`analytics.service.ts` `getOrgStats`** : `where: Record<string, unknown>` peut être remplacé par un type Prisma explicite (`Prisma.AppointmentWhereInput`) pour supprimer la dernière utilisation de `Record<string, unknown>` dans les services.
+4. **E2E** : Activer un job GitHub Actions avec Postgres 16.
 
 ---
 
-## 🧩 Refactoring Plan (Pour l'AutoFixer — si sprint suivant)
+## 🧩 Refactoring Plan (Pour l'AutoFixer)
 
-### Priorité 1 — Clean Code (🟡 Minor)
-- `src/app/api/appointments/[id]/checkout/route.ts` : `console.error` → `logger.error`.
-- `src/app/customers/[id]/page.tsx` : `console.error` → `clientLogger.error`.
-- `src/hooks/useAppointments.ts` : `console.error` → `clientLogger.error`.
+### Priorité 1 — Major 🟠
+- **`src/app/api/stats/dashboard/route.ts`** : Remplacer `catch (err) { return NextResponse.json(...) }` par `return apiErrorResponse(err)`. Ajouter import `apiErrorResponse`.
 
-### Priorité 2 — Types (🟡 Minor)
-- `src/proxy.ts` L7 : Documenter `// RAISON: next-auth v5 injecte req.auth dynamiquement`.
-- `src/services/analytics.service.ts` L5 : Remplacer `Record<string, unknown>` par `Prisma.AppointmentWhereInput`.
+### Priorité 2 — Minors 🟡
+- **`src/app/api/stats/dashboard/route.ts`** : Ajouter validation Zod sur `startParam`/`endParam`.
+- **`src/app/api/staff/route.ts`** L12 : Ajouter `// RAISON:` sur le cast `as StaffRow[]`.
+- **`src/components/calendar/AppointmentModal.tsx`** L97, L116, L152 : Ajouter `// RAISON:` sur les 3 casts.
+
+> Note : Le refactoring de `AppointmentModal.tsx` (461 → <200 lignes) est une tâche `/builder` dédiée, pas un autofixer one-shot.
 
 ---
 
 ## 🧮 Final Decision
 
-**✅ APPROVED**
+**⚠️ CHANGES REQUIRED** — Score **81/100** (+13 vs V7 post-autofixer estimé à ~92 → réévaluation sur base 100 à froid).
 
-Score calculé : 100 − 0×25 − 0×10 − 2×3 = **94/100** *(arrondi à 95 — les 2 Minor sont des `console` dans du code non-critique)*
+0 IDOR · 0 `as any` · 0 `alert()` · 0 `console.*` hors lib · TypeScript **0 erreur src/** · 11/11 tests.
+1 Major : `stats/dashboard/route.ts` — erreur swallowed, invisible en prod.
+3 Minors : taille AppointmentModal (461L), 4 casts sans RAISON, dates non validées dans dashboard route.
 
-Le projet atteint le seuil de qualité. Zéro faille IDOR. Zéro bug financier. Zéro `any` non documenté. Dead code supprimé. Tests 12/12 ✅. Build production ✅. Les 2 Minor résiduels sont de la propagation de logger — effort <15 min, aucun risque sécurité.
+Lance `/autofixer` pour corriger le Major + les 3 Minors rapides et atteindre **95+/100**.
 

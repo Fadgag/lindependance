@@ -23,7 +23,7 @@ describe('proxy middleware', () => {
       nextUrl: new URL('http://localhost/auth/signin'),
       url: 'http://localhost/auth/signin',
     }
-    const res = await middleware(req as any)
+    const res = await middleware(req as any, {} as any)
     // Pas de redirection — path public
     expect(res).toBeUndefined()
   })
@@ -34,7 +34,7 @@ describe('proxy middleware', () => {
       nextUrl: new URL('http://localhost/dashboard'),
       url: 'http://localhost/dashboard',
     }
-    const res = await middleware(req as any)
+    const res = await middleware(req as any, {} as any)
     // Pas de redirection
     expect(res).toBeUndefined()
   })
@@ -45,7 +45,7 @@ describe('proxy middleware', () => {
       nextUrl: new URL('http://localhost/dashboard'),
       url: 'http://localhost/dashboard',
     }
-    const res = await middleware(req as any)
+    const res = await middleware(req as any, {} as any)
     // Redirection vers signin
     expect(res?.status).toBeGreaterThanOrEqual(301)
     expect(res?.status).toBeLessThanOrEqual(308)
