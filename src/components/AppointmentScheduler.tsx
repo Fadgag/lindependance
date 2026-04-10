@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { isAbortError } from '@/lib/utils'
 import type { Customer, Service, Staff, InitialAppointmentData } from '@/types/models'
 import FullCalendar from '@fullcalendar/react';
@@ -192,12 +193,12 @@ export default function AppointmentScheduler() {
                                 })
                                 if (!res.ok) {
                                     revert()
-                                    if (res.status === 409) alert('Conflit horaire : ce créneau est déjà occupé.')
-                                    else alert('Erreur lors du déplacement du rendez-vous.')
+                                    if (res.status === 409) toast.error('Conflit horaire : ce créneau est déjà occupé.')
+                                    else toast.error('Erreur lors du déplacement du rendez-vous.')
                                 }
                             } catch {
                                 revert()
-                                alert('Erreur réseau lors du déplacement.')
+                                toast.error('Erreur réseau lors du déplacement.')
                             }
                         }}
 
@@ -220,11 +221,11 @@ export default function AppointmentScheduler() {
                                 })
                                 if (!res.ok) {
                                     revert()
-                                    alert('Erreur lors du redimensionnement du rendez-vous.')
+                                    toast.error('Erreur lors du redimensionnement du rendez-vous.')
                                 }
                             } catch {
                                 revert()
-                                alert('Erreur réseau lors du redimensionnement.')
+                                toast.error('Erreur réseau lors du redimensionnement.')
                             }
                         }}
                     />

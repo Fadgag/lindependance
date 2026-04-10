@@ -3,6 +3,7 @@ import Decimal from 'decimal.js'
 
 /** Convertit une valeur Prisma Decimal ou primitive en number de manière sûre */
 function toNumber(val: unknown): number {
+  // RAISON: Prisma Decimal expose `.toNumber()` — cast nécessaire car `val` est `unknown`
   const obj = val as { toNumber?: () => number }
   if (obj && typeof obj.toNumber === 'function') {
     try { return obj.toNumber() } catch { /* fallthrough */ }

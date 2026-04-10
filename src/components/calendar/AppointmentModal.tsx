@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { isAbortError } from '@/lib/utils'
 import { format, addMinutes, isValid, parse, differenceInMinutes } from "date-fns"
 import { Trash2, AlertTriangle, Zap } from "lucide-react"
@@ -264,9 +265,9 @@ export default function AppointmentModal({
                 } catch (err) {
                     import('../../lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed', err))
                     // If the modal is still mounted, show an error and keep saving state
-                                    if (mountedRef.current) {
-                                                        alert("Erreur lors de la mise à jour de l&apos;agenda.")
-                                                    }
+                    if (mountedRef.current) {
+                        toast.error("Erreur lors de la mise à jour de l'agenda.")
+                    }
                 } finally {
                     if (mountedRef.current) setIsSaving(false)
                 }
@@ -279,8 +280,8 @@ export default function AppointmentModal({
                     setIsSaving(false)
                 } else {
                     const msg = extractErrorMessage(payload) || (String(payload) || `HTTP ${res.status}`)
-                    // show a user-friendly alert and keep modal open for fixes
-                    alert('Erreur serveur: ' + msg)
+                    // show a user-friendly toast and keep modal open for fixes
+                    toast.error('Erreur serveur: ' + msg)
                     setIsSaving(false)
                 }
             }
@@ -301,7 +302,7 @@ export default function AppointmentModal({
                     await onSuccess()
                 } catch (err) {
                     import('../../lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed (delete)', err))
-                    if (mountedRef.current) alert('Erreur lors de la mise à jour de l&apos;agenda.')
+                    if (mountedRef.current) toast.error("Erreur lors de la mise à jour de l'agenda.")
                 } finally {
                     if (mountedRef.current) setIsSaving(false)
                 }
@@ -309,7 +310,7 @@ export default function AppointmentModal({
                 let payload: unknown = null
                 try { payload = await res.json() } catch { /* ignore */ }
                 const msg = extractErrorMessage(payload) || `HTTP ${res.status}`
-                alert('Erreur suppression: ' + msg)
+                toast.error('Erreur suppression: ' + msg)
                 if (mountedRef.current) setIsSaving(false)
             }
         } catch (err) {
