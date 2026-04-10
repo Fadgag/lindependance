@@ -3,11 +3,10 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import apiErrorResponse from '@/lib/api'
 import { z } from 'zod'
-
-const BCRYPT_ROUNDS = 12 // cohérence avec password.service.ts
+import { BCRYPT_ROUNDS } from '@/lib/crypto'
 
 const ResetPasswordSchema = z.object({
-  token: z.string().min(1),
+  token: z.string().length(64), // token = 64 hex chars (randomBytes(32).toString('hex'))
   password: z.string().min(8),
 })
 
@@ -33,4 +32,3 @@ export async function POST(req: Request) {
     return apiErrorResponse(err)
   }
 }
-

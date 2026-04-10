@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { BCRYPT_ROUNDS } from '@/lib/crypto'
 
 export type UpdatePasswordResult =
   | { success: true }
@@ -28,7 +29,7 @@ export async function updateUserPassword(
     return { success: false, error: 'Mot de passe actuel incorrect' }
   }
 
-  const hashedPassword = await bcrypt.hash(newPassword, 12)
+  const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
 
   await prisma.user.update({
     where: { id: userId },

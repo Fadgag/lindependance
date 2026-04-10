@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { CreateAppointmentSchema, CreateAppointmentInput } from '@/schemas/appointments'
 import { auth } from '@/auth'
+import { logger } from '@/lib/logger'
 
 // Use centralized schema (organizationId must come from session)
 export async function createAppointmentAction(input: CreateAppointmentInput) {
@@ -21,7 +22,7 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
   if (!session || !session.user?.organizationId) {
     return { error: 'Unauthorized' }
   }
-  const orgId = session.user.organizationId as string
+  const orgId = session.user.organizationId as string // RAISON: narrowing garanti par la vérification !organizationId ligne 21
 
   // Récupérer la durée du service si besoin (scoped to organization to avoid IDOR)
   const service = await prisma.service.findFirst({ where: { id: serviceId, organizationId: orgId } })
@@ -72,7 +73,7 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
   try {
     revalidatePath('/')
   } catch (e) {
-    console.warn('revalidatePath failed', e)
+    logger.warn('revalidatePath failed', e)
   }
 
   return appointment
