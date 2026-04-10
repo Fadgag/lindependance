@@ -11,6 +11,7 @@ This version has breaking changes. Read `node_modules/next/dist/docs/` before wr
 - `skills/auto-fixer.skill.md`  # actual filename uses kebab-case
 - `skills/builder.skill.md`
 - `skills/global-rules.md`
+ - `skills/template/boost-prompt.md`
 
 ## 📋 Instructions Générales
 Avant toute action, l'agent doit charger et respecter :

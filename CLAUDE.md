@@ -5,6 +5,9 @@ Tu as accès à une forge d'automatisation de la qualité via les commandes suiv
 
 ---
 
+## Skills disponibles
+- `skills/template/boost-prompt.md`
+
 ## ⚡ Automations de Qualité (Slash Commands)
 
 Invoque ces protocoles immédiatement par commande `/` ou par texte :
