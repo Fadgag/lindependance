@@ -1,12 +1,11 @@
 "use client"
 import React, { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, Calendar, Receipt, Pencil } from 'lucide-react'
+import { ChevronLeft, Calendar, Receipt } from 'lucide-react'
 import CheckoutModal from '@/components/dashboard/CheckoutModal'
-import EditPaymentModal from '@/components/dashboard/EditPaymentModal'
 import type { CheckoutAppointment, Client } from '@/types/models'
-import { clientLogger } from '@/lib/clientLogger'
+import { clientError } from '@/lib/clientLogger'
 
 export default function ClientDetail() {
   const params = useParams() as { id?: string }
@@ -18,8 +17,6 @@ export default function ClientDetail() {
 
   // État pour gérer l'ouverture de la modal de détail/paiement
   const [selectedApt, setSelectedApt] = useState<CheckoutAppointment | null>(null)
-  // État pour la modale d'édition du règlement
-  const [editingApt, setEditingApt] = useState<CheckoutAppointment | null>(null)
 
   const loadClient = async () => {
     if (!id) return
@@ -32,7 +29,7 @@ export default function ClientDetail() {
         setEditingNotes(data.Note || '')
       }
     } catch (err) {
-      clientLogger.error('Erreur chargement client', err instanceof Error ? err : new Error(String(err)))
+      clientError('Erreur chargement client', err)
     } finally {
       setLoading(false)
     }
@@ -108,11 +105,7 @@ export default function ClientDetail() {
             <div className="space-y-3">
                           {client.appointments && client.appointments.length > 0 ? (
                                   client.appointments.map((apt: CheckoutAppointment) => {
-                                    // Guard and normalize startTime to avoid union/undefined issues
                                     const start = apt.startTime ? new Date(String(apt.startTime)) : null
-                                    const formattedDate = start ? start.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : ''
-                                    const formattedTime = start ? start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
-                                    const displayPrice = (apt.finalPrice ?? apt.service?.price)
                                     return (
                       <div
                           key={apt.id}
@@ -145,19 +138,6 @@ export default function ClientDetail() {
                         {apt.status === 'PAID' ? 'Payé' : 'À encaisser'}
                       </span>
                           </div>
-                          {/* Bouton crayon — édition du règlement (PAID uniquement) */}
-                          {apt.status === 'PAID' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setEditingApt({ ...apt, customer: { name: `${client.firstName} ${client.lastName}` } })
-                              }}
-                              className="p-2 rounded-xl text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all opacity-0 group-hover:opacity-100"
-                              title="Modifier le règlement"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                          )}
                         </div>
                       </div>
                   )
@@ -176,16 +156,7 @@ export default function ClientDetail() {
             <CheckoutModal
                 appointment={selectedApt}
                 onClose={() => setSelectedApt(null)}
-                onRefresh={loadClient}
-            />
-        )}
-
-        {/* Modale d'édition du règlement (mode de paiement + note) */}
-        {editingApt && (
-            <EditPaymentModal
-                appointment={editingApt}
-                onClose={() => setEditingApt(null)}
-                onSuccess={loadClient}
+                onRefresh={loadClient} // Recharge les données client si on encaisse depuis l'historique
             />
         )}
       </div>

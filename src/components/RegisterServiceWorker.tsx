@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from 'react'
-import { clientWarn, clientError } from '@/lib/clientLogger'
+import { clientError } from '@/lib/clientLogger'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -19,7 +19,8 @@ export default function RegisterServiceWorker() {
 
       navigator.serviceWorker.register('/sw.js')
         .then(() => {
-          clientWarn('Service worker registered for offline support')
+          // dev-only diagnostic — no toast shown to end user
+          if (process.env.NODE_ENV === 'development') console.info('[SW] Service worker registered for offline support')
         })
         .catch((_err) => {
           clientError('Service worker registration failed', _err)
@@ -31,7 +32,8 @@ export default function RegisterServiceWorker() {
           e.preventDefault()
           // store the event for UI to trigger install prompt later
           ;(window as unknown as { __deferredInstallPrompt?: BeforeInstallPromptEvent }).__deferredInstallPrompt = e
-          clientWarn('App can be installed (use the browser UI to add to home screen)')
+          // dev-only diagnostic — no toast shown to end user
+          if (process.env.NODE_ENV === 'development') console.info('[SW] App can be installed via browser UI')
         } catch {
           // noop
         }
