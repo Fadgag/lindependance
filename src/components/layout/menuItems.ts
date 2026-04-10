@@ -17,7 +17,3 @@ export const menuItems: MenuItem[] = [
     { name: 'Configuration', icon: Settings, href: '/settings', adminOnly: true },
 ]
 
-
-
-
-
