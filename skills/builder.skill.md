@@ -53,3 +53,4 @@ Avant toute analyse, l'agent doit répondre avec :
 - **Interdiction :** Ne jamais modifier les tests des autres agents.
 - **Validation :** Une sortie est validée uniquement si `npm run test` et `npx playwright test` sont au VERT.
 - **Clean Code :** Suppression systématique des logs et commentaires de debug.
+- **Push & Branching :** L'agent PEUT créer des commits locaux mais NE DOIT PAS pousser automatiquement. Avant tout push distant, l'agent doit créer une branche dédiée, documenter les changements et demander explicitement la confirmation `GO` de l'utilisateur.

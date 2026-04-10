@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { isAbortError } from '@/lib/utils';
 import type { CheckoutAppointment } from '@/types/models';
+import { clientLogger } from '@/lib/clientLogger';
 
 export function useAppointments() {
     const [appointments, setAppointments] = useState<CheckoutAppointment[]>([]);
@@ -19,7 +20,7 @@ export function useAppointments() {
                 setAppointments(filtered);
             }
         } catch (err) {
-            if (!isAbortError(err)) console.error(err);
+            if (!isAbortError(err)) clientLogger.error('Erreur chargement rendez-vous', err instanceof Error ? err : new Error(String(err)));
         } finally {
             setLoading(false);
         }

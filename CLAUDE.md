@@ -19,6 +19,7 @@ Invoque ces protocoles immédiatement par commande `/` ou par texte :
 - **Action :** Analyse le rapport le plus récent dans `quality/review_report/`.
 - **Règles :** Corriger 🔴 Critical et 🟠 Major. Appliquer les standards V3.0 (Prisma organizationId, Zod, 0% any).
 - **Rigueur :** Modifie le code source directement pour atteindre 100/100 au score de review.
+- **Sécurité Push :** L'agent peut modifier les fichiers localement, MAIS NE DOIT PAS effectuer de `git push` automatique. Avant tout push distant, l'agent doit créer une branche dédiée, produire un résumé des changements et demander explicitement la confirmation `GO` de l'utilisateur.
 
 ---
 

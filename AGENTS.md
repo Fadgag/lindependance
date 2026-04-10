@@ -34,6 +34,10 @@ Dès qu'une commande est invoquée (via `/` ou par texte), exécute le protocole
 - **Skill :** `AutoFixer.skill.md`
 - **Cible :** Analyse le rapport le plus récent dans `quality/review_report/`.
 - **Règles :** Priorité Sécurité > DRY > Types. Applique les correctifs directement dans le code source (0% `any`, check `organizationId` Prisma, validation `zod`).
+- **Push & Branching :** L'agent PEUT modifier le code localement, mais NE DOIT PAS pousser automatiquement sur un remote. Avant tout push vers un dépôt distant l'agent doit :
+  1. créer une branche dédiée (ex: `feature/xxx` ou `fix/yyy`),
+  2. générer un résumé des changements et demander explicitement la confirmation humaine `GO` pour effectuer le `git push`.
+  3. ne pas pousser sans l'accord explicite de l'utilisateur.
 
 ### `/builder feature [name]`
 - **Rôle :** Active le Skill `skills/builder.skill.md`.

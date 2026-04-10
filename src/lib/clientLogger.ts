@@ -22,3 +22,9 @@ export function clientWarn(message: string, err?: unknown) {
   }
 }
 
+/** Objet logger pour usage cohérent dans les composants client */
+export const clientLogger = {
+  error: clientError,
+  warn: clientWarn,
+}
+

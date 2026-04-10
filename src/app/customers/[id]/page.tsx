@@ -6,6 +6,7 @@ import { ChevronLeft, Calendar, Receipt, Pencil } from 'lucide-react'
 import CheckoutModal from '@/components/dashboard/CheckoutModal'
 import EditPaymentModal from '@/components/dashboard/EditPaymentModal'
 import type { CheckoutAppointment, Client } from '@/types/models'
+import { clientLogger } from '@/lib/clientLogger'
 
 export default function ClientDetail() {
   const params = useParams() as { id?: string }
@@ -31,7 +32,7 @@ export default function ClientDetail() {
         setEditingNotes(data.Note || '')
       }
     } catch (err) {
-      console.error('Erreur chargement client', err)
+      clientLogger.error('Erreur chargement client', err instanceof Error ? err : new Error(String(err)))
     } finally {
       setLoading(false)
     }

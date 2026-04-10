@@ -27,6 +27,11 @@ Pour chaque bug ou faille identifiée :
 - **Conformité Globale :** Appliquer systématiquement les directives de `skills/global-rules.md` (Type safety, Error masking, Scoping).
 - **Arbitrage Humain :** Si un correctif de sécurité rend un test fonctionnel impossible à passer (conflit de logique), stopper l'exécution et demander une validation.
 
+- **Push / Branching :** L'agent PEUT créer des commits locaux, mais NE DOIT PAS pousser automatiquement sur un dépôt distant. Avant tout `git push` vers un remote, l'agent doit :
+  1. créer une branche dédiée (ex: `feature/xxx` ou `fix/yyy`),
+  2. générer un résumé des changements (changelog) et présenter-le à l'utilisateur,
+  3. demander explicitement la confirmation humaine `GO` pour effectuer le `git push`.
+
 ---
 
 ## 📤 OUTPUT FORMAT (Journal de bord)

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
+import apiErrorResponse from '@/lib/api'
 
 const PatchSettingsSchema = z.object({
   dailyTarget: z.number().nonnegative()
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { dailyTarget: true } })
     return NextResponse.json({ dailyTarget: org?.dailyTarget ?? 0 })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return apiErrorResponse(err)
   }
 }
 
@@ -35,9 +36,11 @@ export async function PATCH(request: Request) {
     const updated = await prisma.organization.update({ where: { id: orgId }, data: { dailyTarget } })
     return NextResponse.json({ dailyTarget: updated.dailyTarget })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return apiErrorResponse(err)
   }
 }
+
+
 
 
 
