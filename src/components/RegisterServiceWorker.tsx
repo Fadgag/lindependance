@@ -12,19 +12,30 @@ export default function RegisterServiceWorker() {
   useEffect(() => {
     try {
       if (!('serviceWorker' in navigator)) return
+      // Only register the service worker in production builds. In development
+      // a previously installed SW can cause chunk load errors (stale cached
+      // assets). If we're running in development, attempt to unregister any
+      // existing service workers to avoid serving stale JS chunks.
+      const isProd = process.env.NODE_ENV === 'production'
+      if (!isProd) {
+        // unregister existing service workers in dev to avoid cached chunks
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((r) => r.unregister().catch(() => { /* ignore */ }))
+          if (process.env.NODE_ENV === 'development') console.info('[SW] Unregistered existing service workers (dev)')
+        }).catch(() => { /* ignore */ })
+      } else {
+        // Allow registration on secure contexts or localhost (prod-preview)
+        const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        if (!(window.isSecureContext || isLocalhost)) return
 
-      // Allow registration on secure contexts or localhost (dev)
-      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      if (!(window.isSecureContext || isLocalhost)) return
-
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => {
-          // dev-only diagnostic — no toast shown to end user
-          if (process.env.NODE_ENV === 'development') console.info('[SW] Service worker registered for offline support')
-        })
-        .catch((err) => {
-          clientError('Service worker registration failed', err)
-        })
+        navigator.serviceWorker.register('/sw.js')
+          .then(() => {
+            if (process.env.NODE_ENV === 'production') console.info('[SW] Service worker registered for offline support')
+          })
+          .catch((err) => {
+            clientError('Service worker registration failed', err)
+          })
+      }
 
       // Capture install prompt for later UI (if desired by app)
       const onBeforeInstall = (e: BeforeInstallPromptEvent) => {
