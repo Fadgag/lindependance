@@ -17,8 +17,9 @@ export const UpdateAppointmentSchema = z.object({
   start: z.string().refine((v) => !Number.isNaN(Date.parse(v))),
   end: z.string().refine((v) => !Number.isNaN(Date.parse(v))),
   duration: z.number().int().positive(),
-  serviceId: z.string().min(1),
-  customerId: z.string().min(1),
+  // optional: drag-and-drop updates only send timing data
+  serviceId: z.string().min(1).optional(),
+  customerId: z.string().min(1).optional(),
   staffId: z.string().min(1).optional(),
   note: z.string().optional(),
   force: z.boolean().optional(),
