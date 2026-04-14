@@ -10,15 +10,9 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import frLocale from '@fullcalendar/core/locales/fr';
 import type { DateSelectArg, EventClickArg, EventContentArg, EventMountArg, EventDropArg } from '@fullcalendar/core';
 import AppointmentModal from './calendar/AppointmentModal';
-
-// Imports Tippy pour les bulles d'infos
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/shift-away.css';
-
-export default function AppointmentScheduler() {
-    // --- INTERFACES & ÉTATS ---
-}
 
 interface CalEvent {
     id: string;
@@ -35,14 +29,10 @@ export default function AppointmentScheduler() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRange, setSelectedRange] = useState<DateSelectArg | null>(null);
     const [editingEvent, setEditingEvent] = useState<InitialAppointmentData | null>(null);
-    // avoid hydration mismatches from FullCalendar internal IDs: render it only after client mount
     const [mounted, setMounted] = useState(false);
     useEffect(() => { const id = setTimeout(() => setMounted(true), 0); return () => clearTimeout(id) }, []);
 
-    // FullCalendar now has a local shim type in `src/types/custom.d.ts`, use it directly
     const FullCalendarComponent = FullCalendar
-
-    // deduped: imported isAbortError
 
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [services, setServices] = useState<Service[]>([]);
@@ -58,7 +48,6 @@ export default function AppointmentScheduler() {
             }
         } catch (err) {
             if (isAbortError(err)) return
-            // client-side logging for debugging; server-side uses logger
             import('../lib/clientLogger').then(({ clientError }) => clientError('Erreur RDV', err))
         }
     }, []);
@@ -71,8 +60,6 @@ export default function AppointmentScheduler() {
         window.addEventListener('appointments:updated', onUpdated);
         return () => window.removeEventListener('appointments:updated', onUpdated);
     }, [fetchAppointments]);
-
-    // use imported isAbortError from '@/lib/utils'
 
     useEffect(() => {
         const controller = new AbortController();
@@ -91,7 +78,7 @@ export default function AppointmentScheduler() {
                     if (resS.ok) setServices(await resS.json());
                     if (resT.ok) setStaffs(await resT.json());
                 }
-                } catch (err) {
+            } catch (err) {
                 if (isAbortError(err)) return
                 import('../lib/clientLogger').then(({ clientError }) => clientError('Erreur ressources', err))
             }
@@ -176,11 +163,10 @@ export default function AppointmentScheduler() {
                                 title: info.event.title ?? undefined,
                                 start: info.event.start?.toISOString(),
                                 end: info.event.end?.toISOString(),
-                                    // RAISON: FullCalendar `extendedProps` est typiquement `Record<string, unknown]`
-                                    extendedProps: info.event.extendedProps as Record<string, unknown>
+                                // RAISON: FullCalendar `extendedProps` est typiquement `Record<string, unknown>`
+                                extendedProps: info.event.extendedProps as Record<string, unknown>
                             };
-                            // merge common extended props into top-level for simplicity
-                            // RAISON: FullCalendar exposes `extendedProps` comme `Record<string, unknown]`
+                            // RAISON: merge extendedProps dans top-level pour simplifier l'accès côté modal
                             Object.assign(eventData, info.event.extendedProps as Record<string, unknown>)
                             setEditingEvent(eventData);
                             setSelectedRange(null);
@@ -243,7 +229,6 @@ export default function AppointmentScheduler() {
                         }}
                     />
                 ) : (
-                    // lightweight placeholder matching approximate structure so React can hydrate cleanly
                     <div className="h-full w-full" aria-hidden="true" />
                 )}
             </div>
