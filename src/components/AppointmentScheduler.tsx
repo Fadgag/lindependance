@@ -188,6 +188,10 @@ export default function AppointmentScheduler() {
                                         duration: event.end && event.start
                                             ? Math.round((event.end.getTime() - event.start.getTime()) / 60000)
                                             : undefined,
+                                        // preserve relational data carried in extendedProps
+                                        serviceId: event.extendedProps?.serviceId as string | undefined,
+                                        customerId: event.extendedProps?.customerId as string | undefined,
+                                        staffId: event.extendedProps?.staffId as string | undefined,
                                     }),
                                 })
                                 if (!res.ok) {
@@ -216,6 +220,10 @@ export default function AppointmentScheduler() {
                                         duration: event.end && event.start
                                             ? Math.round((event.end.getTime() - event.start.getTime()) / 60000)
                                             : undefined,
+                                        // preserve relational data carried in extendedProps
+                                        serviceId: event.extendedProps?.serviceId as string | undefined,
+                                        customerId: event.extendedProps?.customerId as string | undefined,
+                                        staffId: event.extendedProps?.staffId as string | undefined,
                                     }),
                                 })
                                 if (!res.ok) {
