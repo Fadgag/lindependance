@@ -1,171 +1,107 @@
 # 🧪 Next.js Code Review Report - V1
 
-> **Date :** 2026-04-10
-> **Scope :** Feature `mobile-navigation` + codebase API routes + services
+> **Périmètre :** Feature `feature/new-rdv` — Floating Action Button, QuickAppointmentModal, useAppointments hook, AppointmentScheduler, quickAppointmentAction, /api/appointments/quick.
+> **Date :** 2026-04-14
+> **Suite de tests :** 15/15 ✅ (1 E2E skipped – requiert BDD réelle)
 
 ---
 
 ## 🧾 Summary
 
-- **Score:** 68/100
+- **Score:** 62/100
 - **Verdict:** ⚠️ CHANGES REQUIRED
-- **Stats:** Critical: 0 | Major: 8 | Minor: 5
+- **Stats:** Critical: 0 | Major: 2 | Minor: 8
 
 ---
 
 ## 🔴 Critical Issues (Blocking)
 
-_Aucune faille IDOR critique détectée. Toutes les routes API vérifient `organizationId`._
+_Aucune faille critique détectée._
+
+- `organizationId` correctement scopé dans toutes les routes API et le Server Action.
+- Zod validation présente côté serveur (schema `CreateAppointmentSchema`).
+- Aucun IDOR identifié sur le flux de création rapide.
 
 ---
 
 ## 🟠 Major Issues
 
-### [TYPES] `menuItems.ts` — `any` interdit (x5)
+### [DRY] Logique de création dupliquée : Server Action + REST Route
 
-**Problem :** Les 5 entrées du tableau `menuItems` castent l'icône en `as any`, et le type `icon: React.ComponentType<any>` viole la règle "0% `any`".
+**Problem :**
+La logique de création de RDV est implémentée deux fois en parallèle :
+- `src/app/actions/quickAppointmentAction.ts` (Server Action)
+- `src/app/api/appointments/quick/route.ts` (REST API)
 
-```ts
-// ❌ Actuel
-icon: React.ComponentType<any>
-{ name: 'Accueil', icon: CalendarDays as any, ... }
+Les deux fichiers construisent la date `end`, valident via Zod et insèrent en base avec `prisma.appointment.create`. Toute correction (ex : gestion du conflit horaire, ajout de staffId) doit être répercutée dans les deux.
 
-// ✅ Fix attendu
-import type { LucideProps } from 'lucide-react'
-icon: React.ComponentType<LucideProps>
-{ name: 'Accueil', icon: CalendarDays, ... }  // pas de cast nécessaire
-```
-
-**Fix :** Remplacer `ComponentType<any>` par `ComponentType<LucideProps>` depuis `lucide-react` et supprimer tous les `as any`.
+**Fix :** Extraire dans `src/services/appointmentService.ts` une fonction `createQuickAppointmentForOrg(payload, orgId)`. La Route API et le Server Action appellent uniquement cette fonction.
 
 ---
 
-### [TYPES] `CheckoutModal.tsx` — `as any` x3
+### [ARCHITECTURE] Fonctions utilitaires définies à l'intérieur du composant React
 
-**Problem :** Lignes 88, 90, 94, 97 utilisent `as any` pour contourner le narrowing entre `CheckoutAppointment` et `AppointmentSummary`.
+**Problem :**
+`formatForDateTimeLocal` et `getDefaultStart` sont déclarées **à l'intérieur** de `QuickAppointmentModal` (lignes 22-54). Elles sont donc recréées à chaque render. Elles ne dépendent d'aucun état ou prop du composant.
 
-**Fix :** Créer un type union discriminé ou une fonction de narrowing typée dans `@/types/models.ts` pour accéder à `extras`, `note`, `paymentMethod` sans `as any`.
-
----
-
-### [CLEAN CODE] `checkout/route.ts` POST — `console.error` de debug (ligne 41)
-
-**Problem :** `console.error('Checkout Error:', err)` laissé dans le handler POST au lieu d'utiliser `apiErrorResponse(err)` (qui wrapping le logger correctement).
-
-**Fix :**
-```ts
-// ❌ Actuel
-} catch (err) {
-    console.error('Checkout Error:', err)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
-}
-
-// ✅ Fix
-} catch (err) {
-    return apiErrorResponse(err)
-}
-```
-
----
-
-### [CLEAN CODE] `forgot-password/route.ts` — `console.error` de debug (ligne 40) + `prisma as PrismaClient` inutile
-
-**Problem 1 :** `console.error('Resend API key not configured')` doit être remplacé par `logger.error(...)`.
-
-**Problem 2 :** `const db = prisma as PrismaClient` est un cast inutile — `prisma` est déjà typé `PrismaClient` (viol de la règle "as en dernier recours documenté").
-
-**Fix :**
-```ts
-// Supprimer :
-const db = prisma as PrismaClient
-// Utiliser prisma directement
-
-// Remplacer :
-console.error('Resend API key not configured')
-// Par :
-logger.error('Resend API key not configured')
-```
-
----
-
-### [CLEAN CODE] `users/route.ts` — `prisma as PrismaClient` inutile (ligne 6)
-
-**Problem :** Même pattern que `forgot-password` : `const db = prisma as PrismaClient`. Cast non documenté et inutile.
-
-**Fix :** Utiliser `prisma` directement (même type).
-
----
-
-### [ZOD MANQUANT] `appointments/route.ts` PUT — Corps non validé via Zod
-
-**Problem :** Le handler `PUT` (ligne 122) déstructure `body` directement sans validation Zod :
-```ts
-const { id, start, end, duration, serviceId, customerId, note, force } = body
-```
-Le schéma `UpdateAppointmentSchema` existe dans `@/schemas/appointments.ts` mais n'est pas utilisé ici.
-
-**Fix :** Utiliser `UpdateAppointmentSchema.safeParse(body)` avant toute déstructuration.
-
----
-
-### [ARCHITECTURE] `MobileSheet.tsx` — `onClose` passé comme prop sans ESLint-disable justifié
-
-**Problem :** Le warning TS71007 "Props must be serializable" est contourné en silence (`// eslint-disable-next-line react-hooks/exhaustive-deps`). La prop `onClose` est une fonction non-sérialisable passée entre deux composants `"use client"`, ce qui est acceptable techniquement, mais le commentaire de suppression ne documente pas la raison.
-
-**Fix :** Ajouter un commentaire explicite `// RAISON: onClose est un callback client-to-client, non exposé au serveur.`
-
----
-
-### [ARCHITECTURE] `MobileNav.tsx` — Import `React` manquant (implicite)
-
-**Problem :** `menuItems.ts` importe `React` (pour `ComponentType`) mais `MobileNav.tsx` n'importe pas `React` alors que le projet cible peut ne pas avoir le JSX transform automatique activé.
-
-**Fix :** Ajouter `import React from 'react'` dans `MobileNav.tsx` pour garantir la compatibilité.
+**Fix :** Déplacer ces deux fonctions dans `src/lib/dateUtils.ts` et les importer. Ce module peut ensuite être testé unitairement de façon isolée (edge cases : minuit, passage 23h30 → lendemain 08h00, etc.).
 
 ---
 
 ## 🟡 Minor Issues
 
-- **`Sidebar.tsx` L16 :** Double classe conflictuelle `hidden md:flex ... flex` (Tailwind warning lint). Supprimer le `flex` nu et garder uniquement `hidden md:flex flex-col`.
-- **`MobileHeader.tsx` :** Deux classes background `bg-[var(--studio-bg)] bg-white` en concurrence. Garder uniquement `bg-white` ou introduire une variable Tailwind `bg-studio-bg` cohérente.
-- **`MobileSheet.tsx` :** Lignes vides superflues en fin de fichier (x4). Supprimer.
-- **`MobileNav.tsx` :** Lignes vides superflues en fin de fichier (x2). Supprimer.
-- **`menuItems.ts` :** `import React from 'react'` importé uniquement pour le typage — utiliser `import type React from 'react'` ou simplement `import type { ComponentType } from 'react'`.
+1. **Import inutilisé** — `useEffect` importé ligne 3 de `QuickAppointmentModal.tsx` mais jamais appelé dans le composant. Déclenche un warning ESLint `no-unused-vars`. Supprimer.
+
+2. **Directive `'use server'` doublée** — `quickAppointmentAction.ts` déclare `"use server"` en ligne 1 ET ligne 10 (à l'intérieur de la fonction). Le second est redondant avec le premier au niveau du module. Supprimer la ligne 10.
+
+3. **Message d'erreur absent pour le champ `service`** — La validation affiche `aria-invalid="true"` sur le `<select>` prestation mais aucun `<p className="text-xs text-red-600">` n'est rendu en dessous (contrairement aux champs `customer`, `start`, `duration`). Incohérence UX : l'utilisateur voit le fond rouge mais pas le texte explicatif.
+
+4. **`formRef.current?.reset()` redondant** — Depuis que le `<textarea name="note">` est contrôlé (state `note`), tous les champs du formulaire sont contrôlés. `formRef.current?.reset()` dans `resetForm()` n'a plus d'effet réel. Supprimer l'appel (et potentiellement le `formRef` lui-même).
+
+5. **Interface `CalEvent` déclarée à l'intérieur de la fonction composant** — Ligne 21 de `AppointmentScheduler.tsx`. Une interface TypeScript déclarée dans un corps de fonction est réanalysée à chaque render par le compilateur (overhead). La déplacer au niveau du module ou dans `@/types/models.ts`.
+
+6. **`as string` cast non documenté sur `organizationId`** — `quickAppointmentAction.ts` ligne 54 : `organizationId: session.user.organizationId as string`. Le guard ligne 42 garantit que la valeur n'est pas nulle, mais TypeScript ne le propage pas. Remplacer par `session.user.organizationId!` avec un commentaire `// RAISON: guard ligne 42`, ou affiner le type dans `next-auth.d.ts`.
+
+7. **`any` dans les mocks de test** — `test/ui/quickAppointmentModal.spec.tsx` ligne 29 : `({ customers, selectedId, onSelect }: any)`. Typer explicitement avec les types du projet (`Customer[]`, `string`, `(id: string) => void`).
+
+8. **`load` non memoïsé dans `useAppointments`** — `load` est recréée à chaque render mais le `useEffect` (deps: `[]`) et l'event listener `onUpdated` capturent la référence initiale. Fonctionnel aujourd'hui car `load` ne dépend pas de props/state, mais fragile si le hook évolue. Wrapper dans `useCallback([])` pour signaler explicitement l'intention et éviter les warnings React Compiler.
 
 ---
 
 ## 🧠 Global Recommendations
 
-1. **LucideIcon type :** Adopter `LucideIcon` (depuis `lucide-react`) comme type standard pour toutes les icônes dans le projet — évite les `as any` et `ComponentType<any>` dans les menus, boutons et modals.
-2. **Zod systématique sur tous les PUT/PATCH body :** Le PUT de `/api/appointments` est le seul handler sans validation Zod du body — appliquer la règle uniformément.
-3. **`prisma as PrismaClient` à supprimer partout :** Pattern détecté dans 2 fichiers. `lib/prisma.ts` exporte déjà un client typé, ce cast crée une fausse confiance.
-4. **Tests manquants pour feature mobile :** `MobileHeader` et `MobileSheet` n'ont pas de tests unitaires (Vitest + RTL). Ajouter `test/components/mobile-header.spec.tsx` et `test/components/mobile-sheet.spec.tsx` pour garantir la non-régression.
-5. **`console.error` centralisé :** 2 `console.error` bruts (checkout + forgot-password) contournent le logger centralisé. Unifier via `logger.error`.
+- **Service Layer :** Le pattern "Server Action + Route API qui font la même chose" va continuer à proliférer si aucun service n'est introduit. Priorité : créer `src/services/appointmentService.ts` comme single source of truth pour la logique de création/modification de RDV.
+- **`dateUtils.ts` :** Les fonctions de manipulation de dates (arrondi créneau, clamp horaires) sont du domaine métier. Les centraliser permet de les tester unitairement avec des mocks de `Date.now()`.
+- **Playwright E2E :** Le test `e2e/stats.dashboard.e2e.spec.ts` est skippé (requiert BDD réelle). Envisager un setup de BDD de test SQLite en CI pour qu'il s'exécute automatiquement.
+- **Tailwind v4 + legacy config :** Le `tailwind.config.cjs` (format v3) coexiste avec le `@theme` CSS v4. La source de vérité des couleurs est maintenant `globals.css`. Le fichier `tailwind.config.cjs` peut induire en erreur les développeurs. Documenter dans un `README` ou migrer entièrement.
 
 ---
 
 ## 🧩 Refactoring Plan (Pour l'AutoFixer)
 
-1. **Priorité 1 — Types :**
-   - `menuItems.ts` : `LucideIcon` à la place de `ComponentType<any>`, supprimer tous `as any`.
-   - `CheckoutModal.tsx` : Créer fonction de narrowing typée, supprimer `as any` x3.
-   - `users/route.ts` + `forgot-password/route.ts` : Supprimer `prisma as PrismaClient`.
+1. **Priorité 1 – DRY / Service Layer :**
+   - Créer `src/services/appointmentService.ts` → fonction `createQuickAppointmentForOrg`.
+   - Faire appeler cette fonction par `quickAppointmentAction.ts` ET `api/appointments/quick/route.ts`.
 
-2. **Priorité 2 — Zod / Validation :**
-   - `appointments/route.ts` PUT : Ajouter `UpdateAppointmentSchema.safeParse(body)`.
+2. **Priorité 2 – Extraction utilitaires :**
+   - Déplacer `formatForDateTimeLocal` + `getDefaultStart` vers `src/lib/dateUtils.ts`.
+   - Ajouter tests unitaires dans `test/lib/dateUtils.spec.ts` (cas : avant 08h, après 18h, minuit, 17h45, etc.).
 
-3. **Priorité 3 — Clean Code :**
-   - `checkout/route.ts` : Remplacer `console.error` + `NextResponse` brut par `apiErrorResponse`.
-   - `forgot-password/route.ts` : Remplacer `console.error` par `logger.error`.
-   - `Sidebar.tsx` : Corriger classe Tailwind conflictuelle.
-   - `MobileHeader.tsx` : Unifier les classes background.
-   - Nettoyer lignes vides dans `MobileSheet.tsx` et `MobileNav.tsx`.
+3. **Priorité 3 – Clean Code :**
+   - Supprimer `useEffect` import inutilisé dans `QuickAppointmentModal.tsx`.
+   - Supprimer directive `'use server'` doublée.
+   - Ajouter message d'erreur texte sous le champ `serviceId`.
+   - Supprimer `formRef` + `formRef.current?.reset()` (redondant).
+   - Déplacer `CalEvent` interface hors du composant.
+   - Corriger le cast `as string` sur `organizationId`.
+   - Typer les mocks de tests (supprimer `any`).
+   - Wrapper `load` dans `useCallback`.
 
 ---
 
 ## 🧮 Final Decision
 
-**⚠️ CHANGES REQUIRED** — Aucune faille de sécurité IDOR bloquante. Le scoping `organizationId` est correctement appliqué sur toutes les routes API auditées. Les blocages sont des violations de type (`any`) et de clean code (`console.error`, `prisma as PrismaClient`, PUT sans Zod) à corriger avant merge en `main`.
+**⚠️ CHANGES REQUIRED** — 62/100.
 
-Lancer `/autofixer` pour appliquer automatiquement les correctifs.
+Aucun bloquant sécurité. Les deux issues majeures (DRY service layer + helpers dans composant) doivent être corrigées avant merge. Les 8 points mineurs peuvent être traités en une passe AutoFixer.
 

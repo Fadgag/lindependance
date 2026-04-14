@@ -10,6 +10,12 @@
   --color-studio-border: #EAE3E1;
   --font-sans: var(--font-manrope);
   --font-serif: var(--font-noto-serif);
+  /* Couleurs atelier-* : définies ici pour Tailwind v4 (@theme CSS-first).
+     tailwind.config.cjs contient la même palette en format v3 legacy
+     mais n'est pas automatiquement chargé par @tailwindcss/postcss v4. */
+  --color-atelier-primary: #C5908E;
+  --color-atelier-dark: #514443;
+  --color-atelier-light: #F3F3F3;
 }
 
 @layer base {

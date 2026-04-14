@@ -5,6 +5,7 @@ import AuthProvider from '@/components/AuthProvider'
 import RegisterServiceWorker from '@/components/RegisterServiceWorker'
 import { Toaster } from 'sonner'
 import "./globals.css";
+import QuickAppointmentModal from '@/components/appointments/QuickAppointmentModal'
 
 const notoSerif = Noto_Serif({ variable: "--font-noto-serif", subsets: ["latin"] });
 const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {children}
               </main>
               <Toaster position="top-right" richColors />
+              <QuickAppointmentModal />
               <RegisterServiceWorker />
             </AuthProvider>
           </body>

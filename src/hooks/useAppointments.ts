@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { isAbortError } from '@/lib/utils';
 import type { CheckoutAppointment } from '@/types/models';
 import { clientError } from '@/lib/clientLogger';
@@ -7,7 +7,7 @@ export function useAppointments() {
     const [appointments, setAppointments] = useState<CheckoutAppointment[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const load = async (signal?: AbortSignal) => {
+    const load = useCallback(async (signal?: AbortSignal) => {
         setLoading(true);
         try {
             const res = await fetch('/api/appointments', { signal, credentials: 'include' });
@@ -24,13 +24,23 @@ export function useAppointments() {
         } finally {
             setLoading(false);
         }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
         load(controller.signal);
-        return () => controller.abort();
-    }, []);
+        // Listen for external updates (e.g. when an appointment is created elsewhere)
+        function onUpdated() {
+            load();
+        }
+        window.addEventListener('appointments:updated', onUpdated);
+
+        return () => {
+            controller.abort();
+            window.removeEventListener('appointments:updated', onUpdated);
+        }
+    }, [load]);
 
     return { appointments, loading, refresh: load };
 }
