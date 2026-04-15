@@ -3,6 +3,8 @@
 import * as Dialog from "@radix-ui/react-dialog"
 import { motion, useDragControls, AnimatePresence } from "framer-motion"
 import { X, GripHorizontal } from "lucide-react"
+import React from "react"
+import { useModalStack } from '@/components/ui/ModalStackProvider'
 
 interface BaseModalProps {
     isOpen: boolean
@@ -12,13 +14,60 @@ interface BaseModalProps {
     maxWidth?: string
 }
 
+let GLOBAL_MODAL_COUNTER = 0
+
 export default function BaseModal({ isOpen, onClose, title, children, maxWidth = "32rem" }: BaseModalProps) {
     const dragControls = useDragControls()
+    const modalId = React.useMemo(() => {
+        GLOBAL_MODAL_COUNTER += 1
+        return `modal-${Date.now()}-${GLOBAL_MODAL_COUNTER}`
+    }, [])
+
+    const contentRef = React.useRef<HTMLDivElement | null>(null)
+
+    const { registerOpen, registerClose, isTop, zIndex } = useModalStack(modalId)
+
+    // manage registration on open/close
+    // useLayoutEffect fires synchronously before paint, avoiding the 1-frame
+    // window where isTop=false and aria-hidden=true is applied on first render
+    React.useLayoutEffect(() => {
+        if (isOpen) {
+            registerOpen()
+        }
+
+        return () => {
+            if (isOpen) registerClose()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen])
+
+    // when we become top, restore focus to first focusable inside content
+    const prevIsTop = React.useRef(isTop)
+    React.useEffect(() => {
+        if (!prevIsTop.current && isTop) {
+            // we transitioned to top
+            try {
+                const el = contentRef.current?.querySelector(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                ) as HTMLElement | null
+                if (el) {
+                    el.focus()
+                } else {
+                    contentRef.current?.focus()
+                }
+            } catch {
+                // ignore focus errors
+            }
+        }
+        prevIsTop.current = isTop
+    }, [isTop])
+
+    const overlayZ = zIndex - 1
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <Dialog.Root open={isOpen} onOpenChange={onClose}>
+                <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
                     <Dialog.Portal forceMount>
                         <Dialog.Overlay asChild>
                             <motion.div
@@ -30,22 +79,26 @@ export default function BaseModal({ isOpen, onClose, title, children, maxWidth =
                                     inset: 0,
                                     backgroundColor: "rgba(0,0,0,0.4)",
                                     backdropFilter: "blur(4px)",
-                                    zIndex: 9998
+                                    zIndex: overlayZ
                                 }}
                             />
                         </Dialog.Overlay>
 
                         <Dialog.Content forceMount asChild>
-                            <div style={{
-                                position: "fixed",
-                                inset: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                zIndex: 9999,
-                                pointerEvents: "none"
-                            }}>
+                            <div
+                                aria-hidden={!isTop}
+                                style={{
+                                    position: "fixed",
+                                    inset: 0,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    zIndex: zIndex,
+                                    pointerEvents: !isTop ? "none" : "auto"
+                                }}>
                                 <motion.div
+                                    ref={contentRef}
+                                    tabIndex={-1}
                                     drag
                                     dragControls={dragControls}
                                     dragListener={false}
@@ -60,7 +113,7 @@ export default function BaseModal({ isOpen, onClose, title, children, maxWidth =
                                         borderRadius: "2.5rem",
                                         boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
                                         overflow: "hidden",
-                                        pointerEvents: "auto"
+                                        pointerEvents: isTop ? "auto" : "none"
                                     }}
                                 >
                                     {/* HEADER */}

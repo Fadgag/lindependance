@@ -7,6 +7,7 @@ import { format, addMinutes, isValid, parse, differenceInMinutes } from "date-fn
 import { Trash2, AlertTriangle, Zap } from "lucide-react"
 import BaseModal from "@/components/ui/BaseModal"
 import { CustomerPicker } from "./CustomerPicker"
+// QuickCustomerModal removed — creation is now inline in CustomerPicker
 import type { Customer as CustomerType, Service as ServiceType, Staff as StaffType } from '@/types/models'
 import type { DateSelectArg } from '@fullcalendar/core'
 
@@ -79,6 +80,8 @@ export default function AppointmentModal({
     const [customerPackages, setCustomerPackages] = useState<CustomerPackage[]>([])
     const [usePackage, setUsePackage] = useState(false)
     const [selectedCustomerPackageId, setSelectedCustomerPackageId] = useState<string | null>(null)
+
+    // quick-customer state no longer needed — inline in CustomerPicker
 
     // (aliases already declared earlier)
 
@@ -336,8 +339,13 @@ export default function AppointmentModal({
                     <label className="text-[11px] font-bold text-studio-muted mb-2 block uppercase">Client</label>
                     <CustomerPicker
                         customers={customers}
-                        onSelect={(id: string) => setSelectedCustomer(customers.find(c => c.id === id) || null)}
+                        onSelectAction={(id: string) => setSelectedCustomer(customers.find(c => c.id === id) || null)}
                         selectedId={selectedCustomer?.id}
+                        onCreatedAction={(cust) => {
+                            // RAISON: `cust` est l'objet JSON renvoyé par `/api/customers` —
+                            // il correspond au type CustomerType attendu par le formulaire.
+                            setSelectedCustomer(cust as CustomerType)
+                        }}
                     />
                 </div>
 

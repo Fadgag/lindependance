@@ -3,7 +3,8 @@ import { z } from 'zod'
 export const CustomerCreateSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  phone: z.string().min(1),
+  // phone is optional for quick-creation flows (inline picker). Store as nullable in DB.
+  phone: z.string().min(1).optional().nullable(),
   notes: z.string().optional().nullable()
 })
 

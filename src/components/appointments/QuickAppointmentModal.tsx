@@ -98,7 +98,7 @@ export default function QuickAppointmentModal() {
             <CustomerPicker
               customers={customers}
               selectedId={selectedCustomer || undefined}
-              onSelect={(id) => { setSelectedCustomer(id); setErrors((e) => ({ ...e, customer: '' })) }}
+              onSelectAction={(id) => { setSelectedCustomer(id); setErrors((e) => ({ ...e, customer: '' })) }}
             />
             <input type="hidden" name="customerId" value={selectedCustomer || ''} aria-invalid={!!errors.customer} />
             {errors.customer && <p className="text-xs text-red-600 mt-1">{errors.customer}</p>}

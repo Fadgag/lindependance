@@ -39,7 +39,7 @@ export default function CustomerModal({ isOpen, onCloseAction }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ firstName, lastName, phone, email: email || null, notes: notes || null })
+        body: JSON.stringify({ firstName, lastName, phone: phone || null, email: email || null, notes: notes || null })
       })
       const j = await res.json()
       if (!res.ok) {

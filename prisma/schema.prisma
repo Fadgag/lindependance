@@ -37,7 +37,7 @@ model Customer {
   firstName       String
   lastName        String
   Note            String?
-  phone           String
+  phone           String?
   organizationId  String
   organization    Organization      @relation(fields: [organizationId], references: [id])
   appointments    Appointment[]

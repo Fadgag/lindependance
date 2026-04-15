@@ -58,7 +58,19 @@ export default function AppointmentScheduler() {
             fetchAppointments();
         }
         window.addEventListener('appointments:updated', onUpdated);
-        return () => window.removeEventListener('appointments:updated', onUpdated);
+
+    // Refresh customers list when a new customer is created inline
+    async function onCustomersUpdated() {
+        try {
+            const res = await fetch('/api/customers', { credentials: 'include' })
+            if (res.ok) setCustomers(await res.json())
+        } catch {}
+    }
+    window.addEventListener('customers:updated', onCustomersUpdated)
+        return () => {
+            window.removeEventListener('appointments:updated', onUpdated)
+            window.removeEventListener('customers:updated', onCustomersUpdated)
+        }
     }, [fetchAppointments]);
 
     useEffect(() => {

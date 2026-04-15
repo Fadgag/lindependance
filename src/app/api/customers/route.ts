@@ -108,23 +108,26 @@ export async function POST(request: Request) {
 
     const { firstName, lastName, phone, notes } = parse.data;
 
-    // Vérifier les doublons par téléphone au sein de l'organisation
-    const existing = await db.customer.findFirst({
-      where: { phone, organizationId: orgId }
-    });
+    // Vérifier les doublons par téléphone au sein de l'organisation (seulement si phone fourni)
+    if (phone) {
+      const existing = await db.customer.findFirst({
+        where: { phone, organizationId: orgId }
+      });
 
-    if (existing) {
-      return NextResponse.json(
-          { error: 'Un client avec ce numéro existe déjà', existing },
-          { status: 409 }
-      );
+      if (existing) {
+        return NextResponse.json(
+            { error: 'Un client avec ce numéro existe déjà', existing },
+            { status: 409 }
+        );
+      }
     }
 
     const created = await db.customer.create({
       data: {
         firstName,
         lastName,
-        phone,
+        // RAISON: phone est optionnel dans le schema — le DB accept null
+        phone: phone ?? null,
         Note: notes ?? null,
         organizationId: orgId,
       }
