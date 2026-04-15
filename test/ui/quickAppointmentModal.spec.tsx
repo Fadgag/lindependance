@@ -50,6 +50,12 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/app/actions/quickAppointmentAction', () => ({ createQuickAppointment: () => {} }))
 
 import QuickAppointmentModal from '@/components/appointments/QuickAppointmentModal'
+import { ModalStackProvider } from '@/components/ui/ModalStackProvider'
+
+// Helper: wrap with required providers
+function renderWithProviders(ui: React.ReactElement) {
+  return render(<ModalStackProvider>{ui}</ModalStackProvider>)
+}
 
 describe('QuickAppointmentModal validation', () => {
   beforeEach(() => {
@@ -58,7 +64,7 @@ describe('QuickAppointmentModal validation', () => {
   })
 
   it('shows validation errors when required fields are empty and clears them when filled', async () => {
-    const { container } = render(<QuickAppointmentModal />)
+    const { container } = renderWithProviders(<QuickAppointmentModal />)
 
     // open modal by clicking FAB
     const fab = await screen.getByTestId('floating-quick-rdv')
