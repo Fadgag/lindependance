@@ -35,7 +35,7 @@ vi.mock('@/components/calendar/CustomerPicker', () => {
       <select data-testid="mock-customer-picker" value={selectedId || ''} onChange={(e) => onSelect(e.target.value)}>
         <option value="">--</option>
         {customers.map((c: Customer) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
+          <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
         ))}
       </select>
     )
