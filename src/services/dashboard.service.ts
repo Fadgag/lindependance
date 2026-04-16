@@ -206,7 +206,8 @@ export type DashboardDetailItem = {
 export async function getDashboardDetails(orgId: string, from: Date, to: Date, filter: 'all' | 'services' | 'products' = 'all', page = 1, pageSize = 50) {
   const where: Prisma.AppointmentWhereInput = { organizationId: orgId, startTime: { gte: from, lte: to }, status: { not: 'CANCELLED' } }
   if (filter === 'services') {
-    // Only appointments with service revenue (always have a service)
+    // Only appointments without sold products (prestations uniquement)
+    where.soldProducts = null
   } else if (filter === 'products') {
     // Only appointments with products
     where.NOT = { soldProducts: null }
