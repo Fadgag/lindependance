@@ -20,10 +20,12 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
 - **Imports :** Nettoyer les imports inutilisés (`pnpm lint --fix`).
 - 
 ## 🔒 Git & Push Policy
+- **Jamais de push direct sur `main` :** Il est strictement interdit de pousser directement sur la branche `main` (ou `master`). Tout correctif ou feature DOIT passer par une branche dédiée et une Pull Request.
 - **Pas de push automatique :** Aucun agent ne doit effectuer de `git push` vers un remote sans confirmation explicite de l'utilisateur. Les étapes minimales avant push sont :
   1. créer une branche dédiée (ex: `feature/xxx` ou `fix/yyy`),
   2. produire un résumé des changements (changelog),
   3. demander la validation humaine `GO` avant d'exécuter `git push`.
+- **Branche protégée :** `main` est la branche de production. Un merge sans PR et sans review est interdit même pour un "petit fix".
   
 ## 🛡️ Proxy & Sécurité (Nouveau Standard Next.js 2026)
 - **Convention :** Le fichier `proxy.ts` est PROSCRIT. Utiliser `proxy.ts` à la racine.
