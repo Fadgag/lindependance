@@ -23,16 +23,14 @@ export async function GET(request: Request) {
         }
 
         if (startParam) {
-            const startDate = new Date(startParam)
+            const startDate = new Date(new Date(startParam).setHours(0, 0, 0, 0))
             if (!isNaN(startDate.getTime())) {
-                startDate.setHours(0, 0, 0, 0)
                 where.startTime = { gte: startDate }
             }
         }
         if (endParam) {
-            const endDate = new Date(endParam)
+            const endDate = new Date(new Date(endParam).setHours(23, 59, 59, 999))
             if (!isNaN(endDate.getTime())) {
-                endDate.setHours(23, 59, 59, 999)
                 where.startTime = { ...where.startTime, lte: endDate }
             }
         }
@@ -220,21 +218,17 @@ export async function DELETE(request: Request) {
         })
         if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-        // Si la suppression est demandée depuis la page d'encaissement,
-        // exiger une confirmation explicite pour éviter de supprimer un rdv
-        // pour lequel un paiement a déjà été enregistré.
-        if (from === 'checkout') {
-            if (!confirm) {
-                return NextResponse.json({ error: 'Confirmation requise pour suppression depuis la page encaissement' }, { status: 400 })
-            }
+        // Défense en profondeur (inconditionnelle) : interdire la suppression d'un RDV payé
+        // quelle que soit l'origine de la requête (agenda, encaissement, API directe).
+        const isPaid = existing.status === 'PAID' || existing.status === 'PAYED'
+            || (existing.finalPrice ? Number(existing.finalPrice) : 0) > 0
+        if (isPaid) {
+            return NextResponse.json({ error: 'Cannot delete a paid appointment' }, { status: 403 })
+        }
 
-            const finalPrice = existing.finalPrice ? Number(existing.finalPrice) : 0
-            const isPaidStatus = existing.status === 'PAID' || existing.status === 'PAYED'
-
-            if (finalPrice > 0 || isPaidStatus) {
-                // Défense en profondeur : interdiction serveur de supprimer un RDV déjà payé
-                return NextResponse.json({ error: 'Cannot delete a paid appointment' }, { status: 403 })
-            }
+        // Si la suppression vient de l'encaissement, exiger une confirmation explicite
+        if (from === 'checkout' && !confirm) {
+            return NextResponse.json({ error: 'Confirmation requise pour suppression depuis la page encaissement' }, { status: 400 })
         }
 
         const del = await prisma.appointment.deleteMany({ where: { id, organizationId: session.user.organizationId } })

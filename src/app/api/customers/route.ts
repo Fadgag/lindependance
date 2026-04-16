@@ -161,18 +161,18 @@ export async function PUT(request: Request) {
     const { id, firstName, lastName, phone, notes } = parse.data;
 
     // Mise à jour sécurisée par organizationId
-    const dataToUpdate: Record<string, unknown> = {};
-    if (firstName !== undefined) dataToUpdate['firstName'] = firstName;
-    if (lastName !== undefined) dataToUpdate['lastName'] = lastName;
-    if (phone !== undefined) dataToUpdate['phone'] = phone ?? null;
-    if (notes !== undefined) dataToUpdate['Note'] = notes ?? null;
+    const dataToUpdate: Partial<Prisma.CustomerUncheckedUpdateInput> = {};
+    if (firstName !== undefined) dataToUpdate.firstName = firstName;
+    if (lastName !== undefined) dataToUpdate.lastName = lastName;
+    if (phone !== undefined) dataToUpdate.phone = phone ?? null;
+    if (notes !== undefined) dataToUpdate.Note = notes ?? null;
 
     const updatedRecord = await prisma.customer.updateMany({
       where: {
         id,
         organizationId: orgId
       },
-      data: dataToUpdate as Prisma.CustomerUpdateInput
+      data: dataToUpdate
     });
 
     if (updatedRecord.count === 0) {
