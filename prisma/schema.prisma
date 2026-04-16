@@ -18,6 +18,22 @@ model Organization {
   users        User[]
   appointments Appointment[]
   Package      Package[]
+  products     Product[]
+}
+
+model Product {
+  id             String       @id @default(cuid())
+  name           String
+  priceTTC       Float
+  taxRate        Float        @default(0)
+  stock          Int          @default(0)
+  iconName       String       @default("Package")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
 }
 
 model Service {
@@ -69,6 +85,7 @@ model Appointment {
   startDate         String?
   paymentMethod     String?          // CB, Espèces, Chèque
   extras        String?
+  soldProducts  String?          // JSON: SoldProduct[] (produits vendus lors du RDV)
   customerPackageId String?
   customerPackage   CustomerPackage? @relation(fields: [customerPackageId], references: [id])
   serviceId         String

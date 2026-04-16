@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import apiErrorResponse from '@/lib/api'
 import { CreateAppointmentSchema } from '@/schemas/appointments'
 import { auth } from "@/auth"
+import { parseJsonField } from '@/lib/parseAppointmentJson'
+import type { Extra, SoldProduct } from '@/types/models'
 
 export async function GET(request: Request) {
     try {
@@ -55,12 +57,17 @@ export async function GET(request: Request) {
             } : null,
             resourceId: a.staffId,
             color: a.service?.color || "#3788d8",
+            // Extras & soldProducts sont stockés en JSON String? dans Prisma — parsing sécurisé via util.
+            extras: parseJsonField<Extra>(a.extras),
+            soldProducts: parseJsonField<SoldProduct>(a.soldProducts),
             extendedProps: {
                 serviceId: a.serviceId,
                 customerId: a.customerId,
                 note: a.note || null,
                 duration: a.duration,
-                status: a.status // Utile pour le front
+                status: a.status, // Utile pour le front
+                extras: parseJsonField<Extra>(a.extras),
+                soldProducts: parseJsonField<SoldProduct>(a.soldProducts),
             }
         })))
     } catch (err) {

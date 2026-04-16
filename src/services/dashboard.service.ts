@@ -1,7 +1,6 @@
 import { prisma } from '../lib/prisma'
 import Decimal from 'decimal.js'
 import type { Prisma } from '@prisma/client'
-import type { AppointmentGroupRow, AppointmentGroupByDelegate } from '../types/models'
 import {
   startOfDay,
   endOfDay,
@@ -51,79 +50,69 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
 
   // Helper: ISO date string (UTC) pour le filtrage sur startDate (String? dans Prisma)
   const pad = (n: number) => String(n).padStart(2, '0')
-  const toDateStr = (d: Date) =>
-    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
-  const startStr = toDateStr(start)
-  const endStr = toDateStr(end)
 
-  // 2. Récupération des données
-  // RAISON: prisma.appointment.groupBy n'est pas toujours présent dans les mocks de test;
-  // le runtime guard permet la compatibilité avec les deux stratégies de mock (groupBy vs findMany).
-  const prismaDelegate = prisma.appointment as unknown as Partial<AppointmentGroupByDelegate> & typeof prisma.appointment
-  const hasGroupBy = typeof prismaDelegate.groupBy === 'function'
 
+  // 2. Récupération des données — on utilise findMany pour garantir la présence des soldProducts
   type AppointmentWithService = Prisma.AppointmentGetPayload<{ include: { service: { select: { price: true } } } }>
-
-  let groupedRows: AppointmentGroupRow[] | null = null
-  let detailRows: AppointmentWithService[] = []
-
-  if (hasGroupBy) {
-    groupedRows = await prismaDelegate.groupBy!({
-      by: ['startDate'],
-      where: {
-        organizationId: orgId,
-        startDate: { gte: startStr, lte: endStr },
-        status: { not: 'CANCELLED' },
-      },
-      _sum: { price: true },
-      _count: { _all: true }
-    }).catch(() => null)
-  }
-
-  if (!groupedRows) {
-    detailRows = await prisma.appointment.findMany({
-      where: { organizationId: orgId, startTime: { gte: start, lte: end }, status: { not: 'CANCELLED' } },
-      include: { service: { select: { price: true } } },
-      orderBy: { startTime: 'asc' }
-    })
-  }
+  const detailRows: AppointmentWithService[] = await prisma.appointment.findMany({
+    where: { organizationId: orgId, startTime: { gte: start, lte: end }, status: { not: 'CANCELLED' } },
+    include: { service: { select: { price: true } } },
+    orderBy: { startTime: 'asc' }
+  })
 
   let totalRealized = new Decimal(0)
   let totalProjected = new Decimal(0)
+  let totalRealizedServices = new Decimal(0)
+  let totalRealizedProducts = new Decimal(0)
+  let totalProjectedServices = new Decimal(0)
+  let totalProjectedProducts = new Decimal(0)
+  let totalTaxCollected = new Decimal(0)
 
   const map = new Map<string, { realized: Decimal; projected: Decimal; count: number }>()
 
-  if (groupedRows) {
-    for (const g of groupedRows) {
-      const key = g.startDate
-      const sumPrice = g._sum?.price ?? 0
-      const count = typeof g._count === 'number'
-        ? g._count
-        : (g._count as { _all: number })._all ?? 0
-      const priceDec = new Decimal(String(sumPrice ?? 0))
-      totalProjected = totalProjected.plus(priceDec)
-      // groupBy ne distingue pas réalisé vs prévu — les deux sont alignés
-      totalRealized = totalRealized.plus(priceDec)
-      map.set(key, { realized: priceDec, projected: priceDec, count: Number(count) })
-    }
-  } else {
-    for (const a of detailRows) {
+  for (const a of detailRows) {
       const ad = new Date(a.startTime)
       const key = `${ad.getUTCFullYear()}-${pad(ad.getUTCMonth() + 1)}-${pad(ad.getUTCDate())}`
       const cur = map.get(key) ?? { realized: new Decimal(0), projected: new Decimal(0), count: 0 }
       const isPaid = a.status === 'PAID'
-      const priceValue = isPaid ? (a.finalPrice ?? a.service?.price ?? 0) : (a.service?.price ?? 0)
-      const price = new Decimal(String(priceValue))
+      // service price
+      const servicePriceValue = a.service?.price ?? 0
+      const serviceDec = new Decimal(String(servicePriceValue))
+      // products on appointment
+      let productsSum = new Decimal(0)
+      let productsTaxSum = new Decimal(0)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawSold = (a as any).soldProducts ?? null
+        if (rawSold) {
+        try {
+          const arr = typeof rawSold === 'string' ? JSON.parse(rawSold) : rawSold
+          for (const it of arr) {
+            const lineTotal = new Decimal(String(it.totalTTC ?? (it.priceTTC * (it.quantity || 1))))
+            productsSum = productsSum.plus(lineTotal)
+            // compute tax per line (don't add to global until we know the appointment is paid)
+            const lineTax = typeof it.totalTax === 'number'
+              ? new Decimal(String(it.totalTax))
+              : (it.taxRate ? lineTotal.minus(lineTotal.dividedBy(new Decimal(1).plus(new Decimal(String(it.taxRate)).dividedBy(100)))) : new Decimal(0))
+            productsTaxSum = productsTaxSum.plus(lineTax)
+          }
+        } catch {}
+      }
+      const price = serviceDec.plus(productsSum)
+      // allocate service vs product totals
       if (isPaid) {
         totalRealized = totalRealized.plus(price)
+        totalRealizedServices = totalRealizedServices.plus(serviceDec)
+        totalRealizedProducts = totalRealizedProducts.plus(productsSum)
+        totalTaxCollected = totalTaxCollected.plus(productsTaxSum)
         cur.realized = cur.realized.plus(price)
       }
       totalProjected = totalProjected.plus(price)
+      totalProjectedServices = totalProjectedServices.plus(serviceDec)
+      totalProjectedProducts = totalProjectedProducts.plus(productsSum)
       cur.projected = cur.projected.plus(price)
       cur.count += 1
       map.set(key, cur)
     }
-  }
 
   // 3. Génération de la timeseries sans "trous"
   const msPerDay = 24 * 60 * 60 * 1000
@@ -174,22 +163,16 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
   })
 
   let appointmentCount = 0
-  if (groupedRows) {
-    appointmentCount = groupedRows.reduce((s, g) => {
-      const cnt = typeof g._count === 'number'
-        ? g._count
-        : (g._count as { _all: number })._all ?? 0
-      return s + Number(cnt)
-    }, 0)
-  } else {
-    appointmentCount = detailRows.length
-  }
+  appointmentCount = detailRows.length
 
   return {
     summary: {
       totalRevenue: totalProjected.toNumber(),      // legacy: compatibilité descendante
       realizedRevenue: totalRealized.toNumber(),    // CA encaissé
       projectedRevenue: totalProjected.toNumber(),  // CA Prévisionnel
+      serviceRevenue: totalRealizedServices.toNumber(),
+      productRevenue: totalRealizedProducts.toNumber(),
+      totalTaxCollected: totalTaxCollected.toNumber(),
       totalProjected: totalProjected.toNumber(),    // alias explicite utilisé par les tests
       appointmentCount,
       newCustomerCount,

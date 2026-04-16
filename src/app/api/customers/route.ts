@@ -44,6 +44,8 @@ export async function GET(_request: Request) {
               status: true,
               finalPrice: true,
               note: true,
+              extras: true,
+              soldProducts: true,
               paymentMethod: true,
               service: {
                 select: {

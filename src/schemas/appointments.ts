@@ -33,6 +33,28 @@ export const UpdatePaymentDetailsSchema = z.object({
 
 export type UpdatePaymentDetailsInput = z.infer<typeof UpdatePaymentDetailsSchema>
 
+export const CheckoutInputSchema = z.object({
+  totalPrice: z.number().min(0),
+  paymentMethod: z.enum(['CB', 'CASH', 'CHECK']),
+  note: z.string().max(2000).optional().nullable(),
+  extras: z.array(z.object({
+    label: z.string().max(200),
+    price: z.number(),
+  })).optional(),
+  soldProducts: z.array(z.object({
+    productId: z.string().cuid(),
+    name: z.string().max(500),
+    iconName: z.string().max(100),
+    quantity: z.number().int().positive().max(999),
+    priceTTC: z.number().min(0),
+    taxRate: z.number().min(0),
+    totalTTC: z.number().min(0),
+    totalTax: z.number().min(0),
+  })).optional(),
+})
+
+export type CheckoutInput = z.infer<typeof CheckoutInputSchema>
+
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>
 export type UpdateAppointmentInput = z.infer<typeof UpdateAppointmentSchema>
 

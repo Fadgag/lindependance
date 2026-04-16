@@ -99,12 +99,18 @@ export default function DashboardShell({ initialData, currentPeriod }: Dashboard
                     ))}
                 </div>
 
-                <div className="hidden md:flex items-center gap-2 text-xs font-medium text-gray-400 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
-                    <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Live Dashboard
+                <div className="hidden md:flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-2 text-xs font-medium text-gray-400 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Live Dashboard
+                    </div>
+                    <div className="hidden md:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-full border border-gray-100">
+                        <span className="text-xs font-bold uppercase text-gray-400">TVA</span>
+                        <span className="text-sm font-black">{formatEuro(summary.totalTaxCollected ?? 0)}</span>
+                    </div>
                 </div>
             </div>
 
@@ -123,6 +129,10 @@ export default function DashboardShell({ initialData, currentPeriod }: Dashboard
                         <div>
                             <p className="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-1">{kpi.title}</p>
                             <p className="text-3xl font-black text-gray-900 tracking-tight">{kpi.value}</p>
+                            {/* Breakdown for CA Réalisé */}
+                            {kpi.title === 'CA Réalisé' && (
+                                <p className="text-sm text-gray-500 mt-2 font-medium">Prestations: {formatEuro(summary.serviceRevenue ?? 0)} / Ventes: {formatEuro(summary.productRevenue ?? 0)}</p>
+                            )}
                             <p className="text-[10px] text-gray-400 mt-2 font-medium">{kpi.desc}</p>
                         </div>
                     </div>
