@@ -53,11 +53,19 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
   // Helper: ISO date string (UTC) pour le filtrage sur startDate (String? dans Prisma)
 
   // 2. Récupération des données — on utilise findMany pour garantir la présence des soldProducts
-  type AppointmentWithService = Prisma.AppointmentGetPayload<{ include: { service: { select: { price: true } } } }>
-
-  const detailRows: AppointmentWithService[] = await prisma.appointment.findMany({
+  // Select only the appointment fields we need to avoid selecting DB columns that might not
+  // yet exist in the database (e.g. soldProductsJson/productsTotal) while migration is pending.
+  const detailRows = await prisma.appointment.findMany({
     where: { organizationId: orgId, startTime: { gte: start, lte: end }, status: { not: 'CANCELLED' } },
-    include: { service: { select: { price: true } } },
+    select: {
+      id: true,
+      startTime: true,
+      status: true,
+      finalPrice: true,
+      price: true,
+      soldProducts: true,
+      service: { select: { price: true } }
+    },
     orderBy: { startTime: 'asc' }
   })
 
@@ -215,7 +223,13 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
 
   const rows = await prisma.appointment.findMany({
     where,
-    include: {
+    select: {
+      id: true,
+      startTime: true,
+      status: true,
+      finalPrice: true,
+      price: true,
+      soldProducts: true,
       customer: { select: { firstName: true, lastName: true } },
       service: { select: { name: true, price: true } }
     },
