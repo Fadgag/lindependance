@@ -11,23 +11,30 @@ export async function GET(request: Request) {
         const session = await auth();
         if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+        // RAISON: organizationId est string | null | undefined après le guard — on le narrow ici pour Prisma
+        const organizationId = session.user.organizationId as string
+
         const url = new URL(request.url)
         const startParam = url.searchParams.get('start')
         const endParam = url.searchParams.get('end')
 
         const where: { organizationId: string; startTime?: { gte?: Date; lte?: Date } } = {
-            organizationId: session.user.organizationId
+            organizationId
         }
 
         if (startParam) {
             const startDate = new Date(startParam)
-            startDate.setHours(0, 0, 0, 0)
-            where.startTime = { gte: startDate }
+            if (!isNaN(startDate.getTime())) {
+                startDate.setHours(0, 0, 0, 0)
+                where.startTime = { gte: startDate }
+            }
         }
         if (endParam) {
             const endDate = new Date(endParam)
-            endDate.setHours(23, 59, 59, 999)
-            where.startTime = { ...where.startTime, lte: endDate }
+            if (!isNaN(endDate.getTime())) {
+                endDate.setHours(23, 59, 59, 999)
+                where.startTime = { ...where.startTime, lte: endDate }
+            }
         }
 
         const appointments = await prisma.appointment.findMany({
