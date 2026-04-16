@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, CreditCard, X, CheckCircle2, StickyNote, Save, Banknote, Landmark, Package, Droplet, Sparkles, Scissors, FlaskConical, Wind, Heart, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { CheckoutAppointment, Extra, AppointmentSummary, SoldProduct } from "@/types/models";
-import type { Product } from "@/types/models";
+import type { CheckoutAppointment, Extra, AppointmentSummary, SoldProduct, Product } from "@/types/models";
 import { parseJsonField } from "@/lib/parseAppointmentJson";
 import ProductPicker from "@/components/dashboard/ProductPicker";
 
@@ -306,7 +305,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
 
                         {soldProducts.length === 0 && <p className="text-xs text-gray-400 italic">Aucun produit ajouté.</p>}
                         {soldProducts.map((p, i) => (
-                            <div key={p.productId + i} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                            <div key={p.productId} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                                 <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white border border-gray-100 text-slate-500 shrink-0">
                                     <ProductIcon name={p.iconName} />
                                 </span>

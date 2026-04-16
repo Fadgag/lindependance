@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import useServices from '@/hooks/useServices'
 import useCustomers from '@/hooks/useCustomers'
 import FloatingActionButton from '@/components/ui/FloatingActionButton'
@@ -10,13 +10,21 @@ import { useRouter } from 'next/navigation'
 /**
  * QuickAppointmentModal
  * Bouton flottant (+) qui ouvre la modale de RDV unifiée (AppointmentModal).
- * Plus de logique de formulaire dupliquée ici.
+ * Recharge services et clients à chaque ouverture pour rester à jour.
  */
 export default function QuickAppointmentModal() {
   const [isOpen, setIsOpen] = useState(false)
-  const { customers } = useCustomers()
-  const { services } = useServices()
+  const { customers, reload: reloadCustomers } = useCustomers()
+  const { services, reload: reloadServices } = useServices()
   const router = useRouter()
+
+  // Recharge les données fraîches à chaque ouverture de la modale
+  useEffect(() => {
+    if (isOpen) {
+      reloadServices()
+      reloadCustomers()
+    }
+  }, [isOpen, reloadServices, reloadCustomers])
 
   const handleSuccess = async () => {
     try {

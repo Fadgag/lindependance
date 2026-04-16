@@ -10,6 +10,9 @@ export const CustomerCreateSchema = z.object({
 
 export const CustomerUpdateSchema = z.object({
   id: z.string().min(1),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  phone: z.string().min(1).optional().nullable(),
   notes: z.string().optional().nullable()
 })
 

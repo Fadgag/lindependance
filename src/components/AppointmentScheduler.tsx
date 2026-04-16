@@ -1,6 +1,5 @@
 "use client"
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { isAbortError } from '@/lib/utils'
 import type { Customer, Service, Staff, InitialAppointmentData } from '@/types/models'
@@ -33,6 +32,7 @@ export default function AppointmentScheduler() {
     const [mounted, setMounted] = useState(false);
     useEffect(() => { const id = setTimeout(() => setMounted(true), 0); return () => clearTimeout(id) }, []);
     const lastRangeRef = useRef<{ start?: string; end?: string } | null>(null);
+    const rangeControllerRef = useRef<AbortController | null>(null);
 
     const FullCalendarComponent = FullCalendar
 
@@ -141,14 +141,18 @@ export default function AppointmentScheduler() {
 
                                                                 // Recharge les RDV à chaque changement de période (navigation semaine/mois)
                                                                 // NOTE: FullCalendar can call datesSet frequently; guard to avoid duplicate identical requests.
-                                                                datesSet={(info: DatesSetArg) => {
-                                                                    try {
-                                                                        const last = (lastRangeRef.current || {})
-                                                                        if (last.start === info.startStr && last.end === info.endStr) return
-                                                                        lastRangeRef.current = { start: info.startStr, end: info.endStr }
-                                                                        fetchAppointments(info.startStr, info.endStr)
-                                                                    } catch (e) { /* defensive */ fetchAppointments(info.startStr, info.endStr) }
-                                                                }}
+                                                                                                        datesSet={(info: DatesSetArg) => {
+                                                                                                            try {
+                                                                                                                const last = (lastRangeRef.current || {})
+                                                                                                                if (last.start === info.startStr && last.end === info.endStr) return
+                                                                                                                lastRangeRef.current = { start: info.startStr, end: info.endStr }
+                                                                                                                // Abort previous range fetch if any
+                                                                                                                try { rangeControllerRef.current?.abort() } catch {}
+                                                                                                                const c = new AbortController()
+                                                                                                                rangeControllerRef.current = c
+                                                                                                                fetchAppointments(info.startStr, info.endStr, c.signal)
+                                                                                                            } catch (e) { /* defensive */ fetchAppointments(info.startStr, info.endStr) }
+                                                                                                        }}
 
                         // --- 1. RENDU DES CASES (MINI) ---
                         eventContent={(info: EventContentArg) => {
@@ -166,27 +170,82 @@ export default function AppointmentScheduler() {
 
                         // --- 2. BULLE D'INFOS (TIPPY) ---
                         eventDidMount={(info: EventMountArg) => {
-                            const props = info.event.extendedProps;
+                            const props = info.event.extendedProps as Record<string, unknown> | undefined;
+                            // Create DOM nodes programmatically to avoid HTML injection (no allowHTML)
+                            const container = document.createElement('div')
+                            container.style.color = '#2D2424'
+
+                            const title = document.createElement('p')
+                            title.style.color = '#D4A3A1'
+                            title.style.fontWeight = '800'
+                            title.style.fontSize = '10px'
+                            title.style.textTransform = 'uppercase'
+                            title.style.margin = '0 0 4px 0'
+                            title.textContent = 'Détails du RDV'
+                            container.appendChild(title)
+
+                            const main = document.createElement('p')
+                            main.style.fontWeight = '700'
+                            main.style.fontSize = '14px'
+                            main.style.margin = '0'
+                            main.textContent = String(info.event.title ?? '')
+                            container.appendChild(main)
+
+                            const block = document.createElement('div')
+                            block.style.marginTop = '8px'
+                            block.style.display = 'flex'
+                            block.style.flexDirection = 'column'
+                            block.style.gap = '2px'
+
+                            const timeP = document.createElement('p')
+                            timeP.style.fontSize = '11px'
+                            timeP.style.margin = '0'
+                            timeP.textContent = `⏰ ${info.timeText}`
+                            block.appendChild(timeP)
+
+                            if (props?.customerName) {
+                                const c = document.createElement('p')
+                                c.style.fontSize = '11px'
+                                c.style.margin = '0'
+                                c.textContent = `👤 ${String(props.customerName)}`
+                                block.appendChild(c)
+                            }
+                            if (props?.serviceName) {
+                                const s = document.createElement('p')
+                                s.style.fontSize = '11px'
+                                s.style.color = '#D4A3A1'
+                                s.style.fontStyle = 'italic'
+                                s.style.marginTop = '4px'
+                                s.textContent = `✨ ${String(props.serviceName)}`
+                                block.appendChild(s)
+                            }
+                            if (props?.price) {
+                                const p = document.createElement('p')
+                                p.style.fontSize = '11px'
+                                p.style.fontWeight = 'bold'
+                                p.style.marginTop = '2px'
+                                p.textContent = `💰 ${String(props.price)}`
+                                block.appendChild(p)
+                            }
+                            if (props?.soldProducts) {
+                                const sp = document.createElement('p')
+                                sp.style.fontSize = '11px'
+                                sp.style.marginTop = '6px'
+                                sp.style.fontWeight = '700'
+                                sp.textContent = '🛒 Ventes enregistrées'
+                                block.appendChild(sp)
+                            }
+
+                            container.appendChild(block)
+
                             tippy(info.el, {
-                                content: `
-                                    <div style="color: #2D2424;">
-                                        <p style="color: #D4A3A1; font-weight: 800; font-size: 10px; text-transform: uppercase; margin: 0 0 4px 0;">Détails du RDV</p>
-                                        <p style="font-weight: 700; font-size: 14px; margin: 0;">${info.event.title}</p>
-                                        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 2px;">
-                                            <p style="font-size: 11px; margin: 0;">⏰ <b>${info.timeText}</b></p>
-                                            ${props.customerName ? `<p style="font-size: 11px; margin: 0;">👤 ${props.customerName} </p>` : ''}
-                                            ${props.serviceName ? `<p style="font-size: 11px; color: #D4A3A1; font-style: italic; margin-top: 4px;">✨ ${props.serviceName}</p>` : ''}
-                                            ${props.price ? `<p style="font-size: 11px; font-weight: bold; margin-top: 2px;">💰 ${props.price}</p>` : ''}
-                                            ${props.soldProducts ? `<p style="font-size: 11px; margin-top: 6px; font-weight: 700;">🛒 Ventes enregistrées</p>` : ''}
-                                        </div>
-                                    </div>
-                                `,
-                                allowHTML: true,
+                                content: container,
+                                allowHTML: false,
                                 theme: 'studio-light',
                                 placement: 'top',
                                 animation: 'shift-away',
                                 interactive: true,
-                            });
+                            })
                         }}
 
                         // --- 3. ACTIONS (CLIC & SÉLECTION) ---

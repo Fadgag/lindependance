@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import apiErrorResponse from '@/lib/api'
 import { logger } from '@/lib/logger'
 import { CustomerCreateSchema, CustomerUpdateSchema } from '@/schemas/customers'
@@ -157,17 +158,21 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: parse.error.message }, { status: 400 });
     }
 
-    const { id, notes } = parse.data;
+    const { id, firstName, lastName, phone, notes } = parse.data;
 
     // Mise à jour sécurisée par organizationId
+    const dataToUpdate: Record<string, unknown> = {};
+    if (firstName !== undefined) dataToUpdate['firstName'] = firstName;
+    if (lastName !== undefined) dataToUpdate['lastName'] = lastName;
+    if (phone !== undefined) dataToUpdate['phone'] = phone ?? null;
+    if (notes !== undefined) dataToUpdate['Note'] = notes ?? null;
+
     const updatedRecord = await prisma.customer.updateMany({
       where: {
         id,
         organizationId: orgId
       },
-      data: {
-        Note: notes
-      }
+      data: dataToUpdate as Prisma.CustomerUpdateInput
     });
 
     if (updatedRecord.count === 0) {

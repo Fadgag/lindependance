@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma'
+import { prisma } from '@/lib/prisma'
 import Decimal from 'decimal.js'
 import type { Prisma } from '@prisma/client'
 import {
@@ -12,6 +12,8 @@ import {
 } from 'date-fns'
 
 export type PeriodParam = string | { start?: Date; end?: Date }
+
+const pad = (n: number) => String(n).padStart(2, '0')
 
 export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodParam = "30days") {
   let start: Date;
@@ -49,7 +51,6 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
   }
 
   // Helper: ISO date string (UTC) pour le filtrage sur startDate (String? dans Prisma)
-  const pad = (n: number) => String(n).padStart(2, '0')
 
   // 2. Récupération des données — on utilise findMany pour garantir la présence des soldProducts
   type AppointmentWithService = Prisma.AppointmentGetPayload<{ include: { service: { select: { price: true } } } }>
@@ -81,21 +82,31 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
     // products on appointment
     let productsSum = new Decimal(0)
     let productsTaxSum = new Decimal(0)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawSold = (a as any).soldProducts ?? null
+    // Use Prisma.JsonValue typing for JSON fields instead of `any`
+    const rawSold = (a.soldProducts as Prisma.JsonValue | null) ?? null
     if (rawSold) {
       try {
-        const arr = typeof rawSold === 'string' ? JSON.parse(rawSold) : rawSold
-        for (const it of arr) {
-          const lineTotal = new Decimal(String(it.totalTTC ?? (it.priceTTC * (it.quantity || 1))))
-          productsSum = productsSum.plus(lineTotal)
-          // compute tax per line (don't add to global until we know the appointment is paid)
-          const lineTax = typeof it.totalTax === 'number'
-            ? new Decimal(String(it.totalTax))
-            : (it.taxRate ? lineTotal.minus(lineTotal.dividedBy(new Decimal(1).plus(new Decimal(String(it.taxRate)).dividedBy(100)))) : new Decimal(0))
-          productsTaxSum = productsTaxSum.plus(lineTax)
+        type SoldLine = { totalTTC?: number; priceTTC?: number; quantity?: number; totalTax?: number; taxRate?: number }
+        const rawSoldValue = rawSold as unknown
+        const arr = typeof rawSoldValue === 'string'
+          ? (JSON.parse(rawSoldValue as string) as SoldLine[])
+          : (rawSoldValue as SoldLine[])
+        if (Array.isArray(arr)) {
+          for (const it of arr) {
+            const qty = typeof it.quantity === 'number' ? it.quantity : (it.quantity ? Number(it.quantity) : 1)
+            const unit = typeof it.priceTTC === 'number' ? it.priceTTC : (it.priceTTC ? Number(it.priceTTC) : 0)
+            const lineTotal = new Decimal(String(it.totalTTC ?? (unit * (qty || 1))))
+            productsSum = productsSum.plus(lineTotal)
+            // compute tax per line (don't add to global until we know the appointment is paid)
+            const lineTax = typeof it.totalTax === 'number'
+              ? new Decimal(String(it.totalTax))
+              : (it.taxRate ? lineTotal.minus(lineTotal.dividedBy(new Decimal(1).plus(new Decimal(String(it.taxRate)).dividedBy(100)))) : new Decimal(0))
+            productsTaxSum = productsTaxSum.plus(lineTax)
+          }
         }
-      } catch {}
+      } catch {
+        // ignore JSON parse / shape errors for backward compatibility
+      }
     }
     const price = serviceDec.plus(productsSum)
     // allocate service vs product totals
