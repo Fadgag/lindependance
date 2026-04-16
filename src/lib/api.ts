@@ -13,8 +13,8 @@ export function apiErrorResponse(err: unknown) {
     return NextResponse.json({ error: message }, { status: 409 })
   }
 
-  // Default: do not leak internal error details to client
-  return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  // Expose real error details to ease debugging (stack is server-side only)
+  return NextResponse.json({ error: 'Internal server error', detail: message }, { status: 500 })
 }
 
 export default apiErrorResponse
