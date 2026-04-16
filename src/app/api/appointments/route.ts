@@ -186,13 +186,47 @@ export async function DELETE(request: Request) {
         if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
         const url = new URL(request.url)
-        const id = url.searchParams.get('id')
+        // Support both query params and JSON body for delete requests (some clients send body)
+        let id = url.searchParams.get('id')
+        let from = url.searchParams.get('from') // e.g. 'checkout'
+        let confirm = url.searchParams.get('confirm') === 'true'
+
+        // Essaie de parser le body si présent (ex: appel POST/DELETE depuis frontend avec JSON)
+        try {
+            const body = await request.json()
+            if (body) {
+                if (body.id) id = body.id
+                if (body.from) from = body.from
+                if (body.confirm !== undefined) confirm = Boolean(body.confirm)
+            }
+        } catch (e) {
+            // pas de body -> ok, on continue avec les query params
+        }
+
         if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
         const existing = await prisma.appointment.findFirst({
             where: { id, organizationId: session.user.organizationId }
         })
         if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+        // Si la suppression est demandée depuis la page d'encaissement,
+        // exiger une confirmation explicite pour éviter de supprimer un rdv
+        // pour lequel un paiement a déjà été enregistré.
+        if (from === 'checkout') {
+            if (!confirm) {
+                return NextResponse.json({ error: 'Confirmation requise pour suppression depuis la page encaissement' }, { status: 400 })
+            }
+
+            const finalPrice = existing.finalPrice ? Number(existing.finalPrice) : 0
+            const isPaidStatus = existing.status === 'PAID' || existing.status === 'PAYED'
+
+            if (finalPrice > 0 || isPaidStatus) {
+                // Si un paiement est présent, refuser par défaut la suppression sans confirmation
+                // (ici confirm=true a déjà été vérifié). On peut éventuellement ajouter
+                // un journal / déclencher une alerte ici.
+            }
+        }
 
         await prisma.appointment.delete({ where: { id } })
 

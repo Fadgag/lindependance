@@ -101,6 +101,8 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
     const [note, setNote] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("CB");
     const [loading, setLoading] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     // Charger les produits du catalogue
     useEffect(() => {
@@ -210,9 +212,49 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
         } catch { toast.error("Erreur"); } finally { setLoading(false); }
     };
 
+    const handleDeleteConfirm = async () => {
+        if (!appointment) return;
+        setDeleteLoading(true);
+        try {
+            const res = await fetch(`/api/appointments?id=${encodeURIComponent(appointment.id)}&from=checkout&confirm=true`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                toast.success('RDV supprimé');
+                try { window.dispatchEvent(new CustomEvent('appointments:updated')) } catch {}
+                onRefresh();
+                onClose();
+            } else {
+                toast.error(data?.error || 'Impossible de supprimer le RDV');
+            }
+        } catch (e) {
+            toast.error('Erreur réseau');
+        } finally {
+            setDeleteLoading(false);
+            setShowDeleteConfirm(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-100 p-4 text-gray-900">
             <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+                {/* Confirmation suppression RDV (overlay) */}
+                {showDeleteConfirm && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+                            <h3 className="text-lg font-bold text-red-600 flex items-center gap-3"><Trash2 /> Supprimer le rendez-vous</h3>
+                            <p className="text-sm text-gray-600 mt-2">Êtes-vous sûr·e de vouloir supprimer ce rendez-vous ? Cette action est irréversible.</p>
+                            <div className="mt-4 flex justify-end gap-2">
+                                <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 rounded-xl border">Annuler</button>
+                                <button onClick={handleDeleteConfirm} disabled={deleteLoading} className="px-4 py-2 rounded-xl bg-red-600 text-white disabled:opacity-50">{deleteLoading ? '...' : 'Supprimer'}</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Header */}
                 <div className={`p-6 border-b flex justify-between items-center ${isPaid ? 'bg-green-50' : 'bg-gray-50'}`}>
@@ -357,13 +399,26 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                         <span className="text-gray-400 font-bold text-xs uppercase tracking-widest">Total TTC</span>
                         <span className={`text-4xl font-black ${isPaid ? 'text-green-700' : 'text-gray-900'}`}>{Number(displayPrice).toFixed(2)} €</span>
                     </div>
-                    <button
-                        onClick={handleConfirm}
-                        disabled={loading || isPaid && soldProducts.length === 0 && extras.length === 0}
-                        className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${isPaid ? 'bg-gray-900' : 'bg-indigo-600'} text-white disabled:opacity-50`}
-                    >
-                        {loading ? "..." : (isPaid ? <><Save size={20} /> Mettre à jour</> : "Confirmer l'encaissement")}
-                    </button>
+                    {/* Bouton supprimer RDV (visible uniquement si le RDV n'est pas encore payé) */}
+                    {appointment && !isPaid && (
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                disabled={deleteLoading}
+                                className="flex-1 py-3 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 bg-white border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            >
+                                <Trash2 size={18} /> Supprimer le RDV
+                            </button>
+
+                            <button
+                                onClick={handleConfirm}
+                                disabled={loading || isPaid && soldProducts.length === 0 && extras.length === 0}
+                                className={`flex-1 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${isPaid ? 'bg-gray-900' : 'bg-indigo-600'} text-white disabled:opacity-50`}
+                            >
+                                {loading ? "..." : (isPaid ? <><Save size={20} /> Mettre à jour</> : "Confirmer l'encaissement")}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

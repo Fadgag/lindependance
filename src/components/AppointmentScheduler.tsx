@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import { isAbortError } from '@/lib/utils'
 import type { Customer, Service, Staff, InitialAppointmentData } from '@/types/models'
@@ -31,6 +32,7 @@ export default function AppointmentScheduler() {
     const [editingEvent, setEditingEvent] = useState<InitialAppointmentData | null>(null);
     const [mounted, setMounted] = useState(false);
     useEffect(() => { const id = setTimeout(() => setMounted(true), 0); return () => clearTimeout(id) }, []);
+    const lastRangeRef = useRef<{ start?: string; end?: string } | null>(null);
 
     const FullCalendarComponent = FullCalendar
 
@@ -137,10 +139,16 @@ export default function AppointmentScheduler() {
                             right: 'timeGridDay,timeGridWeek'
                         }}
 
-                        // Recharge les RDV à chaque changement de période (navigation semaine/mois)
-                        datesSet={(info: DatesSetArg) => {
-                            fetchAppointments(info.startStr, info.endStr)
-                        }}
+                                                                // Recharge les RDV à chaque changement de période (navigation semaine/mois)
+                                                                // NOTE: FullCalendar can call datesSet frequently; guard to avoid duplicate identical requests.
+                                                                datesSet={(info: DatesSetArg) => {
+                                                                    try {
+                                                                        const last = (lastRangeRef.current || {})
+                                                                        if (last.start === info.startStr && last.end === info.endStr) return
+                                                                        lastRangeRef.current = { start: info.startStr, end: info.endStr }
+                                                                        fetchAppointments(info.startStr, info.endStr)
+                                                                    } catch (e) { /* defensive */ fetchAppointments(info.startStr, info.endStr) }
+                                                                }}
 
                         // --- 1. RENDU DES CASES (MINI) ---
                         eventContent={(info: EventContentArg) => {
