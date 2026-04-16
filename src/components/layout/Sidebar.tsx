@@ -19,22 +19,23 @@ export default function Sidebar() {
     const { data: session } = useSession()
 
     return (
-        <aside className="w-72 bg-[var(--studio-bg)] border-r border-[var(--studio-border)] flex flex-col h-screen sticky top-0 px-6 py-8">
+        /* hidden md:flex = display:none on mobile → removed from a11y tree. MobileHeader/MobileSheet handle nav on small devices. */
+        <aside className="hidden md:flex w-72 bg-(--studio-bg) border-r border-(--studio-border) flex-col h-screen sticky top-0 px-6 py-8">
 
             {/* LOGO ELÉGANT */}
             <Link href="/" className="mb-12 px-4 block no-underline" aria-label="Accueil - Atelier">
-                <h1 className="font-serif text-3xl tracking-tight text-[var(--studio-text)]">
-                    Atelier<span className="text-[var(--studio-primary)]">.</span>
+                <h1 className="font-serif text-3xl tracking-tight text-(--studio-text)">
+                    Atelier<span className="text-(--studio-primary)">.</span>
                 </h1>
-                <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--studio-muted)] font-bold mt-1">
+                <p className="text-[10px] tracking-[0.3em] uppercase text-(--studio-muted) font-bold mt-1">
                     Studio Coiffure
                 </p>
             </Link>
 
             {session?.user && (
                 <div className="mb-6 px-4">
-                    <div className="text-sm text-[var(--studio-muted)]">Connecté en tant que</div>
-                    <div className="font-bold text-[var(--studio-text)]">{session.user.name || session.user.email}</div>
+                    <div className="text-sm text-(--studio-muted)">Connecté en tant que</div>
+                    <div className="font-bold text-(--studio-text)">{session.user.name || session.user.email}</div>
                 </div>
             )}
 
@@ -55,11 +56,11 @@ export default function Sidebar() {
                             href={item.href}
                             className={`flex items-center gap-4 px-6 py-4 rounded-3xl transition-all duration-300 group ${
                                 isActive
-                                    ? 'bg-white text-[var(--studio-text)] shadow-sm border border-[var(--studio-border)]'
-                                    : 'text-[var(--studio-muted)] hover:text-[var(--studio-text)] hover:bg-white/50'
+                                    ? 'bg-white text-(--studio-text) shadow-sm border border-(--studio-border)'
+                                    : 'text-(--studio-muted) hover:text-(--studio-text) hover:bg-white/50'
                             }`}
                         >
-                            <item.icon size={20} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'text-[var(--studio-primary)]' : ''} />
+                            <item.icon size={20} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'text-(--studio-primary)' : ''} />
                             <span className={`text-sm tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
                                 {item.name}
                             </span>
@@ -68,7 +69,7 @@ export default function Sidebar() {
                 })}
             </nav>
 
-            <button onClick={() => signOut({ callbackUrl: '/auth/signin' })} className="flex items-center gap-3 px-6 py-6 mt-4 text-[var(--studio-muted)] hover:text-red-400 transition-colors">
+            <button onClick={() => signOut({ callbackUrl: '/auth/signin' })} className="flex items-center gap-3 px-6 py-6 mt-4 text-(--studio-muted) hover:text-red-400 transition-colors">
                 <LogOut size={18} />
                 <span className="text-xs font-bold uppercase tracking-widest">Quitter</span>
             </button>
