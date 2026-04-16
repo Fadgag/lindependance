@@ -51,9 +51,9 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
   // Helper: ISO date string (UTC) pour le filtrage sur startDate (String? dans Prisma)
   const pad = (n: number) => String(n).padStart(2, '0')
 
-
   // 2. Récupération des données — on utilise findMany pour garantir la présence des soldProducts
   type AppointmentWithService = Prisma.AppointmentGetPayload<{ include: { service: { select: { price: true } } } }>
+
   const detailRows: AppointmentWithService[] = await prisma.appointment.findMany({
     where: { organizationId: orgId, startTime: { gte: start, lte: end }, status: { not: 'CANCELLED' } },
     include: { service: { select: { price: true } } },
@@ -71,48 +71,48 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
   const map = new Map<string, { realized: Decimal; projected: Decimal; count: number }>()
 
   for (const a of detailRows) {
-      const ad = new Date(a.startTime)
-      const key = `${ad.getUTCFullYear()}-${pad(ad.getUTCMonth() + 1)}-${pad(ad.getUTCDate())}`
-      const cur = map.get(key) ?? { realized: new Decimal(0), projected: new Decimal(0), count: 0 }
-      const isPaid = a.status === 'PAID'
-      // service price
-      const servicePriceValue = a.service?.price ?? 0
-      const serviceDec = new Decimal(String(servicePriceValue))
-      // products on appointment
-      let productsSum = new Decimal(0)
-      let productsTaxSum = new Decimal(0)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawSold = (a as any).soldProducts ?? null
-        if (rawSold) {
-        try {
-          const arr = typeof rawSold === 'string' ? JSON.parse(rawSold) : rawSold
-          for (const it of arr) {
-            const lineTotal = new Decimal(String(it.totalTTC ?? (it.priceTTC * (it.quantity || 1))))
-            productsSum = productsSum.plus(lineTotal)
-            // compute tax per line (don't add to global until we know the appointment is paid)
-            const lineTax = typeof it.totalTax === 'number'
-              ? new Decimal(String(it.totalTax))
-              : (it.taxRate ? lineTotal.minus(lineTotal.dividedBy(new Decimal(1).plus(new Decimal(String(it.taxRate)).dividedBy(100)))) : new Decimal(0))
-            productsTaxSum = productsTaxSum.plus(lineTax)
-          }
-        } catch {}
-      }
-      const price = serviceDec.plus(productsSum)
-      // allocate service vs product totals
-      if (isPaid) {
-        totalRealized = totalRealized.plus(price)
-        totalRealizedServices = totalRealizedServices.plus(serviceDec)
-        totalRealizedProducts = totalRealizedProducts.plus(productsSum)
-        totalTaxCollected = totalTaxCollected.plus(productsTaxSum)
-        cur.realized = cur.realized.plus(price)
-      }
-      totalProjected = totalProjected.plus(price)
-      totalProjectedServices = totalProjectedServices.plus(serviceDec)
-      totalProjectedProducts = totalProjectedProducts.plus(productsSum)
-      cur.projected = cur.projected.plus(price)
-      cur.count += 1
-      map.set(key, cur)
+    const ad = new Date(a.startTime)
+    const key = `${ad.getUTCFullYear()}-${pad(ad.getUTCMonth() + 1)}-${pad(ad.getUTCDate())}`
+    const cur = map.get(key) ?? { realized: new Decimal(0), projected: new Decimal(0), count: 0 }
+    const isPaid = a.status === 'PAID'
+    // service price
+    const servicePriceValue = a.service?.price ?? 0
+    const serviceDec = new Decimal(String(servicePriceValue))
+    // products on appointment
+    let productsSum = new Decimal(0)
+    let productsTaxSum = new Decimal(0)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawSold = (a as any).soldProducts ?? null
+    if (rawSold) {
+      try {
+        const arr = typeof rawSold === 'string' ? JSON.parse(rawSold) : rawSold
+        for (const it of arr) {
+          const lineTotal = new Decimal(String(it.totalTTC ?? (it.priceTTC * (it.quantity || 1))))
+          productsSum = productsSum.plus(lineTotal)
+          // compute tax per line (don't add to global until we know the appointment is paid)
+          const lineTax = typeof it.totalTax === 'number'
+            ? new Decimal(String(it.totalTax))
+            : (it.taxRate ? lineTotal.minus(lineTotal.dividedBy(new Decimal(1).plus(new Decimal(String(it.taxRate)).dividedBy(100)))) : new Decimal(0))
+          productsTaxSum = productsTaxSum.plus(lineTax)
+        }
+      } catch {}
     }
+    const price = serviceDec.plus(productsSum)
+    // allocate service vs product totals
+    if (isPaid) {
+      totalRealized = totalRealized.plus(price)
+      totalRealizedServices = totalRealizedServices.plus(serviceDec)
+      totalRealizedProducts = totalRealizedProducts.plus(productsSum)
+      totalTaxCollected = totalTaxCollected.plus(productsTaxSum)
+      cur.realized = cur.realized.plus(price)
+    }
+    totalProjected = totalProjected.plus(price)
+    totalProjectedServices = totalProjectedServices.plus(serviceDec)
+    totalProjectedProducts = totalProjectedProducts.plus(productsSum)
+    cur.projected = cur.projected.plus(price)
+    cur.count += 1
+    map.set(key, cur)
+  }
 
   // 3. Génération de la timeseries sans "trous"
   const msPerDay = 24 * 60 * 60 * 1000
@@ -162,9 +162,6 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
     where: { organizationId: orgId }
   })
 
-  let appointmentCount = 0
-  appointmentCount = detailRows.length
-
   return {
     summary: {
       totalRevenue: totalProjected.toNumber(),      // legacy: compatibilité descendante
@@ -174,7 +171,7 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
       productRevenue: totalRealizedProducts.toNumber(),
       totalTaxCollected: totalTaxCollected.toNumber(),
       totalProjected: totalProjected.toNumber(),    // alias explicite utilisé par les tests
-      appointmentCount,
+      appointmentCount: detailRows.length,
       newCustomerCount,
       staffCount
     },
@@ -184,4 +181,3 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
 
 const dashboardService = { getDashboardForOrg }
 export default dashboardService
-

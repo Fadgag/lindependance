@@ -6,7 +6,6 @@ import { logger } from '@/lib/logger'
 import { CustomerCreateSchema, CustomerUpdateSchema } from '@/schemas/customers'
 import { auth } from "@/auth"
 
-const db = prisma
 
 // --- GET : Récupérer les clients (Unité ou Liste) ---
 export async function GET(_request: Request) {
@@ -22,7 +21,7 @@ export async function GET(_request: Request) {
 
     // CAS 1 : Récupérer UN client spécifique par ID
     if (id) {
-      const customer = await db.customer.findFirst({
+      const customer = await prisma.customer.findFirst({
         where: {
           id,
           organizationId: orgId
@@ -44,7 +43,6 @@ export async function GET(_request: Request) {
               status: true,
               finalPrice: true,
               note: true,
-              extras: true,
               soldProducts: true,
               paymentMethod: true,
               service: {
@@ -67,7 +65,7 @@ export async function GET(_request: Request) {
     }
 
     // CAS 2 : Récupérer TOUS les clients de l'organisation
-    const customers = await db.customer.findMany({
+    const customers = await prisma.customer.findMany({
       where: { organizationId: orgId },
       orderBy: { lastName: 'asc' },
       select: {
@@ -112,7 +110,7 @@ export async function POST(request: Request) {
 
     // Vérifier les doublons par téléphone au sein de l'organisation (seulement si phone fourni)
     if (phone) {
-      const existing = await db.customer.findFirst({
+      const existing = await prisma.customer.findFirst({
         where: { phone, organizationId: orgId }
       });
 
@@ -124,7 +122,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const created = await db.customer.create({
+    const created = await prisma.customer.create({
       data: {
         firstName,
         lastName,
@@ -162,7 +160,7 @@ export async function PUT(request: Request) {
     const { id, notes } = parse.data;
 
     // Mise à jour sécurisée par organizationId
-    const updatedRecord = await db.customer.updateMany({
+    const updatedRecord = await prisma.customer.updateMany({
       where: {
         id,
         organizationId: orgId
@@ -177,7 +175,7 @@ export async function PUT(request: Request) {
     }
 
     // Récupérer l'objet mis à jour proprement avec select
-    const updatedCustomer = await db.customer.findFirst({
+    const updatedCustomer = await prisma.customer.findFirst({
       where: { id, organizationId: orgId },
       select: {
         id: true,

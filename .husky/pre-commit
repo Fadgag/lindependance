@@ -1,0 +1,3 @@
+#!/bin/sh
+# Lint only staged src/ files + full type-check
+npx tsc --noEmit

@@ -19,7 +19,6 @@ export async function GET(request: Request) {
             organizationId: session.user.organizationId
         }
 
-        // Correction de la logique de date pour inclure toute la journée
         if (startParam) {
             const startDate = new Date(startParam)
             startDate.setHours(0, 0, 0, 0)
@@ -36,40 +35,39 @@ export async function GET(request: Request) {
             include: { service: true, customer: true },
         })
 
-        return NextResponse.json(appointments.map((a) => ({
-            id: a.id,
-            title: `${a.customer?.firstName || 'Client'} ${a.customer?.lastName || ''} — ${a.service?.name || 'Service'}`,
-            start: a.startTime.toISOString(),
-            end: a.endTime.toISOString(),
-            status: a.status || "CONFIRMED",
-            // --- AJOUT ESSENTIEL POUR LE CA ---
-            finalPrice: a.finalPrice ? Number(a.finalPrice) : 0,
-            // ----------------------------------
-            service: a.service ? {
-                id: a.service.id,
-                name: a.service.name,
-                price: a.service.price ? Number(a.service.price) : 0,
-                color: a.service.color
-            } : null,
-            customer: a.customer ? {
-                id: a.customer.id,
-                name: `${a.customer.firstName} ${a.customer.lastName}`.trim()
-            } : null,
-            resourceId: a.staffId,
-            color: a.service?.color || "#3788d8",
-            // Extras & soldProducts sont stockés en JSON String? dans Prisma — parsing sécurisé via util.
-            extras: parseJsonField<Extra>(a.extras),
-            soldProducts: parseJsonField<SoldProduct>(a.soldProducts),
-            extendedProps: {
-                serviceId: a.serviceId,
-                customerId: a.customerId,
-                note: a.note || null,
-                duration: a.duration,
-                status: a.status, // Utile pour le front
+        return NextResponse.json(appointments
+            .filter((a) => a.startTime)
+            .map((a) => ({
+                id: a.id,
+                title: `${a.customer?.firstName || 'Client'} ${a.customer?.lastName || ''} — ${a.service?.name || 'Service'}`,
+                start: a.startTime ? a.startTime.toISOString() : a.createdAt.toISOString(),
+                end: a.endTime ? a.endTime.toISOString() : (a.startTime ? a.startTime.toISOString() : a.createdAt.toISOString()),
+                status: a.status || "CONFIRMED",
+                finalPrice: a.finalPrice ? Number(a.finalPrice) : 0,
+                service: a.service ? {
+                    id: a.service.id,
+                    name: a.service.name,
+                    price: a.service.price ? Number(a.service.price) : 0,
+                    color: a.service.color
+                } : null,
+                customer: a.customer ? {
+                    id: a.customer.id,
+                    name: `${a.customer.firstName} ${a.customer.lastName}`.trim()
+                } : null,
+                resourceId: a.staffId,
+                color: a.service?.color || "#3788d8",
                 extras: parseJsonField<Extra>(a.extras),
                 soldProducts: parseJsonField<SoldProduct>(a.soldProducts),
-            }
-        })))
+                extendedProps: {
+                    serviceId: a.serviceId,
+                    customerId: a.customerId,
+                    note: a.note || null,
+                    duration: a.duration,
+                    status: a.status,
+                    extras: parseJsonField<Extra>(a.extras),
+                    soldProducts: parseJsonField<SoldProduct>(a.soldProducts),
+                }
+            })))
     } catch (err) {
         return apiErrorResponse(err)
     }
@@ -89,7 +87,6 @@ export async function POST(request: Request) {
 
         const { start, end, duration, serviceId, customerId, staffId, note } = parsed.data
 
-        // Récupérer le prix actuel du service pour le copier dans appointment.price (denormalization)
         const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { price: true } })
         const servicePrice = svc?.price ?? 0
 
@@ -107,7 +104,7 @@ export async function POST(request: Request) {
                 price: servicePrice
             }
         })
-        // If this appointment consumes a customer package, decrement sessionsRemaining atomically
+
         if (parsed.data.customerPackageId) {
           await prisma.customerPackage.updateMany({
             where: { id: parsed.data.customerPackageId, customer: { organizationId: session.user.organizationId }, sessionsRemaining: { gt: 0 } },
@@ -126,7 +123,6 @@ export async function PUT(request: Request) {
         if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
         const body = await request.json()
-        // validate input with Zod schema to avoid malformed updates
         const { UpdateAppointmentSchema } = await import('@/schemas/appointments')
         const parsed = UpdateAppointmentSchema.safeParse(body)
         if (!parsed.success) {
@@ -136,7 +132,6 @@ export async function PUT(request: Request) {
 
         if (!id) return NextResponse.json({ error: 'Missing appointment id' }, { status: 400 })
 
-        // Vérification IDOR : l'appointment doit appartenir à l'organisation de l'utilisateur
         const existing = await prisma.appointment.findFirst({
             where: { id, organizationId: session.user.organizationId }
         })
@@ -145,7 +140,6 @@ export async function PUT(request: Request) {
         const newStart = new Date(start)
         const newEnd = new Date(end)
 
-        // Anti-overlap (sauf si force=true)
         if (!force) {
             const conflict = await prisma.appointment.findFirst({
                 where: {
@@ -188,7 +182,6 @@ export async function DELETE(request: Request) {
         const id = url.searchParams.get('id')
         if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-        // Vérification IDOR
         const existing = await prisma.appointment.findFirst({
             where: { id, organizationId: session.user.organizationId }
         })

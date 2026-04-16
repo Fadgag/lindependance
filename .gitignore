@@ -66,3 +66,6 @@ build.log
 # Scripts temporaires
 tmp_*.js
 
+
+# Debug scripts (generated locally)
+scripts/checkAppointments.js

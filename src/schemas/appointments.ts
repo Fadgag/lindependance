@@ -32,7 +32,6 @@ export const UpdatePaymentDetailsSchema = z.object({
 })
 
 export type UpdatePaymentDetailsInput = z.infer<typeof UpdatePaymentDetailsSchema>
-
 export const CheckoutInputSchema = z.object({
   totalPrice: z.number().min(0),
   paymentMethod: z.enum(['CB', 'CASH', 'CHECK']),

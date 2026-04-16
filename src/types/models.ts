@@ -1,5 +1,4 @@
 // Types maintained for app usage (derived from prisma schema where relevant)
-
 export interface Product {
   id: string
   name: string
@@ -15,17 +14,6 @@ export interface Product {
 // Note: certaines interfaces peuvent ne pas être référencées directement par l'analyse statique
 // mais sont exposées pour usage futur / correspondance Prisma. Suppression eslint locale.
 
-/** Shape retournée par Prisma groupBy sur Appointment */
-export interface AppointmentGroupRow {
-  startDate: string
-  _sum: { price: string | number | null }
-  _count: { _all: number } | number
-}
-
-/** Shape utilisée pour l'accès à groupBy avec un runtime guard (types Prisma variables selon version) */
-export type AppointmentGroupByDelegate = {
-  groupBy: (opts: unknown) => Promise<AppointmentGroupRow[]>
-}
 
 export interface DashboardTimeseries {
   date: string
@@ -119,7 +107,10 @@ export interface AppointmentSummary {
     note?: string
     paymentMethod?: string
     extras?: string | Extra[]
-    [key: string]: unknown
+    soldProducts?: string | SoldProduct[]
+    duration?: number
+    serviceId?: string
+    customerId?: string
   }
 }
 
