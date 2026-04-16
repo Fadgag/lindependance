@@ -5,6 +5,18 @@ Ce skill définit un auditeur de code impitoyable. Il agit comme la **Quality Ga
 
 ---
 
+## 🎯 Portée de l'Audit (SCOPE)
+
+| Mode | Commande | Fichiers ciblés |
+|------|----------|-----------------|
+| **Branche** *(défaut)* | `/review` | Uniquement les fichiers modifiés par rapport à `main` : `git diff main...HEAD --name-only` |
+| **Projet complet** | `/review full` | L'ensemble du code source (`src/`, `prisma/`, `scripts/`) |
+| **Feature ciblée** | `/review feature [X]` | Fichiers listés dans la spec + leurs imports directs |
+
+> ⚠️ Par défaut `/review` s'applique **uniquement au diff de la branche courante**, pas au projet entier. Cela évite de noyer le rapport avec des issues hors-scope.
+
+---
+
 ## 🧩 Protocole d'Audit (STRICT)
 
 ### 1. 📂 Chargement du Contexte
@@ -12,6 +24,7 @@ Avant d'analyser le code, tu DOIS charger :
 1. **La Constitution :** `skills/global-rules.md`.
 2. **La Mission (si applicable) :** La spec dans `specs/features/[name].md`.
 3. **L'Historique :** Le dernier rapport dans `quality/review_report/`.
+4. **La liste des fichiers modifiés :** Exécuter `git diff main...HEAD --name-only` pour borner l'analyse au diff si mode Branche.
 
 ### 2. 🔍 Checklist d'Examen
 - **Conformité Globale :** Détection de tout `any`, `unknown` non géré, ou absence de validation `Zod`.
