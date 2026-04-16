@@ -116,12 +116,12 @@ export default function DashboardShell({ initialData, currentPeriod }: Dashboard
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi) => {
           const isClickable = kpi.title === "CA Réalisé" || kpi.title === "CA Prévisionnel"
-          return (
+                    return (
             <div
               key={kpi.title}
               role={isClickable ? "button" : undefined}
               tabIndex={isClickable ? 0 : undefined}
-              onClick={isClickable ? () => router.push("/dashboard/details?filter=all") : undefined}
+              onClick={isClickable ? () => router.push(kpi.title === 'CA Réalisé' ? '/dashboard/details?filter=all&status=paid' : '/dashboard/details?filter=all') : undefined}
               className={`bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow group ${isClickable ? "cursor-pointer" : ""}`}
             >
               <div className="flex items-start justify-between mb-4">

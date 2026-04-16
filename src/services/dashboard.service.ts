@@ -211,8 +211,12 @@ export type DashboardDetailItem = {
   products: Array<{ productId?: string; name?: string; priceTTC?: number; quantity?: number }>
 }
 
-export async function getDashboardDetails(orgId: string, from: Date, to: Date, filter: 'all' | 'services' | 'products' = 'all', page = 1, pageSize = 50) {
+export async function getDashboardDetails(orgId: string, from: Date, to: Date, filter: 'all' | 'services' | 'products' = 'all', page = 1, pageSize = 50, onlyPaid = false) {
   const where: Prisma.AppointmentWhereInput = { organizationId: orgId, startTime: { gte: from, lte: to }, status: { not: 'CANCELLED' } }
+  if (onlyPaid) {
+    // consider an appointment as paid if status is PAID or finalPrice > 0
+    where.AND = [{ OR: [{ status: 'PAID' }, { finalPrice: { gt: 0 } }] }]
+  }
   if (filter === 'services') {
     // Only appointments without sold products (prestations uniquement)
     where.soldProducts = null

@@ -35,9 +35,23 @@ export async function GET(request: Request) {
             }
         }
 
+        // Use explicit select to avoid reading DB columns that may not exist until migration is applied
         const appointments = await prisma.appointment.findMany({
             where,
-            include: {
+            select: {
+              id: true,
+              startTime: true,
+              endTime: true,
+              status: true,
+              finalPrice: true,
+              price: true,
+              serviceId: true,
+              customerId: true,
+              staffId: true,
+              note: true,
+              duration: true,
+              extras: true,
+              soldProducts: true,
               service: { select: { id: true, name: true, price: true, color: true } },
               customer: { select: { id: true, firstName: true, lastName: true } }
             },
@@ -51,8 +65,8 @@ export async function GET(request: Request) {
                 return {
                 id: a.id,
                 title: `${a.customer?.firstName || 'Client'} ${a.customer?.lastName || ''} — ${a.service?.name || 'Service'}`,
-                start: a.startTime ? a.startTime.toISOString() : a.createdAt.toISOString(),
-                end: a.endTime ? a.endTime.toISOString() : (a.startTime ? a.startTime.toISOString() : a.createdAt.toISOString()),
+                start: a.startTime.toISOString(),
+                end: a.endTime ? a.endTime.toISOString() : a.startTime.toISOString(),
                 status: a.status || "CONFIRMED",
                 finalPrice: a.finalPrice ? Number(a.finalPrice) : 0,
                 service: a.service ? {
@@ -115,6 +129,19 @@ export async function POST(request: Request) {
                 organizationId: session.user.organizationId,
                 status: "CONFIRMED",
                 price: servicePrice
+            },
+            select: {
+              id: true,
+              startTime: true,
+              endTime: true,
+              status: true,
+              finalPrice: true,
+              price: true,
+              serviceId: true,
+              customerId: true,
+              staffId: true,
+              note: true,
+              duration: true,
             }
         })
 
@@ -145,7 +172,8 @@ export async function PUT(request: Request) {
         if (!id) return NextResponse.json({ error: 'Missing appointment id' }, { status: 400 })
 
         const existing = await prisma.appointment.findFirst({
-            where: { id, organizationId: session.user.organizationId }
+            where: { id, organizationId: session.user.organizationId },
+            select: { id: true, status: true, finalPrice: true, staffId: true }
         })
         if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -181,7 +209,7 @@ export async function PUT(request: Request) {
             }
         })
         if (res.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-        const updated = await prisma.appointment.findFirst({ where: { id, organizationId: session.user.organizationId } })
+        const updated = await prisma.appointment.findFirst({ where: { id, organizationId: session.user.organizationId }, select: { id: true, startTime: true, endTime: true, duration: true, serviceId: true, customerId: true, note: true } })
         return NextResponse.json(updated)
     } catch (err) {
         return apiErrorResponse(err)
