@@ -15,6 +15,9 @@ export async function POST(
         }
 
         const { id } = await params;
+        // session.user.organizationId may be typed as string | null | undefined.
+        // We guarded above that it exists, so narrow it to a plain string for Prisma queries.
+        const organizationId: string = session.user.organizationId as string;
         const body = await request.json()
         const parsed = CheckoutInputSchema.safeParse(body)
         if (!parsed.success) {
@@ -29,7 +32,7 @@ export async function POST(
                     const qty = Number(line.quantity || 0)
                     if (qty <= 0) continue
                     const res = await tx.product.updateMany({
-                        where: { id: line.productId, organizationId: session.user.organizationId, stock: { gte: qty } },
+                        where: { id: line.productId, organizationId: organizationId, stock: { gte: qty } },
                         data: { stock: { decrement: qty } }
                     })
                     if (res.count === 0) {
@@ -41,7 +44,7 @@ export async function POST(
             const updateResult = await tx.appointment.updateMany({
                 where: {
                     id: id,
-                    organizationId: session.user.organizationId
+                    organizationId: organizationId
                 },
                 data: {
                     status: "PAID",

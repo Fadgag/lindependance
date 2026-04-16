@@ -91,6 +91,13 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
     const [soldProducts, setSoldProducts] = useState<SoldProduct[]>([]);
     const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
     const [showProductPicker, setShowProductPicker] = useState(false);
+    const [recentProductIds, setRecentProductIds] = useState<string[]>(() => {
+        try {
+            if (typeof localStorage === 'undefined') return []
+            const raw = localStorage.getItem('recent_products')
+            return raw ? JSON.parse(raw) as string[] : []
+        } catch { return [] }
+    })
     const [note, setNote] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("CB");
     const [loading, setLoading] = useState(false);
