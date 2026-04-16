@@ -223,14 +223,17 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
     take: pageSize
   })
 
+  // Define a local type that includes the potential new column `soldProductsJson`.
+  type AppointmentRow = (typeof rows)[number] & { soldProductsJson?: unknown }
+
   const items: DashboardDetailItem[] = []
-  for (const a of rows) {
+  for (const aRaw of rows) {
+    const a = aRaw as AppointmentRow
     const clientName = a.customer ? `${a.customer.firstName} ${a.customer.lastName}`.trim() : '—'
     const serviceName = a.service?.name ?? '—'
     // parse products (support legacy string or json field)
-    // soldProductsJson may not exist in older DB clients — use a runtime access and tolerate absent property
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawSold = ((a as any).soldProductsJson ?? a.soldProducts) as unknown
+    // soldProductsJson may not exist in older DB clients — access via typed local AppointmentRow
+    const rawSold = (a.soldProductsJson ?? a.soldProducts) as unknown
     let productsSum = 0
     const products: DashboardDetailItem['products'] = []
     if (rawSold) {

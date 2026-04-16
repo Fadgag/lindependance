@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(req: Request) {
+  // Safety: Never expose test data creation in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'not available' }, { status: 404 })
+  }
   const testKey = req.headers.get('x-test-api-key')
   if (!process.env.TEST_API_KEY || testKey !== process.env.TEST_API_KEY) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

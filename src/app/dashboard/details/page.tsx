@@ -1,6 +1,6 @@
 import { auth } from '@/auth'
 import { getDashboardDetails } from '@/services/dashboard.service'
-// ...existing code...
+import { z } from 'zod'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -9,12 +9,26 @@ export default async function DetailsPage({ searchParams }: { searchParams: { fr
   const session = await auth()
   if (!session?.user?.organizationId) redirect('/auth/signin')
 
+  if (!session?.user?.organizationId) {
+    redirect('/auth/signin')
+    return null
+  }
   const orgId = session.user.organizationId as string
-  /* eslint-disable-next-line react-hooks/purity */
-  const from = searchParams.from ? new Date(searchParams.from) : new Date(Date.now() - 30 * 24 * 3600 * 1000)
-  /* eslint-disable-next-line react-hooks/purity */
-  const to = searchParams.to ? new Date(searchParams.to) : new Date()
-  const filter = (searchParams.filter as 'all' | 'services' | 'products') ?? 'all'
+
+  const SearchSchema = z.object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+    filter: z.enum(['all', 'services', 'products']).optional()
+  })
+  const parsed = SearchSchema.safeParse(searchParams || {})
+  if (!parsed.success) {
+    // If the search params are invalid, redirect back to dashboard
+    redirect('/dashboard')
+    return null
+  }
+  const from = parsed.data.from ? new Date(parsed.data.from) : new Date(Date.now() - 30 * 24 * 3600 * 1000)
+  const to = parsed.data.to ? new Date(parsed.data.to) : new Date()
+  const filter = parsed.data.filter ?? 'all'
 
   const { items } = await getDashboardDetails(orgId, from, to, filter)
 

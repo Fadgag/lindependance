@@ -9,7 +9,8 @@ export async function GET(req: Request) {
   const testKey = req.headers.get('x-test-api-key')
 
   let orgId: string | undefined
-  if (testKey && testKey === process.env.TEST_API_KEY) {
+  // Allow test-mode querying only in non-production environments and only when a valid TEST_API_KEY is provided.
+  if (process.env.NODE_ENV !== 'production' && testKey && testKey === process.env.TEST_API_KEY) {
     orgId = url.searchParams.get('orgId') ?? undefined
     if (!orgId) return NextResponse.json({ error: 'orgId required in test mode' }, { status: 400 })
   } else {
