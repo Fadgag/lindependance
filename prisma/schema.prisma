@@ -85,6 +85,7 @@ model Appointment {
   startDate         String?
   paymentMethod     String?          // CB, Espèces, Chèque
   extras        String?
+  soldProducts  String?          // JSON: SoldProduct[] (produits vendus lors du RDV)
   customerPackageId String?
   customerPackage   CustomerPackage? @relation(fields: [customerPackageId], references: [id])
   serviceId         String

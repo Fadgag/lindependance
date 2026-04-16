@@ -40,6 +40,11 @@ export interface DashboardSummary {
   totalRevenue: number
   realizedRevenue: number
   projectedRevenue: number
+  // Breakdown by type
+  serviceRevenue?: number
+  productRevenue?: number
+  // TVA collectée sur la période (produits / lignes avec taxe)
+  totalTaxCollected?: number
   // legacy alias kept for backward compatibility with older tests/consumers
   totalProjected?: number
   appointmentCount: number
@@ -52,6 +57,18 @@ export interface DashboardData {
   timeseries: DashboardTimeseries[]
 }
 
+/** Produit vendu lors d'un encaissement */
+export interface SoldProduct {
+  productId: string
+  name: string
+  iconName: string
+  quantity: number
+  priceTTC: number
+  taxRate: number
+  totalTTC: number
+  totalTax: number
+}
+
 /** Shape d'un rendez-vous reçue par CheckoutModal (API appointments) */
 export interface CheckoutAppointment {
   id: string
@@ -61,6 +78,7 @@ export interface CheckoutAppointment {
   title?: string
   status?: string
   extras?: string | Extra[]
+  soldProducts?: string | SoldProduct[]
   note?: string
   Note?: string
   paymentMethod?: string
@@ -70,6 +88,7 @@ export interface CheckoutAppointment {
   extendedProps?: {
     status?: string
     extras?: string | Extra[]
+    soldProducts?: string | SoldProduct[]
     note?: string
     paymentMethod?: string
     finalPrice?: number

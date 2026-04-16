@@ -126,16 +126,18 @@ export default function AppointmentScheduler() {
                         }}
 
                         // --- 1. RENDU DES CASES (MINI) ---
-                        eventContent={(info: EventContentArg) => (
-                            <div className="p-1 leading-tight overflow-hidden">
-                                <p className="font-bold text-[10px] uppercase truncate text-studio-text">
-                                    {info.event.title}
-                                </p>
-                                <p className="text-[9px] text-studio-text/70">
-                                    {info.timeText}
-                                </p>
-                            </div>
-                        )}
+                        eventContent={(info: EventContentArg) => {
+                            const hasSold = !!info.event.extendedProps?.soldProducts
+                            return (
+                                <div className="p-1 leading-tight overflow-hidden flex items-center justify-between">
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-[10px] uppercase truncate text-studio-text">{info.event.title}</p>
+                                        <p className="text-[9px] text-studio-text/70">{info.timeText}</p>
+                                    </div>
+                                    {hasSold && <span title="Contient des ventes" className="text-[12px] ml-2">🛒</span>}
+                                </div>
+                            )
+                        }}
 
                         // --- 2. BULLE D'INFOS (TIPPY) ---
                         eventDidMount={(info: EventMountArg) => {
@@ -150,6 +152,7 @@ export default function AppointmentScheduler() {
                                             ${props.customerName ? `<p style="font-size: 11px; margin: 0;">👤 ${props.customerName} </p>` : ''}
                                             ${props.serviceName ? `<p style="font-size: 11px; color: #D4A3A1; font-style: italic; margin-top: 4px;">✨ ${props.serviceName}</p>` : ''}
                                             ${props.price ? `<p style="font-size: 11px; font-weight: bold; margin-top: 2px;">💰 ${props.price}</p>` : ''}
+                                            ${props.soldProducts ? `<p style="font-size: 11px; margin-top: 6px; font-weight: 700;">🛒 Ventes enregistrées</p>` : ''}
                                         </div>
                                     </div>
                                 `,

@@ -1,11 +1,12 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Calendar, Receipt } from 'lucide-react'
 import CheckoutModal from '@/components/dashboard/CheckoutModal'
-import type { CheckoutAppointment, Client } from '@/types/models'
+import type { CheckoutAppointment, Client, SoldProduct } from '@/types/models'
 import { clientError } from '@/lib/clientLogger'
+import { parseJsonField } from '@/lib/parseAppointmentJson'
 
 export default function ClientDetail() {
   const params = useParams() as { id?: string }
@@ -18,7 +19,7 @@ export default function ClientDetail() {
   // État pour gérer l'ouverture de la modal de détail/paiement
   const [selectedApt, setSelectedApt] = useState<CheckoutAppointment | null>(null)
 
-  const loadClient = async () => {
+  const loadClient = useCallback(async () => {
     if (!id) return
     setLoading(true)
     try {
@@ -33,9 +34,9 @@ export default function ClientDetail() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
-  useEffect(() => { loadClient() }, [id])
+  useEffect(() => { void loadClient() }, [loadClient])
 
   const saveNotes = async () => {
     if (!client) return
@@ -56,7 +57,7 @@ export default function ClientDetail() {
   if (!client) return <div className="p-8 text-center">Client non trouvé</div>
 
   return (
-      <div className="flex-1 p-8 space-y-6 bg-[#FAF9F6] min-h-screen">
+      <div className="flex-1 p-8 space-y-6 bg-studio-bg min-h-screen">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -73,7 +74,7 @@ export default function ClientDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Colonne gauche : Notes */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+            <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-100">
               <h3 className="font-serif text-lg mb-4 flex items-center gap-2">
                 <Receipt size={18} className="text-studio-primary" />
                 Notes & Préférences
@@ -96,7 +97,7 @@ export default function ClientDetail() {
           </div>
 
           {/* Colonne droite : Historique cliquable */}
-          <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+          <div className="lg:col-span-2 bg-white p-8 rounded-4xl shadow-sm border border-gray-100">
             <h3 className="font-serif text-xl mb-6 flex items-center gap-2 text-studio-text">
               <Calendar size={20} className="text-studio-primary" />
               Historique des soins
@@ -105,7 +106,11 @@ export default function ClientDetail() {
             <div className="space-y-3">
                           {client.appointments && client.appointments.length > 0 ? (
                                   client.appointments.map((apt: CheckoutAppointment) => {
-                                    const start = apt.startTime ? new Date(String(apt.startTime)) : null
+                                    // Calcul du nombre de produits vendus — soldProducts est string|array|undefined
+                                    const soldItems: SoldProduct[] = typeof apt.soldProducts === 'string'
+                                      ? parseJsonField<SoldProduct>(apt.soldProducts)
+                                      : Array.isArray(apt.soldProducts) ? apt.soldProducts : []
+                                    const soldCount = soldItems.length
                                     return (
                       <div
                           key={apt.id}
@@ -115,7 +120,7 @@ export default function ClientDetail() {
                           })}
                           className="flex items-center justify-between p-4 border border-gray-50 rounded-2xl hover:border-studio-primary/30 hover:bg-studio-primary/5 cursor-pointer transition-all group"
                       >
-                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-4">
                           <div className="bg-gray-50 p-3 rounded-xl group-hover:bg-white transition-colors">
                             <p className="text-[10px] uppercase font-black text-studio-primary text-center">
                               {apt.startTime ? new Date(apt.startTime).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : ''}
@@ -138,6 +143,11 @@ export default function ClientDetail() {
                         {apt.status === 'PAID' ? 'Payé' : 'À encaisser'}
                       </span>
                           </div>
+                          {soldCount > 0 && (
+                            <div className="text-xs text-gray-500 ml-4">
+                              Produits: {soldCount}
+                            </div>
+                          )}
                         </div>
                       </div>
                   )

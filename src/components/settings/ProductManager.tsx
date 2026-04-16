@@ -42,6 +42,8 @@ function ProductIcon({ name, size = 16 }: { name: string; size?: number }) {
 
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([])
+  const [query, setQuery] = useState<string>('')
+  const [showForm, setShowForm] = useState<boolean>(true)
   const [isEditing, setIsEditing] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<FormData>(emptyForm)
@@ -101,21 +103,27 @@ export default function ProductManager() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* FORMULAIRE */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             {isEditing
               ? <><Edit2 size={20} className="text-amber-500" /> Modifier le produit</>
               : <><Plus size={20} className="text-rose-400" /> Ajouter un produit</>}
           </h2>
-          {isEditing && (
-            <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-sm">
-              <X size={16} /> Annuler
+          <div className="flex items-center gap-2">
+            {isEditing && (
+              <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-sm">
+                <X size={16} /> Annuler
+              </button>
+            )}
+            <button type="button" onClick={() => setShowForm((v) => !v)} className="text-sm text-slate-500 px-3 py-1 rounded-md border">
+              {showForm ? 'Réduire' : 'Déployer'}
             </button>
-          )}
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {showForm && (
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Icône */}
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-2">Icône</label>
@@ -218,65 +226,91 @@ export default function ProductManager() {
             </button>
           </div>
         </form>
+        )}
       </div>
 
       {/* LISTE */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-4 border-b flex items-center gap-2">
-          <Package size={18} className="text-slate-500" />
-          <h3 className="font-semibold text-slate-700">Produits ({products.length})</h3>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <label className="sr-only">Rechercher un produit</label>
+          <input
+            aria-label="Rechercher un produit"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un produit..."
+            className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-rose-100"
+          />
         </div>
+        <div className="flex items-center gap-2">
+          {query && (
+            <button onClick={() => setQuery('')} className="text-sm text-slate-500">Effacer</button>
+          )}
+          <button
+            type="button"
+            onClick={() => { setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-white text-sm"
+          >
+            <Plus size={12} /> Ajouter
+          </button>
+        </div>
+      </div>
 
-        {products.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
-            <Package size={40} className="mx-auto mb-3 opacity-30" />
-            <p>Aucun produit enregistré</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-              <tr>
-                <th className="text-left p-4">Produit</th>
-                <th className="text-right p-4">Prix TTC</th>
-                <th className="text-right p-4">TVA</th>
-                <th className="text-right p-4">Stock</th>
-                <th className="p-4"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-t hover:bg-slate-50 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 shrink-0">
-                        <ProductIcon name={product.iconName} size={15} />
-                      </span>
-                      <span className="font-medium text-slate-800">{product.name}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {(() => {
+          const q = query.trim().toLowerCase()
+          const filtered = q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products
+          if (filtered.length === 0) {
+            return (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center text-slate-400 col-span-1 sm:col-span-2">
+                <Package size={40} className="mx-auto mb-3 opacity-30" />
+                <p>Aucun produit trouvé</p>
+              </div>
+            )
+          }
+
+          return filtered.map((product) => (
+            <div key={product.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-rose-200 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="inline-flex items-center justify-center w-3 h-12 rounded-full bg-slate-100 text-slate-500">
+                  {/* accent */}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-slate-100 text-slate-500 shrink-0">
+                    <ProductIcon name={product.iconName} size={18} />
+                  </span>
+                  <div>
+                    <h3 className="font-bold text-slate-800">{product.name}</h3>
+                    <div className="flex items-center gap-3 text-sm text-slate-400 mt-1">
+                      <span className="text-sm text-slate-500">{product.priceTTC.toFixed(2)} €</span>
+                      <span className="text-xs text-slate-400">{product.taxRate}% TVA</span>
                     </div>
-                  </td>
-                  <td className="p-4 text-right text-slate-700">{product.priceTTC.toFixed(2)} €</td>
-                  <td className="p-4 text-right text-slate-500">{product.taxRate}%</td>
-                  <td className="p-4 text-right">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${product.stock === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
-                      {product.stock}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => startEdit(product)} className="p-1.5 text-slate-400 hover:text-amber-500 transition-colors" aria-label="Modifier">
-                        <Edit2 size={15} />
-                      </button>
-                      <button onClick={() => handleDelete(product.id)} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors" aria-label="Supprimer">
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="text-right mr-2">
+                  <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${product.stock === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
+                    {product.stock}
+                  </div>
+                </div>
+                <button onClick={() => startEdit(product)} className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg">
+                  <Edit2 size={16} />
+                </button>
+                <button onClick={() => handleDelete(product.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))
+        })()}
       </div>
     </div>
   )
 }
+
+
+
+
+
+

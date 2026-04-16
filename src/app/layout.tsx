@@ -24,12 +24,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Apple touch icon (developer should provide /public/icon-192.png and /public/icon-512.png) */}
             <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
           </head>
-          <body className="flex h-full w-full overflow-hidden m-0 p-0 bg-studio-bg">
+          <body className="flex h-full w-full m-0 p-0 bg-studio-bg">
             <ModalStackProvider>
               <AuthProvider>
                 <MobileHeader />
                 <Sidebar />
-                <main className="flex-1 h-full flex flex-col min-w-0 relative pt-16 md:pt-0">
+                <main className="flex-1 overflow-y-auto min-w-0 relative pt-16 md:pt-0">
                   {children}
                 </main>
                 <Toaster position="top-right" richColors />
