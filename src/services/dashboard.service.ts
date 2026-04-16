@@ -214,8 +214,11 @@ export type DashboardDetailItem = {
 export async function getDashboardDetails(orgId: string, from: Date, to: Date, filter: 'all' | 'services' | 'products' = 'all', page = 1, pageSize = 50, onlyPaid = false) {
   const where: Prisma.AppointmentWhereInput = { organizationId: orgId, startTime: { gte: from, lte: to }, status: { not: 'CANCELLED' } }
   if (onlyPaid) {
-    // consider an appointment as paid if status is PAID or finalPrice > 0
-    where.AND = [{ OR: [{ status: 'PAID' }, { finalPrice: { gt: 0 } }] }]
+    // Consider an appointment as paid if:
+    // - status explicitly marks it as paid (some records use 'PAID' or 'PAYED'),
+    // - OR a finalPrice > 0 was recorded.
+    // We intentionally include the 'PAYED' variant for legacy data.
+    where.AND = [{ OR: [{ status: 'PAID' }, { status: 'PAYED' }, { finalPrice: { gt: 0 } }] }]
   }
   if (filter === 'services') {
     // Only appointments without sold products (prestations uniquement)
