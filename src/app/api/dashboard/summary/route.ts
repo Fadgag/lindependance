@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
   const start = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 3600 * 1000)
   const end = to ? new Date(to) : new Date()
-  const data = await getDashboardForOrg(orgId as string, { start, end })
+  const data = await getDashboardForOrg(orgId, { start, end })
   return NextResponse.json(data)
 }
 

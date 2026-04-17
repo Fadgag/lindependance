@@ -100,6 +100,7 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
         type SoldLine = { totalTTC?: number; priceTTC?: number; quantity?: number; totalTax?: number; taxRate?: number }
         const rawSoldValue = rawSold as unknown
         const arr = typeof rawSoldValue === 'string'
+          // RAISON: narrowing typeof === 'string' est effectué juste au-dessus — le cast est sûr.
           ? (JSON.parse(rawSoldValue as string) as SoldLine[])
           : (rawSoldValue as SoldLine[])
         if (Array.isArray(arr)) {
@@ -283,7 +284,7 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
       // Log the error and the attempted where clause in development to debug schema differences
       try {
         logger.error('[dashboard.service] productsTotal query failed, will fallback to conservative where', { message: (e as Error)?.message, whereWithProductsTotal })
-      } catch (_) {
+      } catch {
         // ignore logging problems
       }
     }
