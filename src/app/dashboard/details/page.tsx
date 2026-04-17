@@ -7,7 +7,7 @@ import { Suspense } from 'react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DetailsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string; filter?: string; status?: string }> }) {
+export default async function DetailsPage({ searchParams }: { searchParams: Promise<{ from?: string | string[]; to?: string | string[]; start?: string | string[]; end?: string | string[]; filter?: string | string[]; status?: string | string[] }> }) {
   const resolvedParams = await searchParams
   const session = await auth()
   // Guard: ensure session and organizationId. Use a single guarded block that returns early after redirect.
@@ -23,10 +23,10 @@ export default async function DetailsPage({ searchParams }: { searchParams: Prom
   // Normalize incoming params: accept both `start`/`end` (used by other components)
   // and `from`/`to`. Also make `status` case-insensitive by lowercasing it
   const rawParams = resolvedParams || {}
-  const startRaw = coerceToString((rawParams as any).start ?? (rawParams as any).from)
-  const endRaw = coerceToString((rawParams as any).end ?? (rawParams as any).to)
-  const filterRaw = coerceToString((rawParams as any).filter)
-  const statusRaw = coerceToString((rawParams as any).status)
+  const startRaw = coerceToString(rawParams.start ?? rawParams.from)
+  const endRaw = coerceToString(rawParams.end ?? rawParams.to)
+  const filterRaw = coerceToString(rawParams.filter)
+  const statusRaw = coerceToString(rawParams.status)
 
   const normalizedParams = {
     from: startRaw ?? undefined,

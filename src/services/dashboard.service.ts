@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Decimal from 'decimal.js'
 import type { Prisma } from '@prisma/client'
 import type { AppointmentDetailRow, DashboardTotals } from '@/types/dashboard'
+import parseSoldProducts from '@/lib/parseSoldProducts'
 import {
   startOfDay,
   endOfDay,
@@ -306,43 +307,19 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
   type AppointmentRow = (typeof rows)[number] & { soldProductsJson?: unknown }
 
   const items: DashboardDetailItem[] = []
-  // Totals for the filtered set (not just the current page)
-  let totalAmount = 0
-  let totalServicesSum = 0
-  let totalProductsSum = 0
   for (const aRaw of rows) {
     const a = aRaw as AppointmentRow
     const clientName = a.customer ? `${a.customer.firstName} ${a.customer.lastName}`.trim() : '—'
     const serviceName = a.service?.name ?? '—'
-    // parse products (support legacy string or json field)
-    // soldProductsJson may not exist in older DB clients — access via typed local AppointmentRow
+
+    // parse products using shared helper
     const rawSold = (a.soldProductsJson ?? a.soldProducts) as unknown
-    let productsSum = 0
-    const products: DashboardDetailItem['products'] = []
-    if (rawSold) {
-      try {
-        const arr = typeof rawSold === 'string' ? JSON.parse(rawSold) : rawSold
-        if (Array.isArray(arr)) {
-          for (const it of arr) {
-            const qty = typeof it.quantity === 'number' ? it.quantity : (it.quantity ? Number(it.quantity) : 1)
-            const unit = typeof it.priceTTC === 'number' ? it.priceTTC : (it.priceTTC ? Number(it.priceTTC) : 0)
-            const lineTotal = (typeof it.totalTTC === 'number' ? it.totalTTC : unit * (qty || 1))
-            productsSum += Number(lineTotal)
-            products.push({ productId: it.productId, name: it.name, priceTTC: unit, quantity: qty })
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
+    const parsed = parseSoldProducts(rawSold)
+    const productsSum = parsed.sum
+    const products = parsed.products
 
     const servicePrice = a.service?.price ? Number(a.service.price) : 0
     const totalTTC = (a.finalPrice != null ? Number(a.finalPrice) : (servicePrice + productsSum))
-
-    // accumulate totals for the whole filtered set
-    totalAmount += Number(totalTTC)
-    totalServicesSum += Number(servicePrice)
-    totalProductsSum += Number(productsSum)
 
     items.push({ appointmentId: a.id, date: a.startTime.toISOString(), clientName, serviceName, productsSum, totalTTC, products })
   }
@@ -352,43 +329,38 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
 
   // Select all appointments matching the filter (no pagination) to compute totals.
   // This is necessary to produce exact aggregates where finalPrice may be null.
-  const selectForTotals: any = usedProductsTotalVariant
+  const selectForTotals = usedProductsTotalVariant
     ? { finalPrice: true, service: { select: { price: true } }, soldProducts: true, productsTotal: true }
     : { finalPrice: true, service: { select: { price: true } }, soldProducts: true }
 
   const allForTotals = await prisma.appointment.findMany({ where: effectiveWhere, select: selectForTotals })
 
+  type TotalsRowBase = { finalPrice: number | null; service?: { price?: Prisma.Decimal | null } | null; soldProducts?: unknown }
+  type TotalsRowWithProducts = TotalsRowBase & { productsTotal?: number | null }
+
   let computedTotals: DashboardTotals = { totalAmount: 0, totalServicesSum: 0, totalProductsSum: 0 }
-  for (const r of allForTotals as any[]) {
-    const finalP = r.finalPrice != null ? Number(r.finalPrice) : null
-    let prodSum = 0
-    if (usedProductsTotalVariant && r.productsTotal != null) {
-      prodSum = Number(r.productsTotal || 0)
-    } else if (r.soldProducts) {
-      try {
-        const arr = typeof r.soldProducts === 'string' ? JSON.parse(r.soldProducts) : r.soldProducts
-        if (Array.isArray(arr)) {
-          for (const it of arr) {
-            const qty = typeof it.quantity === 'number' ? it.quantity : (it.quantity ? Number(it.quantity) : 1)
-            const unit = typeof it.priceTTC === 'number' ? it.priceTTC : (it.priceTTC ? Number(it.priceTTC) : 0)
-            const lineTotal = (typeof it.totalTTC === 'number' ? it.totalTTC : unit * (qty || 1))
-            prodSum += Number(lineTotal)
-          }
-        }
-      } catch {
-        // ignore parse errors
-      }
+  if (usedProductsTotalVariant) {
+    const rowsTyped = allForTotals as TotalsRowWithProducts[]
+    for (const r of rowsTyped) {
+      const finalP = r.finalPrice != null ? Number(r.finalPrice) : null
+      const prodSum = r.productsTotal != null ? Number(r.productsTotal || 0) : parseSoldProducts(r.soldProducts).sum
+      const servicePriceVal = r.service?.price ? Number(r.service.price) : 0
+      if (finalP != null) computedTotals.totalAmount += finalP
+      else computedTotals.totalAmount += servicePriceVal + prodSum
+      computedTotals.totalServicesSum += servicePriceVal
+      computedTotals.totalProductsSum += prodSum
     }
-
-    const servicePriceVal = r.service?.price ? Number(r.service.price) : 0
-
-    if (finalP != null) {
-      computedTotals.totalAmount += finalP
-    } else {
-      computedTotals.totalAmount += servicePriceVal + prodSum
+  } else {
+    const rowsTyped = allForTotals as TotalsRowBase[]
+    for (const r of rowsTyped) {
+      const finalP = r.finalPrice != null ? Number(r.finalPrice) : null
+      const prodSum = parseSoldProducts(r.soldProducts).sum
+      const servicePriceVal = r.service?.price ? Number(r.service.price) : 0
+      if (finalP != null) computedTotals.totalAmount += finalP
+      else computedTotals.totalAmount += servicePriceVal + prodSum
+      computedTotals.totalServicesSum += servicePriceVal
+      computedTotals.totalProductsSum += prodSum
     }
-    computedTotals.totalServicesSum += servicePriceVal
-    computedTotals.totalProductsSum += prodSum
   }
 
   return { items, total, totals: computedTotals }
