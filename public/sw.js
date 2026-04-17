@@ -19,7 +19,7 @@ self.addEventListener('message', (event) => {
   }
 })
 
-// ─── FETCH ─────────────────────────────────────────────────────────────────
+// ─── FETCH ────────��────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
@@ -28,6 +28,10 @@ self.addEventListener('fetch', (event) => {
 
   // SECURITY: never intercept authenticated API calls
   if (url.pathname.startsWith('/api/')) return
+
+  // Let Next.js handle its own internal routes (RSC payloads, data fetching, image optimisation…)
+  // Only /_next/static/ (content-hashed assets) is safe to cache-first.
+  if (url.pathname.startsWith('/_next/') && !url.pathname.startsWith('/_next/static/')) return
 
   // /_next/static/ assets are content-hashed → cache-first (safe indefinitely)
   if (url.pathname.startsWith('/_next/static/')) {
