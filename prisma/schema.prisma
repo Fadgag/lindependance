@@ -85,7 +85,9 @@ model Appointment {
   startDate         String?
   paymentMethod     String?          // CB, Espèces, Chèque
   extras        String?
-  soldProducts  String?          // JSON: SoldProduct[] (produits vendus lors du RDV)
+  soldProducts  String?          // JSON: SoldProduct[] (compat legacy)
+  soldProductsJson Json?         // New safe jsonb column (migrate safely and backfill)
+  productsTotal  Float?          // Aggregated total price of products for quick queries
   customerPackageId String?
   customerPackage   CustomerPackage? @relation(fields: [customerPackageId], references: [id])
   serviceId         String

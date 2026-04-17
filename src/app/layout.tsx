@@ -16,8 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="fr" className={`${manrope.variable} ${notoSerif.variable} h-full`}>
           <head>
             {/* PWA manifest and mobile meta-tags */}
+            <title>Indépendance</title>
+            <link rel="icon" href="/favicon.ico" />
             <link rel="manifest" href="/manifest.json" />
             <meta name="theme-color" content="#111827" />
+            <meta name="description" content="Prise de rendez-vous et gestion — Indépendance" />
             <meta name="apple-mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-status-bar-style" content="default" />
             <meta name="apple-mobile-web-app-title" content="Indépendance" />
