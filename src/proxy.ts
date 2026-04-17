@@ -20,6 +20,7 @@ async function middlewareFn(req: NextAuthRequest) {
 // RAISON: next-auth v5 beta types auth() return as AppRouteHandlerFn(req, ctx) — ctx required by type
 // but our middleware never reads ctx, and unit tests call middleware(req) without ctx.
 // Cast to optional-ctx signature to satisfy both runtime and test calls.
+// NextAuthRequest étend NextRequest, donc ce type couvre les deux cas (runtime + tests).
 type MiddlewareHandler = (req: NextAuthRequest, ctx?: Record<string, unknown>) => Response | void | Promise<Response | void>
 export const middleware: MiddlewareHandler = auth(middlewareFn) as unknown as MiddlewareHandler
 export default middleware

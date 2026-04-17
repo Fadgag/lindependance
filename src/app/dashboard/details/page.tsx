@@ -62,7 +62,29 @@ export default async function DetailsPage({ searchParams }: { searchParams: Prom
   const status = parsed.data.status ?? 'all'
   const onlyPaid = status === 'paid'
 
-  const { items, total, totals } = await getDashboardDetails(orgId, from, to, filter, 1, 50, onlyPaid)
+  let items, total, totals
+  try {
+    const res = await getDashboardDetails(orgId, from, to, filter, 1, 50, onlyPaid)
+    items = res.items
+    total = res.total
+    totals = res.totals
+  } catch (err: unknown) {
+    // Detailed server-side logging in development to help debug Server Component render errors.
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        // Avoid logging sensitive orgId; log non-sensitive params only
+        console.error('[DetailsPage] getDashboardDetails failed', {
+          from: from.toISOString?.() ?? String(from),
+          to: to.toISOString?.() ?? String(to),
+          filter,
+          status
+        }, err instanceof Error ? { message: err.message, stack: err.stack } : String(err))
+      } catch (e) {
+        // swallow logging errors
+      }
+    }
+    throw err
+  }
 
   return (
     <div className="h-full w-full overflow-y-auto bg-[#fafafa] p-4 md:p-8 lg:p-12">
