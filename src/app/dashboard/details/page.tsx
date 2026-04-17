@@ -4,6 +4,7 @@ import { z } from 'zod'
 import DetailsFilterBar from '@/components/dashboard/DetailsFilterBar'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,7 +74,7 @@ export default async function DetailsPage({ searchParams }: { searchParams: Prom
     if (process.env.NODE_ENV !== 'production') {
       try {
         // Avoid logging sensitive orgId; log non-sensitive params only
-        console.error('[DetailsPage] getDashboardDetails failed', {
+        logger.error('[DetailsPage] getDashboardDetails failed', {
           from: from.toISOString?.() ?? String(from),
           to: to.toISOString?.() ?? String(to),
           filter,

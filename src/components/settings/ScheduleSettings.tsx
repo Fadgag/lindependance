@@ -68,10 +68,12 @@ export default function ScheduleSettings() {
             <Clock size={20} />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="opening-time" className="block text-sm font-medium text-gray-700 mb-1">
               Ouverture
             </label>
             <input
+              id="opening-time"
+              aria-label="Heure d'ouverture"
               type="time"
               value={openingTime}
               onChange={(e) => setOpeningTime(e.target.value)}
@@ -85,10 +87,12 @@ export default function ScheduleSettings() {
             <Clock size={20} />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="closing-time" className="block text-sm font-medium text-gray-700 mb-1">
               Fermeture
             </label>
             <input
+              id="closing-time"
+              aria-label="Heure de fermeture"
               type="time"
               value={closingTime}
               onChange={(e) => setClosingTime(e.target.value)}

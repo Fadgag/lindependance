@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Users, Calendar, TrendingUp, Target, ArrowUpRight } from "lucide-react";
 import DashboardCharts from "./DashboardCharts";
 import type { DashboardData } from "@/types/models";
+import { computeDateRange } from '@/lib/computeDateRange'
 
 interface DashboardShellProps {
   initialData: DashboardData;
@@ -15,39 +16,7 @@ export default function DashboardShell({ initialData, currentPeriod }: Dashboard
   const pathname = usePathname();
 
   // Compute start/end ISO strings for the given period key
-  const computeRange = (period: string) => {
-    const now = new Date()
-    const start = new Date(now)
-    const end = new Date(now)
-    if (period === 'today') {
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-    } else if (period === 'week') {
-      // week starting Monday
-      const day = start.getDay() || 7 // Sunday -> 7
-      const diff = day - 1
-      start.setDate(start.getDate() - diff)
-      start.setHours(0, 0, 0, 0)
-      end.setDate(start.getDate() + 6)
-      end.setHours(23, 59, 59, 999)
-    } else if (period === 'month') {
-      start.setDate(1)
-      start.setHours(0, 0, 0, 0)
-      end.setMonth(start.getMonth() + 1)
-      end.setDate(0) // last day previous month -> last day of current month
-      end.setHours(23, 59, 59, 999)
-    } else if (period === '30days') {
-      start.setDate(start.getDate() - 30)
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-    } else {
-      // fallback last 30 days
-      start.setDate(start.getDate() - 30)
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-    }
-    return { start: start.toISOString(), end: end.toISOString() }
-  }
+  const computeRange = (period: string) => computeDateRange(period)
 
   // Fonction pour formater les prix en Euros
   const formatEuro = (val: number) =>

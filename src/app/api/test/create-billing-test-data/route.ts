@@ -40,9 +40,14 @@ export async function POST(req: Request) {
     }
   })
 
-  // Update productsTotal via raw SQL to avoid relying on regenerated Prisma client types
-  // TODO: replace with `prisma.appointment.update({ where: { id: appt.id }, data: { productsTotal: ... } })` after running `npx prisma generate`
-  await prisma.$executeRawUnsafe('UPDATE "Appointment" SET "productsTotal" = $1 WHERE id = $2', productPrice * productQty, appt.id)
+  // Update productsTotal using Prisma API instead of raw SQL for safety and type-safety.
+  // This requires the Prisma client to be generated against the current schema.
+  try {
+    await prisma.appointment.update({ where: { id: appt.id }, data: { productsTotal: productPrice * productQty } })
+  } catch (e) {
+    // Fallback: if update fails for schema reasons, leave the test data as-is and surface the error.
+    throw e
+  }
 
   return NextResponse.json({ orgId: org.id, appointmentId: appt.id })
 }

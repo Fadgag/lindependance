@@ -3,6 +3,7 @@ import Decimal from 'decimal.js'
 import type { Prisma } from '@prisma/client'
 import type { AppointmentDetailRow, DashboardTotals } from '@/types/dashboard'
 import parseSoldProducts from '@/lib/parseSoldProducts'
+import { logger } from '@/lib/logger'
 import {
   startOfDay,
   endOfDay,
@@ -281,7 +282,7 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
     if (process.env.NODE_ENV !== 'production') {
       // Log the error and the attempted where clause in development to debug schema differences
       try {
-        console.error('[dashboard.service] productsTotal query failed, will fallback to conservative where', { message: (e as Error)?.message, whereWithProductsTotal })
+        logger.error('[dashboard.service] productsTotal query failed, will fallback to conservative where', { message: (e as Error)?.message, whereWithProductsTotal })
       } catch (_) {
         // ignore logging problems
       }

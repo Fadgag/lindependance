@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import React, { useState, useEffect, useCallback } from 'react'
+import { computeDateRange } from '@/lib/computeDateRange'
 
 export default function DetailsFilterBar({ currentFilter }: { currentFilter: 'all' | 'services' | 'products' }) {
   const router = useRouter()
@@ -33,37 +34,7 @@ export default function DetailsFilterBar({ currentFilter }: { currentFilter: 'al
     router.push(`${pathname}?${params.toString()}`)
   }
 
-  const computeRange = useCallback((period: string) => {
-    const now = new Date()
-    const start = new Date(now)
-    const end = new Date(now)
-    if (period === 'today') {
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-    } else if (period === 'week') {
-      const day = start.getDay() || 7
-      const diff = day - 1
-      start.setDate(start.getDate() - diff)
-      start.setHours(0, 0, 0, 0)
-      end.setDate(start.getDate() + 6)
-      end.setHours(23, 59, 59, 999)
-    } else if (period === 'month') {
-      start.setDate(1)
-      start.setHours(0, 0, 0, 0)
-      end.setMonth(start.getMonth() + 1)
-      end.setDate(0)
-      end.setHours(23, 59, 59, 999)
-    } else if (period === '30days') {
-      start.setDate(start.getDate() - 30)
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-    } else {
-      start.setDate(start.getDate() - 30)
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-    }
-    return { start: start.toISOString(), end: end.toISOString() }
-  }, [])
+  const computeRange = useCallback((period: string) => computeDateRange(period), [])
 
   const setPeriodAndRange = (p: string) => {
     setPeriod(p)
@@ -164,6 +135,7 @@ export default function DetailsFilterBar({ currentFilter }: { currentFilter: 'al
               // ignore invalid date
             }
           }}
+          aria-label="Appliquer la plage de dates"
           className="ml-2 px-3 py-1 rounded bg-indigo-600 text-white whitespace-nowrap"
         >Appliquer</button>
         <button
@@ -178,6 +150,7 @@ export default function DetailsFilterBar({ currentFilter }: { currentFilter: 'al
             setEndInput('')
             setPeriod('30days')
           }}
+          aria-label="Réinitialiser les filtres"
           className="ml-2 px-3 py-1 rounded bg-gray-100 text-gray-700 whitespace-nowrap"
         >Réinitialiser</button>
       </div>
