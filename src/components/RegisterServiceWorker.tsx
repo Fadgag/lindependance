@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { clientError } from '@/lib/clientLogger'
+import { toast } from 'sonner'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -29,8 +30,43 @@ export default function RegisterServiceWorker() {
         if (!(window.isSecureContext || isLocalhost)) return
 
         navigator.serviceWorker.register('/sw.js')
-          .then(() => {
+          .then((registration) => {
             if (process.env.NODE_ENV === 'production') console.info('[SW] Service worker registered for offline support')
+
+            // If there's a waiting worker, prompt the user to refresh
+            const notifyUpdate = (waitingWorker: ServiceWorker | null) => {
+              if (!waitingWorker) return
+              // Simple UX: use a confirm dialog to prompt user to apply update.
+              // Using native confirm avoids dependency on toast API signatures here.
+              try {
+                const ok = window.confirm('Nouvelle version disponible — recharger pour appliquer les mises à jour ?')
+                if (ok) {
+                  waitingWorker.postMessage({ type: 'SKIP_WAITING' })
+                  // When the new SW takes control, reload to get fresh assets
+                  navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    window.location.reload()
+                  })
+                }
+              } catch (e) {
+                // Fallback: ensure page reload if anything goes wrong
+                window.location.reload()
+              }
+            }
+
+            if (registration.waiting) {
+              notifyUpdate(registration.waiting)
+            }
+
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing
+              if (!newWorker) return
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content is available
+                  notifyUpdate(registration.waiting)
+                }
+              })
+            })
           })
           .catch((err) => {
             clientError('Service worker registration failed', err)

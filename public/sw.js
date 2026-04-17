@@ -10,6 +10,14 @@ self.addEventListener('install', (event) => {
   )
 })
 
+// Allow the page to tell the SW to skipWaiting and activate immediately
+self.addEventListener('message', (event) => {
+  if (!event.data) return
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
@@ -30,5 +38,10 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(keys.map((k) => { if (k !== CACHE_NAME) return caches.delete(k) })))
   )
+})
+
+// Claim clients so that the new SW starts controlling pages immediately after activation
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim())
 })
 
