@@ -77,8 +77,19 @@ export default function UnavailabilityModal({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isFormInvalid) return
-    const start = buildISO(dateFrom, timeFrom)
-    const end = buildISO(dateTo, timeTo)
+
+    // Journée entière → on couvre 00:00–23:59 du même jour (timed event, visible dans la grille)
+    let start: string | null
+    let end: string | null
+    if (allDay) {
+      if (!dateFrom) { toast.error('Date requise'); return }
+      start = `${dateFrom}T00:00:00.000Z`
+      end   = `${dateFrom}T23:59:59.000Z`
+    } else {
+      start = buildISO(dateFrom, timeFrom)
+      end   = buildISO(dateTo, timeTo)
+    }
+
     if (!start || !end) { toast.error('Dates invalides'); return }
     if (new Date(start) >= new Date(end)) { toast.error('La fin doit être après le début'); return }
     setIsSaving(true)
@@ -87,7 +98,8 @@ export default function UnavailabilityModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ title: title.trim(), start, end, allDay, recurrence }),
+        // On passe toujours allDay: false — on utilise des plages horaires pour rester visible dans la grille
+        body: JSON.stringify({ title: title.trim(), start, end, allDay: false, recurrence }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -144,27 +156,29 @@ export default function UnavailabilityModal({
             {/* Journée entière */}
             <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-600">
               <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} className="w-4 h-4" />
-              Journée entière
+              Journée entière <span className="text-slate-400 text-[11px]">(00:00 → 23:59)</span>
             </label>
 
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3 p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Du</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase">{allDay ? 'Jour' : 'Du'}</label>
                 <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
                   className="w-full border-none bg-transparent text-base font-bold outline-none text-slate-800 mt-1" />
                 {dateFrom && <div className="text-[11px] text-slate-500 mt-0.5">{humanDate(dateFrom)}</div>}
                 {!allDay && <input type="time" value={timeFrom} onChange={(e) => setTimeFrom(e.target.value)}
                   className="w-full border-none bg-transparent text-sm font-semibold outline-none text-slate-600 mt-1" />}
               </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Au</label>
-                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full border-none bg-transparent text-base font-bold outline-none text-slate-800 mt-1" />
-                {dateTo && <div className="text-[11px] text-slate-500 mt-0.5">{humanDate(dateTo)}</div>}
-                {!allDay && <input type="time" value={timeTo} onChange={(e) => setTimeTo(e.target.value)}
-                  className="w-full border-none bg-transparent text-sm font-semibold outline-none text-slate-600 mt-1" />}
-              </div>
+              {!allDay && (
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Au</label>
+                  <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full border-none bg-transparent text-base font-bold outline-none text-slate-800 mt-1" />
+                  {dateTo && <div className="text-[11px] text-slate-500 mt-0.5">{humanDate(dateTo)}</div>}
+                  <input type="time" value={timeTo} onChange={(e) => setTimeTo(e.target.value)}
+                    className="w-full border-none bg-transparent text-sm font-semibold outline-none text-slate-600 mt-1" />
+                </div>
+              )}
             </div>
 
             {/* Récurrence */}
@@ -231,3 +245,4 @@ export default function UnavailabilityModal({
     </BaseModal>
   )
 }
+
