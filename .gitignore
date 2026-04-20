@@ -69,3 +69,4 @@ tmp_*.js
 
 # Debug scripts (generated locally)
 scripts/checkAppointments.js
+psql
