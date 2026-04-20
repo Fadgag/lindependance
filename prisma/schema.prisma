@@ -9,18 +9,35 @@ datasource db {
 }
 
 model Organization {
-  id           String        @id @default(cuid())
-  name         String
-  dailyTarget  Float         @default(0)
-  openingTime  String        @default("08:00")
-  closingTime  String        @default("20:00")
-  services     Service[]
-  customers    Customer[]
-  staff        Staff[]
-  users        User[]
-  appointments Appointment[]
-  Package      Package[]
-  products     Product[]
+  id               String           @id @default(cuid())
+  name             String
+  dailyTarget      Float            @default(0)
+  openingTime      String           @default("08:00")
+  closingTime      String           @default("20:00")
+  services         Service[]
+  customers        Customer[]
+  staff            Staff[]
+  users            User[]
+  appointments     Appointment[]
+  Package          Package[]
+  products         Product[]
+  unavailabilities Unavailability[]
+}
+
+/// Unavailability: blocs d'indisponibilité (congés, RDV perso, etc.)
+/// N'est PAS comptabilisé dans le CA.
+model Unavailability {
+  id             String       @id @default(cuid())
+  title          String
+  start          DateTime
+  end            DateTime
+  allDay         Boolean      @default(false)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, start])
 }
 
 model Product {

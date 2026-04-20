@@ -10,9 +10,11 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import frLocale from '@fullcalendar/core/locales/fr';
 import type { DateSelectArg, EventClickArg, EventContentArg, EventMountArg, EventDropArg, DatesSetArg } from '@fullcalendar/core';
 import AppointmentModal from './calendar/AppointmentModal';
+import UnavailabilityModal from './calendar/UnavailabilityModal';
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/shift-away.css';
+import { BanIcon } from 'lucide-react';
 
 interface CalEvent {
     id: string;
@@ -21,11 +23,15 @@ interface CalEvent {
     end?: string;
     extendedProps?: Record<string, unknown>;
     color?: string
+    classNames?: string[]
+    display?: string
+    allDay?: boolean
 }
 
 export default function AppointmentScheduler() {
 
     const [events, setEvents] = useState<CalEvent[]>([]);
+    const [unavailabilities, setUnavailabilities] = useState<CalEvent[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRange, setSelectedRange] = useState<DateSelectArg | null>(null);
     const [editingEvent, setEditingEvent] = useState<InitialAppointmentData | null>(null);
@@ -33,6 +39,13 @@ export default function AppointmentScheduler() {
     useEffect(() => { const id = setTimeout(() => setMounted(true), 0); return () => clearTimeout(id) }, []);
     const lastRangeRef = useRef<{ start?: string; end?: string } | null>(null);
     const rangeControllerRef = useRef<AbortController | null>(null);
+
+    // Unavailability modal state
+    const [isUnavailModalOpen, setIsUnavailModalOpen] = useState(false);
+    const [unavailInitialStart, setUnavailInitialStart] = useState<Date | null>(null);
+    const [unavailInitialEnd, setUnavailInitialEnd] = useState<Date | null>(null);
+    const [unavailEditingId, setUnavailEditingId] = useState<string | null>(null);
+    const [unavailEditingTitle, setUnavailEditingTitle] = useState<string | null>(null);
 
     // Horaires d'ouverture configurables
     const [openingTime, setOpeningTime] = useState("08:00")
@@ -80,6 +93,17 @@ export default function AppointmentScheduler() {
         }
     }, []);
 
+    const fetchUnavailabilities = useCallback(async (start?: string, end?: string) => {
+        try {
+            const params = new URLSearchParams()
+            if (start) params.set('start', start)
+            if (end) params.set('end', end)
+            const url = `/api/unavailability${params.toString() ? `?${params}` : ''}`
+            const res = await fetch(url, { credentials: 'include' })
+            if (res.ok) setUnavailabilities(await res.json())
+        } catch { /* ignore */ }
+    }, []);
+
     // Listen for external appointment updates (e.g. created from QuickAppointmentModal)
     useEffect(() => {
         function onUpdated() {
@@ -115,6 +139,7 @@ export default function AppointmentScheduler() {
             const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
             const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString()
             await fetchAppointments(start, end, signal);
+            await fetchUnavailabilities(start, end);
             try {
                 const [resC, resS, resT] = await Promise.all([
                     fetch('/api/customers', { signal, credentials: 'include' }),
@@ -134,27 +159,55 @@ export default function AppointmentScheduler() {
 
         loadResources();
         return () => controller.abort();
-    }, [fetchAppointments]);
+    }, [fetchAppointments, fetchUnavailabilities]);
+
+    // Helper: check if a range overlaps with any unavailability
+    const checkUnavailabilityConflict = useCallback((start: Date, end: Date): CalEvent | null => {
+        return unavailabilities.find((u) => {
+            const uStart = new Date(u.start!)
+            const uEnd = new Date(u.end!)
+            return start < uEnd && end > uStart
+        }) ?? null
+    }, [unavailabilities]);
+
+    // All calendar events: appointments + unavailabilities merged
+    const allEvents = [...events, ...unavailabilities];
 
     return (
         <div className="flex-1 flex flex-col h-full w-full p-6 min-h-0">
+            {/* Toolbar */}
+            <div className="flex justify-end mb-3">
+                <button
+                    onClick={() => {
+                        setUnavailInitialStart(new Date())
+                        setUnavailInitialEnd(new Date(Date.now() + 3600000))
+                        setUnavailEditingId(null)
+                        setUnavailEditingTitle(null)
+                        setIsUnavailModalOpen(true)
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold transition-colors border border-slate-200"
+                >
+                    <BanIcon size={15} /> Indisponibilité
+                </button>
+            </div>
+
             <div className="studio-card flex-1 p-6 min-h-0 overflow-hidden bg-white rounded-4xl border border-studio-border shadow-sm">
                 {mounted ? (
-                    <FullCalendarComponent
+                    <FullCalendar
                         key={`${openingTime}-${closingTime}`}
                         plugins={[timeGridPlugin, interactionPlugin, dayGridPlugin]}
                         initialView="timeGridWeek"
                         height="100%"
                         contentHeight="100%"
                         expandRows={true}
-                        events={events}
+                        events={allEvents}
                         locale="fr"
                         locales={[frLocale]}
                         selectable={true}
                         editable={true}
                         nowIndicator={true}
-slotMinTime={`${openingTime}:00`}
-slotMaxTime={`${closingTime}:00`}
+                        slotMinTime={`${openingTime}:00`}
+                        slotMaxTime={`${closingTime}:00`}
                         allDaySlot={false}
                         headerToolbar={{
                             left: 'prev,next today',
@@ -162,23 +215,34 @@ slotMaxTime={`${closingTime}:00`}
                             right: 'timeGridDay,timeGridWeek'
                         }}
 
-                                                                // Recharge les RDV à chaque changement de période (navigation semaine/mois)
-                                                                // NOTE: FullCalendar can call datesSet frequently; guard to avoid duplicate identical requests.
-                                                                                                        datesSet={(info: DatesSetArg) => {
-                                                                                                            try {
-                                                                                                                const last = (lastRangeRef.current || {})
-                                                                                                                if (last.start === info.startStr && last.end === info.endStr) return
-                                                                                                                lastRangeRef.current = { start: info.startStr, end: info.endStr }
-                                                                                                                // Abort previous range fetch if any
-                                                                                                                try { rangeControllerRef.current?.abort() } catch {}
-                                                                                                                const c = new AbortController()
-                                                                                                                rangeControllerRef.current = c
-                                                                                                                fetchAppointments(info.startStr, info.endStr, c.signal)
-                                                                                                            } catch (e) { /* defensive */ fetchAppointments(info.startStr, info.endStr) }
-                                                                                                        }}
+                        datesSet={(info: DatesSetArg) => {
+                            try {
+                                const last = (lastRangeRef.current || {})
+                                if (last.start === info.startStr && last.end === info.endStr) return
+                                lastRangeRef.current = { start: info.startStr, end: info.endStr }
+                                try { rangeControllerRef.current?.abort() } catch {}
+                                const c = new AbortController()
+                                rangeControllerRef.current = c
+                                fetchAppointments(info.startStr, info.endStr, c.signal)
+                                fetchUnavailabilities(info.startStr, info.endStr)
+                            } catch (e) { /* defensive */ fetchAppointments(info.startStr, info.endStr) }
+                        }}
 
-                        // --- 1. RENDU DES CASES (MINI) ---
+                        // --- 1. RENDU DES CASES ---
                         eventContent={(info: EventContentArg) => {
+                            const isUnavail = info.event.extendedProps?.type === 'unavailability'
+                            if (isUnavail) {
+                                return (
+                                    <div className="h-full w-full flex items-center px-1 gap-1 overflow-hidden"
+                                        style={{
+                                            background: 'repeating-linear-gradient(45deg,#cbd5e1 0px,#cbd5e1 2px,#e2e8f0 2px,#e2e8f0 8px)',
+                                            borderLeft: '3px solid #64748b',
+                                        }}>
+                                        <BanIcon size={10} className="text-slate-500 shrink-0" />
+                                        <span className="text-[10px] font-bold text-slate-600 truncate">{info.event.title}</span>
+                                    </div>
+                                )
+                            }
                             const hasSold = !!info.event.extendedProps?.soldProducts
                             return (
                                 <div className="p-1 leading-tight overflow-hidden flex items-center justify-between">
@@ -193,11 +257,26 @@ slotMaxTime={`${closingTime}:00`}
 
                         // --- 2. BULLE D'INFOS (TIPPY) ---
                         eventDidMount={(info: EventMountArg) => {
+                            const isUnavail = info.event.extendedProps?.type === 'unavailability'
+                            if (isUnavail) {
+                                const container = document.createElement('div')
+                                const label = document.createElement('p')
+                                label.style.fontWeight = '700'
+                                label.style.fontSize = '13px'
+                                label.textContent = `🚫 ${String(info.event.title ?? '')}`
+                                container.appendChild(label)
+                                const sub = document.createElement('p')
+                                sub.style.fontSize = '11px'
+                                sub.style.color = '#64748b'
+                                sub.style.marginTop = '4px'
+                                sub.textContent = 'Créneau indisponible — cliquez pour supprimer'
+                                container.appendChild(sub)
+                                tippy(info.el, { content: container, allowHTML: false, theme: 'studio-light', placement: 'top', animation: 'shift-away', interactive: true })
+                                return
+                            }
                             const props = info.event.extendedProps as Record<string, unknown> | undefined;
-                            // Create DOM nodes programmatically to avoid HTML injection (no allowHTML)
                             const container = document.createElement('div')
                             container.style.color = '#2D2424'
-
                             const title = document.createElement('p')
                             title.style.color = '#D4A3A1'
                             title.style.fontWeight = '800'
@@ -206,26 +285,22 @@ slotMaxTime={`${closingTime}:00`}
                             title.style.margin = '0 0 4px 0'
                             title.textContent = 'Détails du RDV'
                             container.appendChild(title)
-
                             const main = document.createElement('p')
                             main.style.fontWeight = '700'
                             main.style.fontSize = '14px'
                             main.style.margin = '0'
                             main.textContent = String(info.event.title ?? '')
                             container.appendChild(main)
-
                             const block = document.createElement('div')
                             block.style.marginTop = '8px'
                             block.style.display = 'flex'
                             block.style.flexDirection = 'column'
                             block.style.gap = '2px'
-
                             const timeP = document.createElement('p')
                             timeP.style.fontSize = '11px'
                             timeP.style.margin = '0'
                             timeP.textContent = `⏰ ${info.timeText}`
                             block.appendChild(timeP)
-
                             if (props?.customerName) {
                                 const c = document.createElement('p')
                                 c.style.fontSize = '11px'
@@ -258,37 +333,40 @@ slotMaxTime={`${closingTime}:00`}
                                 sp.textContent = '🛒 Ventes enregistrées'
                                 block.appendChild(sp)
                             }
-
                             container.appendChild(block)
-
-                            tippy(info.el, {
-                                content: container,
-                                allowHTML: false,
-                                theme: 'studio-light',
-                                placement: 'top',
-                                animation: 'shift-away',
-                                interactive: true,
-                            })
+                            tippy(info.el, { content: container, allowHTML: false, theme: 'studio-light', placement: 'top', animation: 'shift-away', interactive: true })
                         }}
 
                         // --- 3. ACTIONS (CLIC & SÉLECTION) ---
                         select={(info: DateSelectArg) => {
+                            // Vérifier collision avec indisponibilité
+                            const conflict = checkUnavailabilityConflict(info.start, info.end)
+                            if (conflict) {
+                                toast.warning(`⚠️ Ce créneau est bloqué : "${conflict.title ?? 'Indisponibilité'}"`)
+                                return
+                            }
                             setSelectedRange(info);
                             setEditingEvent(null);
                             setIsModalOpen(true);
                         }}
 
                         eventClick={(info: EventClickArg) => {
-                            // FIX CRITIQUE : On fusionne les infos de base et les extendedProps
+                            // Clic sur une indisponibilité → ouvrir modale suppression
+                            if (info.event.extendedProps?.type === 'unavailability') {
+                                setUnavailInitialStart(info.event.start ?? new Date())
+                                setUnavailInitialEnd(info.event.end ?? new Date())
+                                setUnavailEditingId(info.event.id)
+                                setUnavailEditingTitle(info.event.title ?? '')
+                                setIsUnavailModalOpen(true)
+                                return
+                            }
                             const eventData: InitialAppointmentData = {
                                 id: info.event.id,
                                 title: info.event.title ?? undefined,
                                 start: info.event.start?.toISOString(),
                                 end: info.event.end?.toISOString(),
-                                // RAISON: FullCalendar `extendedProps` est typiquement `Record<string, unknown>`
                                 extendedProps: info.event.extendedProps as Record<string, unknown>
                             };
-                            // RAISON: merge extendedProps dans top-level pour simplifier l'accès côté modal
                             Object.assign(eventData, info.event.extendedProps as Record<string, unknown>)
                             setEditingEvent(eventData);
                             setSelectedRange(null);
@@ -297,6 +375,8 @@ slotMaxTime={`${closingTime}:00`}
 
                         // --- 4. DRAG & DROP ---
                         eventDrop={async (info: EventDropArg) => {
+                            // Interdire le déplacement d'une indisponibilité
+                            if (info.event.extendedProps?.type === 'unavailability') { info.revert(); return }
                             const { event, revert } = info
                             try {
                                 const res = await fetch('/api/appointments', {
@@ -310,7 +390,6 @@ slotMaxTime={`${closingTime}:00`}
                                         duration: event.end && event.start
                                             ? Math.round((event.end.getTime() - event.start.getTime()) / 60000)
                                             : undefined,
-                                        // preserve relational data carried in extendedProps
                                         serviceId: event.extendedProps?.serviceId as string | undefined,
                                         customerId: event.extendedProps?.customerId as string | undefined,
                                         staffId: event.extendedProps?.staffId as string | undefined,
@@ -329,6 +408,7 @@ slotMaxTime={`${closingTime}:00`}
 
                         // --- 5. REDIMENSIONNEMENT ---
                         eventResize={async (info: { event: EventDropArg['event']; revert: () => void }) => {
+                            if (info.event.extendedProps?.type === 'unavailability') { info.revert(); return }
                             const { event, revert } = info
                             try {
                                 const res = await fetch('/api/appointments', {
@@ -342,7 +422,6 @@ slotMaxTime={`${closingTime}:00`}
                                         duration: event.end && event.start
                                             ? Math.round((event.end.getTime() - event.start.getTime()) / 60000)
                                             : undefined,
-                                        // preserve relational data carried in extendedProps
                                         serviceId: event.extendedProps?.serviceId as string | undefined,
                                         customerId: event.extendedProps?.customerId as string | undefined,
                                         staffId: event.extendedProps?.staffId as string | undefined,
@@ -363,13 +442,10 @@ slotMaxTime={`${closingTime}:00`}
                 )}
             </div>
 
-            {/* MODALE DE RENDEZ-VOUS */}
+            {/* MODALE RDV */}
             <AppointmentModal
                 isOpen={isModalOpen}
-                onCloseAction={() => {
-                    setIsModalOpen(false);
-                    setSelectedRange(null);
-                }}
+                onCloseAction={() => { setIsModalOpen(false); setSelectedRange(null); }}
                 onSuccess={async () => { await fetchAppointments(); }}
                 selectedRange={selectedRange}
                 initialData={editingEvent}
@@ -377,6 +453,23 @@ slotMaxTime={`${closingTime}:00`}
                 services={services}
                 staffs={staffs}
             />
+
+            {/* MODALE INDISPONIBILITÉ */}
+            <UnavailabilityModal
+                isOpen={isUnavailModalOpen}
+                onClose={() => setIsUnavailModalOpen(false)}
+                onSuccess={() => {
+                    const now = new Date()
+                    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
+                    const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString()
+                    fetchUnavailabilities(start, end)
+                }}
+                initialStart={unavailInitialStart}
+                initialEnd={unavailInitialEnd}
+                editingId={unavailEditingId}
+                editingTitle={unavailEditingTitle}
+            />
         </div>
     );
 }
+
