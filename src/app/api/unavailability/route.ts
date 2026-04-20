@@ -45,10 +45,25 @@ export async function GET(request: Request) {
     const startParam = url.searchParams.get('start')
     const endParam = url.searchParams.get('end')
 
-    type WhereClause = { organizationId: string; start?: { gte?: Date }; end?: { lte?: Date } }
+    type WhereClause = {
+      organizationId: string
+      AND?: Array<{ start?: { lt: Date }; end?: { gt: Date } }>
+    }
     const where: WhereClause = { organizationId }
-    if (startParam) { const d = new Date(startParam); if (!isNaN(d.getTime())) where.start = { gte: d } }
-    if (endParam)   { const d = new Date(endParam);   if (!isNaN(d.getTime())) where.end   = { lte: d } }
+    if (startParam && endParam) {
+      const rangeStart = new Date(startParam)
+      const rangeEnd = new Date(endParam)
+      if (!isNaN(rangeStart.getTime()) && !isNaN(rangeEnd.getTime())) {
+        // Overlap: event.start < range_end AND event.end > range_start
+        where.AND = [{ start: { lt: rangeEnd } }, { end: { gt: rangeStart } }]
+      }
+    } else if (startParam) {
+      const d = new Date(startParam)
+      if (!isNaN(d.getTime())) where.AND = [{ end: { gt: d } }]
+    } else if (endParam) {
+      const d = new Date(endParam)
+      if (!isNaN(d.getTime())) where.AND = [{ start: { lt: d } }]
+    }
 
     const unavailabilities = await prisma.unavailability.findMany({
       where,
