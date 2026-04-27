@@ -102,7 +102,10 @@ export default function AppointmentScheduler() {
             const url = `/api/unavailability${params.toString() ? `?${params}` : ''}`
             const res = await fetch(url, { credentials: 'include' })
             if (res.ok) setUnavailabilities(await res.json())
-        } catch { /* ignore */ }
+        } catch (err) {
+            if (isAbortError(err)) return
+            import('../lib/clientLogger').then(({ clientError }) => clientError('fetchUnavailabilities error', err))
+        }
     }, []);
 
     // Listen for external appointment updates (e.g. created from QuickAppointmentModal)

@@ -198,6 +198,24 @@ export type InitialAppointmentData = Partial<{
   resourceId: string
 }>
 
+/** Shape d'un forfait client utilisé dans AppointmentModal */
+export interface CustomerPackageSummary {
+  id: string
+  sessionsRemaining: number
+  package?: { id?: string; name?: string }
+  serviceId?: string | null
+}
+
+/** Récurrence pour les indisponibilités */
+export const RECURRENCE_OPTIONS = ['NONE', 'WEEKLY', 'BIWEEKLY', 'MONTHLY'] as const
+export type Recurrence = typeof RECURRENCE_OPTIONS[number]
+export const RECURRENCE_LABELS: Record<Recurrence, string> = {
+  NONE: 'Une seule fois',
+  WEEKLY: 'Toutes les semaines',
+  BIWEEKLY: 'Toutes les 2 semaines',
+  MONTHLY: 'Tous les mois',
+}
+
 // Minimal session / auth types used across the app
 // Note: Session type is declared above and reused by imports; avoid duplicating it here.
  

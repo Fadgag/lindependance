@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import apiErrorResponse from '@/lib/api'
-
-const RECURRENCE_OPTIONS = ['NONE', 'WEEKLY', 'BIWEEKLY', 'MONTHLY'] as const
-type Recurrence = typeof RECURRENCE_OPTIONS[number]
+import { RECURRENCE_OPTIONS } from '@/types/models'
+import type { Recurrence } from '@/types/models'
+import { buildOccurrences } from '@/services/unavailability.service'
 
 const CreateSchema = z.object({
   title: z.string().min(1).max(200),
@@ -15,31 +15,11 @@ const CreateSchema = z.object({
   recurrence: z.enum(RECURRENCE_OPTIONS).optional().default('NONE'),
 })
 
-/** Generate series of (start, end) pairs based on recurrence rule */
-function buildOccurrences(start: Date, end: Date, recurrence: Recurrence): Array<{ start: Date; end: Date }> {
-  if (recurrence === 'NONE') return [{ start, end }]
-  const durationMs = end.getTime() - start.getTime()
-  const occurrences: Array<{ start: Date; end: Date }> = []
-  const maxDate = new Date(start.getFullYear(), start.getMonth() + 6, start.getDate()) // 6 months ahead
-  const stepDays = recurrence === 'WEEKLY' ? 7 : recurrence === 'BIWEEKLY' ? 14 : 0 // MONTHLY handled below
-  let current = new Date(start)
-  while (current <= maxDate) {
-    occurrences.push({ start: new Date(current), end: new Date(current.getTime() + durationMs) })
-    if (recurrence === 'MONTHLY') {
-      current = new Date(current.getFullYear(), current.getMonth() + 1, current.getDate(), current.getHours(), current.getMinutes())
-    } else {
-      current = new Date(current.getTime() + stepDays * 24 * 60 * 60 * 1000)
-    }
-  }
-  return occurrences
-}
-
-
 export async function GET(request: Request) {
   try {
     const session = await auth()
     if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const organizationId = session.user.organizationId as string
+    const organizationId = session.user.organizationId!
 
     const url = new URL(request.url)
     const startParam = url.searchParams.get('start')
@@ -96,7 +76,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth()
     if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const organizationId = session.user.organizationId as string
+    const organizationId = session.user.organizationId!
 
     const body = await request.json()
     const parsed = CreateSchema.safeParse(body)
@@ -137,7 +117,7 @@ export async function DELETE(request: Request) {
   try {
     const session = await auth()
     if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const organizationId = session.user.organizationId as string
+    const organizationId = session.user.organizationId!
 
     const url = new URL(request.url)
     const id = url.searchParams.get('id')
@@ -157,4 +137,3 @@ export async function DELETE(request: Request) {
     return apiErrorResponse(err)
   }
 }
-

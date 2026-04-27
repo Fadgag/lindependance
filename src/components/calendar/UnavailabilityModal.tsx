@@ -6,15 +6,8 @@ import { format, isValid } from 'date-fns'
 import { fr as frLocale } from 'date-fns/locale'
 import { Trash2, BanIcon, RefreshCw } from 'lucide-react'
 import BaseModal from '@/components/ui/BaseModal'
-
-type Recurrence = 'NONE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
-
-const RECURRENCE_LABELS: Record<Recurrence, string> = {
-  NONE: 'Une seule fois',
-  WEEKLY: 'Toutes les semaines',
-  BIWEEKLY: 'Toutes les 2 semaines',
-  MONTHLY: 'Tous les mois',
-}
+import type { Recurrence } from '@/types/models'
+import { RECURRENCE_OPTIONS, RECURRENCE_LABELS } from '@/types/models'
 
 interface UnavailabilityModalProps {
   isOpen: boolean
@@ -187,7 +180,7 @@ export default function UnavailabilityModal({
                 <RefreshCw size={11} /> Récurrence
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(RECURRENCE_LABELS) as Recurrence[]).map((r) => (
+                {(RECURRENCE_OPTIONS as readonly Recurrence[]).map((r) => (
                   <button key={r} type="button" onClick={() => setRecurrence(r)}
                     className={`py-2 px-3 rounded-xl border text-sm font-medium transition-colors text-left
                       ${recurrence === r

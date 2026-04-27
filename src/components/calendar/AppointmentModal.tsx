@@ -9,7 +9,7 @@ import { Trash2, AlertTriangle, Zap } from "lucide-react"
 import BaseModal from "@/components/ui/BaseModal"
 import { CustomerPicker } from "./CustomerPicker"
 // QuickCustomerModal removed — creation is now inline in CustomerPicker
-import type { Customer as CustomerType, Service as ServiceType, Staff as StaffType } from '@/types/models'
+import type { Customer as CustomerType, Service as ServiceType, Staff as StaffType, CustomerPackageSummary } from '@/types/models'
 import type { DateSelectArg } from '@fullcalendar/core'
 
 // Utility to extract error message safely from unknown payloads
@@ -78,8 +78,7 @@ export default function AppointmentModal({
     const [durationState, setDurationState] = useState<number>(30)
     // --- Forfaits ---
     // Shape returned by API: includes sessionsRemaining and a nested package relation
-    type CustomerPackage = { id: string; sessionsRemaining: number; package?: { id?: string; name?: string }; serviceId?: string | null }
-    const [customerPackages, setCustomerPackages] = useState<CustomerPackage[]>([])
+    const [customerPackages, setCustomerPackages] = useState<CustomerPackageSummary[]>([])
     const [usePackage, setUsePackage] = useState(false)
     const [selectedCustomerPackageId, setSelectedCustomerPackageId] = useState<string | null>(null)
 
@@ -100,7 +99,7 @@ export default function AppointmentModal({
             const noteVal = String(initialData.note ?? initialData.extendedProps?.note ?? '')
             const cId = String(initialData.customerId ?? initialData.extendedProps?.customerId ?? '')
             // RAISON: customers est CustomerType[] — find() reçoit le type générique de la prop, cast vers CustomerType nécessaire
-            const selected = customers.find((c) => (c as CustomerType).id === cId) || null
+            const selected = customers.find((c) => c.id === cId) || null
 
             setSelectedCustomerState(selected)
             setServiceIdState(svcId)
@@ -165,7 +164,7 @@ export default function AppointmentModal({
                     const data = await res.json()
                     // data: array of CustomerPackage with package info
                     // RAISON: l'API retourne CustomerPackage[] — res.json() est unknown, shape vérifiée par le contrat API
-                    setCustomerPackages((data || []) as CustomerPackage[])
+                    setCustomerPackages((data || []) as CustomerPackageSummary[])
                 }
             } catch (err) {
                     if (isAbortError(err)) return
@@ -281,7 +280,7 @@ useEffect(() => {
         // Build base date from (in order): initialData.start, selectedRange.start, dateState, today
         let baseDate: Date
         if (initialData?.start) baseDate = new Date(initialData.start)
-        else if (selectedRange && (selectedRange as any).start) baseDate = new Date((selectedRange as any).start)
+        else if (selectedRange?.start) baseDate = new Date(selectedRange.start)
         else if (date) baseDate = new Date(date)
         else baseDate = new Date()
         const [h, m] = startTime.split(':').map(Number)
