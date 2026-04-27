@@ -31,7 +31,7 @@ export async function GET() {
     id: s.id,
     type: 'SERVICE',
     name: s.name,
-    price: Number((s as any).price ?? 0),
+    price: Number(s.price ?? 0),
     durationMinutes: s.durationMinutes,
     color: s.color ?? null,
   }))

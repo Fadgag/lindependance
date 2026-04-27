@@ -12,7 +12,7 @@ export async function GET(request: Request) {
         if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
         // RAISON: organizationId est string | null | undefined après le guard — on le narrow ici pour Prisma
-        const organizationId = session.user.organizationId as string
+        const organizationId = session.user.organizationId!
 
         const url = new URL(request.url)
         const startParam = url.searchParams.get('start')
@@ -52,6 +52,7 @@ export async function GET(request: Request) {
               duration: true,
               extras: true,
               soldProducts: true,
+              paymentMethod: true,
               service: { select: { id: true, name: true, price: true, color: true } },
               customer: { select: { id: true, firstName: true, lastName: true } }
             },
@@ -83,6 +84,7 @@ export async function GET(request: Request) {
                 color: a.service?.color || "#3788d8",
                 extras: extrasParsed,
                 soldProducts: soldParsed,
+                paymentMethod: a.paymentMethod ?? null,
                 extendedProps: {
                     serviceId: a.serviceId,
                     customerId: a.customerId,
@@ -91,6 +93,7 @@ export async function GET(request: Request) {
                     status: a.status,
                     extras: extrasParsed,
                     soldProducts: soldParsed,
+                    paymentMethod: a.paymentMethod ?? null,
                 }
             }}))
     } catch (err) {
@@ -112,7 +115,7 @@ export async function POST(request: Request) {
 
         const { start, end, duration, serviceId, customerId, staffId, note } = parsed.data
         // Narrow organizationId for Prisma queries
-        const organizationId = session.user.organizationId as string
+        const organizationId = session.user.organizationId!
 
         const svc = await prisma.service.findFirst({ where: { id: serviceId, organizationId }, select: { price: true } })
         const servicePrice = svc?.price ?? 0
