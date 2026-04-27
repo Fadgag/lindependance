@@ -6,15 +6,9 @@ import { format, isValid } from 'date-fns'
 import { fr as frLocale } from 'date-fns/locale'
 import { Trash2, BanIcon, RefreshCw } from 'lucide-react'
 import BaseModal from '@/components/ui/BaseModal'
-
-type Recurrence = 'NONE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
-
-const RECURRENCE_LABELS: Record<Recurrence, string> = {
-  NONE: 'Une seule fois',
-  WEEKLY: 'Toutes les semaines',
-  BIWEEKLY: 'Toutes les 2 semaines',
-  MONTHLY: 'Tous les mois',
-}
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import type { Recurrence } from '@/types/models'
+import { RECURRENCE_OPTIONS, RECURRENCE_LABELS } from '@/types/models'
 
 interface UnavailabilityModalProps {
   isOpen: boolean
@@ -42,6 +36,7 @@ export default function UnavailabilityModal({
   const [allDay, setAllDay] = useState(false)
   const [recurrence, setRecurrence] = useState<Recurrence>('NONE')
   const [isSaving, setIsSaving] = useState(false)
+  const [confirmState, setConfirmState] = useState<{ open: boolean; deleteAll: boolean }>({ open: false, deleteAll: false })
 
   useEffect(() => {
     if (!isOpen) return
@@ -115,7 +110,14 @@ export default function UnavailabilityModal({
   }
 
   const handleDelete = async (deleteAll: boolean) => {
-    if (!editingId || !confirm(deleteAll ? 'Supprimer toute la série récurrente ?' : 'Supprimer cette occurrence ?')) return
+    if (!editingId) return
+    setConfirmState({ open: true, deleteAll })
+  }
+
+  const handleConfirmDelete = async () => {
+    const { deleteAll } = confirmState
+    setConfirmState({ open: false, deleteAll: false })
+    if (!editingId) return
     setIsSaving(true)
     try {
       const qs = deleteAll ? `?id=${editingId}&deleteAll=1` : `?id=${editingId}`
@@ -134,7 +136,8 @@ export default function UnavailabilityModal({
   const isSeries = !!editingRecurrenceGroupId
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Indisponibilité bloquée' : 'Bloquer un créneau'}>
+    <>
+      <BaseModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Indisponibilité bloquée' : 'Bloquer un créneau'}>
       <form onSubmit={handleSave} className="flex flex-col gap-5">
 
         {/* Motif */}
@@ -187,7 +190,7 @@ export default function UnavailabilityModal({
                 <RefreshCw size={11} /> Récurrence
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(RECURRENCE_LABELS) as Recurrence[]).map((r) => (
+                {(RECURRENCE_OPTIONS as readonly Recurrence[]).map((r) => (
                   <button key={r} type="button" onClick={() => setRecurrence(r)}
                     className={`py-2 px-3 rounded-xl border text-sm font-medium transition-colors text-left
                       ${recurrence === r
@@ -243,6 +246,15 @@ export default function UnavailabilityModal({
         </div>
       </form>
     </BaseModal>
+    <ConfirmDialog
+      isOpen={confirmState.open}
+      title={confirmState.deleteAll ? 'Supprimer toute la série ?' : 'Supprimer cette occurrence ?'}
+      message={confirmState.deleteAll ? 'Toutes les occurrences récurrentes seront supprimées.' : 'Cette occurrence sera supprimée définitivement.'}
+      confirmLabel="Supprimer"
+      onConfirm={handleConfirmDelete}
+      onCancel={() => setConfirmState({ open: false, deleteAll: false })}
+    />
+    </>
   )
 }
 

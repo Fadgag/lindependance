@@ -3,9 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import apiErrorResponse from '@/lib/api'
-
-const RECURRENCE_OPTIONS = ['NONE', 'WEEKLY', 'BIWEEKLY', 'MONTHLY'] as const
-type Recurrence = typeof RECURRENCE_OPTIONS[number]
+import { RECURRENCE_OPTIONS } from '@/types/models'
+import type { Recurrence } from '@/types/models'
+import { buildOccurrences } from '@/services/unavailability.service'
+import type { UnavailabilityWhereClause } from '@/services/unavailability.service'
 
 const CreateSchema = z.object({
   title: z.string().min(1).max(200),
@@ -15,54 +16,32 @@ const CreateSchema = z.object({
   recurrence: z.enum(RECURRENCE_OPTIONS).optional().default('NONE'),
 })
 
-/** Generate series of (start, end) pairs based on recurrence rule */
-function buildOccurrences(start: Date, end: Date, recurrence: Recurrence): Array<{ start: Date; end: Date }> {
-  if (recurrence === 'NONE') return [{ start, end }]
-  const durationMs = end.getTime() - start.getTime()
-  const occurrences: Array<{ start: Date; end: Date }> = []
-  const maxDate = new Date(start.getFullYear(), start.getMonth() + 6, start.getDate()) // 6 months ahead
-  const stepDays = recurrence === 'WEEKLY' ? 7 : recurrence === 'BIWEEKLY' ? 14 : 0 // MONTHLY handled below
-  let current = new Date(start)
-  while (current <= maxDate) {
-    occurrences.push({ start: new Date(current), end: new Date(current.getTime() + durationMs) })
-    if (recurrence === 'MONTHLY') {
-      current = new Date(current.getFullYear(), current.getMonth() + 1, current.getDate(), current.getHours(), current.getMinutes())
-    } else {
-      current = new Date(current.getTime() + stepDays * 24 * 60 * 60 * 1000)
-    }
-  }
-  return occurrences
-}
-
-
 export async function GET(request: Request) {
   try {
     const session = await auth()
     if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const organizationId = session.user.organizationId as string
+    const organizationId = session.user.organizationId!
 
     const url = new URL(request.url)
-    const startParam = url.searchParams.get('start')
-    const endParam = url.searchParams.get('end')
+    const QuerySchema = z.object({
+      start: z.string().datetime().optional(),
+      end: z.string().datetime().optional(),
+    })
+    const queryParsed = QuerySchema.safeParse({
+      start: url.searchParams.get('start') ?? undefined,
+      end: url.searchParams.get('end') ?? undefined,
+    })
+    if (!queryParsed.success) return NextResponse.json({ error: 'Invalid params', details: queryParsed.error.format() }, { status: 400 })
+    const { start: startParam, end: endParam } = queryParsed.data
 
-    type WhereClause = {
-      organizationId: string
-      AND?: Array<{ start?: { lt: Date }; end?: { gt: Date } }>
-    }
-    const where: WhereClause = { organizationId }
+    const where: UnavailabilityWhereClause = { organizationId }
     if (startParam && endParam) {
-      const rangeStart = new Date(startParam)
-      const rangeEnd = new Date(endParam)
-      if (!isNaN(rangeStart.getTime()) && !isNaN(rangeEnd.getTime())) {
-        // Overlap: event.start < range_end AND event.end > range_start
-        where.AND = [{ start: { lt: rangeEnd } }, { end: { gt: rangeStart } }]
-      }
+      // Overlap: event.start < range_end AND event.end > range_start
+      where.AND = [{ start: { lt: new Date(endParam) } }, { end: { gt: new Date(startParam) } }]
     } else if (startParam) {
-      const d = new Date(startParam)
-      if (!isNaN(d.getTime())) where.AND = [{ end: { gt: d } }]
+      where.AND = [{ end: { gt: new Date(startParam) } }]
     } else if (endParam) {
-      const d = new Date(endParam)
-      if (!isNaN(d.getTime())) where.AND = [{ start: { lt: d } }]
+      where.AND = [{ start: { lt: new Date(endParam) } }]
     }
 
     const unavailabilities = await prisma.unavailability.findMany({
@@ -96,7 +75,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth()
     if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const organizationId = session.user.organizationId as string
+    const organizationId = session.user.organizationId!
 
     const body = await request.json()
     const parsed = CreateSchema.safeParse(body)
@@ -137,7 +116,7 @@ export async function DELETE(request: Request) {
   try {
     const session = await auth()
     if (!session?.user?.organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const organizationId = session.user.organizationId as string
+    const organizationId = session.user.organizationId!
 
     const url = new URL(request.url)
     const id = url.searchParams.get('id')
@@ -150,7 +129,8 @@ export async function DELETE(request: Request) {
     if (deleteAll && existing.recurrenceGroupId) {
       await prisma.unavailability.deleteMany({ where: { recurrenceGroupId: existing.recurrenceGroupId, organizationId } })
     } else {
-      await prisma.unavailability.delete({ where: { id } })
+      // RAISON: deleteMany avec organizationId garantit l'isolation même si findFirst était bypassé (Anti-IDOR)
+      await prisma.unavailability.deleteMany({ where: { id, organizationId } })
     }
     return NextResponse.json({ success: true })
   } catch (err) {

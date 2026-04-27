@@ -25,3 +25,29 @@
 
 ---
 
+## 🧩 God Components — Refactoring (review V29, mineurs restants)
+
+### AppointmentScheduler.tsx (~468 lignes)
+Extraire en sous-composants :
+- `CalendarToolbar` — barre de navigation + boutons vue
+- `CalendarEventContent` — rendu custom des événements
+- `CalendarEventTooltip` — logique tippy.js
+
+### AppointmentModal.tsx (~520 lignes)
+Extraire en sous-composants :
+- `PackageSelector` — choix du forfait client
+- `TimeRangeSection` — heure/durée/fin prévue
+- `AppointmentFormActions` — boutons Annuler/Supprimer/Sauvegarder
+
+---
+
+## ♿ A11Y — Remplacer `confirm()` natif (review V29)
+
+**Fichiers :** `AppointmentModal.tsx` (L351), `UnavailabilityModal.tsx` (L111)
+
+Les boîtes de dialogue navigateur native (`confirm()`) ne respectent pas le thème de l'app, ne sont pas accessibles (WCAG 2.1 AA), et ne fonctionnent pas dans certains contextes (iframes).
+
+**Fix :** Créer un composant `<ConfirmDialog>` réutilisable ou utiliser `sonner` avec action callback.
+
+---
+

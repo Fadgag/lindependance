@@ -1,9 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import Decimal from 'decimal.js'
 import type { Prisma } from '@prisma/client'
-import type { AppointmentDetailRow, DashboardTotals } from '@/types/dashboard'
+import type { DashboardTotals } from '@/types/dashboard'
 import parseSoldProducts from '@/lib/parseSoldProducts'
-import { logger } from '@/lib/logger'
 import {
   startOfDay,
   endOfDay,
@@ -225,99 +224,53 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
     baseWhere.AND = [{ OR: [{ status: 'PAID' }, { status: 'PAYED' }, { finalPrice: { gt: 0 } }] }]
   }
 
-  // Build where filters via helper to avoid duplication
-  const buildFilterWhere = (base: Prisma.AppointmentWhereInput, includeProductsTotal: boolean) => {
+  // Build where filter — productsTotal column is stable in prod (migration applied)
+  const buildFilterWhere = (base: Prisma.AppointmentWhereInput) => {
     const w: Prisma.AppointmentWhereInput = JSON.parse(JSON.stringify(base))
     if (filter === 'services') {
-      const orClauses: Prisma.AppointmentWhereInput[] = [
+      w.AND = [{ OR: [
         { soldProducts: null },
         { soldProducts: '' },
-        { soldProducts: '[]' }
-      ]
-      if (includeProductsTotal) {
-        orClauses.push({ productsTotal: { equals: 0 } }, { productsTotal: null })
-      }
-      w.AND = [{ OR: orClauses }]
+        { soldProducts: '[]' },
+        { productsTotal: { equals: 0 } },
+        { productsTotal: null },
+      ]}]
     } else if (filter === 'products') {
-      const andClauses: Prisma.AppointmentWhereInput[] = []
-      if (includeProductsTotal) {
-        andClauses.push({ OR: [{ productsTotal: { gt: 0 } }, { soldProducts: { not: null } }] })
-      } else {
-        andClauses.push({ OR: [{ soldProducts: { not: null } }] })
-      }
-      andClauses.push({ NOT: { soldProducts: '' } })
-      andClauses.push({ NOT: { soldProducts: '[]' } })
-      w.AND = andClauses
+      w.AND = [
+        { OR: [{ productsTotal: { gt: 0 } }, { soldProducts: { not: null } }] },
+        { NOT: { soldProducts: '' } },
+        { NOT: { soldProducts: '[]' } },
+      ]
     }
     return w
   }
 
-  const whereWithProductsTotal = buildFilterWhere(baseWhere, true)
-  const whereWithoutProductsTotal = buildFilterWhere(baseWhere, false)
+  const whereForQuery = buildFilterWhere(baseWhere)
 
-  // Try querying using the whereWithProductsTotal first. If the DB doesn't have the
-  // productsTotal column the query will fail; in that case retry with the conservative variant.
-  let rows: AppointmentDetailRow[] = []
-  let total = 0
-  let usedProductsTotalVariant = true
-  try {
-    rows = await prisma.appointment.findMany({
-      where: whereWithProductsTotal,
-      select: {
-        id: true,
-        startTime: true,
-        status: true,
-        finalPrice: true,
-        price: true,
-        soldProducts: true,
-        customer: { select: { firstName: true, lastName: true } },
-        service: { select: { name: true, price: true } }
-      },
-      orderBy: { startTime: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize
-    })
-    total = await prisma.appointment.count({ where: whereWithProductsTotal })
-  } catch (e: unknown) {
-    const msg = String((e as Error)?.message ?? '').toLowerCase()
-    if (process.env.NODE_ENV !== 'production') {
-      // Log the error and the attempted where clause in development to debug schema differences
-      try {
-        logger.error('[dashboard.service] productsTotal query failed, will fallback to conservative where', { message: (e as Error)?.message, whereWithProductsTotal })
-      } catch {
-        // ignore logging problems
-      }
-    }
-    if (msg.includes('productstotal') || msg.includes('products_total') || msg.includes('does not exist')) {
-      // retry without referencing productsTotal
-      usedProductsTotalVariant = false
-      rows = await prisma.appointment.findMany({
-        where: whereWithoutProductsTotal,
-        select: {
-          id: true,
-          startTime: true,
-          status: true,
-          finalPrice: true,
-          price: true,
-          soldProducts: true,
-          customer: { select: { firstName: true, lastName: true } },
-          service: { select: { name: true, price: true } }
-        },
-        orderBy: { startTime: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize
-      })
-      total = await prisma.appointment.count({ where: whereWithoutProductsTotal })
-    } else {
-      throw e
-    }
-  }
+  const rows = await prisma.appointment.findMany({
+    where: whereForQuery,
+    select: {
+      id: true,
+      startTime: true,
+      status: true,
+      finalPrice: true,
+      price: true,
+      soldProducts: true,
+      customer: { select: { firstName: true, lastName: true } },
+      service: { select: { name: true, price: true } }
+    },
+    orderBy: { startTime: 'desc' },
+    skip: (page - 1) * pageSize,
+    take: pageSize
+  })
+  const total = await prisma.appointment.count({ where: whereForQuery })
 
   // Define a local type that includes the potential new column `soldProductsJson`.
   type AppointmentRow = (typeof rows)[number] & { soldProductsJson?: unknown }
 
   const items: DashboardDetailItem[] = []
   for (const aRaw of rows) {
+    // RAISON: `rows` est typé par Prisma sans `soldProductsJson` (colonne optionnelle v2) — cast nécessaire pour accéder au champ sans any
     const a = aRaw as AppointmentRow
     const clientName = a.customer ? `${a.customer.firstName} ${a.customer.lastName}`.trim() : '—'
     const serviceName = a.service?.name ?? '—'
@@ -335,56 +288,22 @@ export async function getDashboardDetails(orgId: string, from: Date, to: Date, f
   }
 
   // Compute accurate totals for the entire filtered set (not just the page)
-  const effectiveWhere = usedProductsTotalVariant ? whereWithProductsTotal : whereWithoutProductsTotal
-
   // Select all appointments matching the filter (no pagination) to compute totals.
-  // This is necessary to produce exact aggregates where finalPrice may be null.
-  const selectForTotals = usedProductsTotalVariant
-    ? { finalPrice: true, service: { select: { price: true } }, soldProducts: true, productsTotal: true }
-    : { finalPrice: true, service: { select: { price: true } }, soldProducts: true }
-
-  // The database may not have the `productsTotal` column yet. Even if earlier
-  // queries succeeded (e.g. because the WHERE didn't reference the column),
-  // selecting the column here can still fail. Attempt the richer select first
-  // and fall back to a conservative select if the column is absent.
   type TotalsRow = { finalPrice: number | null; service?: { price?: Prisma.Decimal | null } | null; soldProducts?: unknown; productsTotal?: number | null }
-  let allForTotals: TotalsRow[] = []
-  try {
-    allForTotals = await prisma.appointment.findMany({ where: effectiveWhere, select: selectForTotals })
-  } catch (e: unknown) {
-    const msg = String((e as Error)?.message ?? '').toLowerCase()
-    // If the error mentions productsTotal or missing column, retry without it.
-    if (msg.includes('productstotal') || msg.includes('products_total') || msg.includes('does not exist')) {
-      // Retry with the conservative selection (no productsTotal)
-      const fallbackSelect = { finalPrice: true, service: { select: { price: true } }, soldProducts: true }
-      allForTotals = await prisma.appointment.findMany({ where: effectiveWhere, select: fallbackSelect })
-      usedProductsTotalVariant = false
-    } else {
-      throw e
-    }
-  }
+  const allForTotals: TotalsRow[] = await prisma.appointment.findMany({
+    where: whereForQuery,
+    select: { finalPrice: true, service: { select: { price: true } }, soldProducts: true, productsTotal: true }
+  })
 
   const computedTotals: DashboardTotals = { totalAmount: 0, totalServicesSum: 0, totalProductsSum: 0 }
-  if (usedProductsTotalVariant) {
-    for (const r of allForTotals) {
-      const finalP = r.finalPrice != null ? Number(r.finalPrice) : null
-      const prodSum = r.productsTotal != null ? Number(r.productsTotal || 0) : parseSoldProducts(r.soldProducts).sum
-      const servicePriceVal = r.service?.price ? Number(r.service.price) : 0
-      if (finalP != null) computedTotals.totalAmount += finalP
-      else computedTotals.totalAmount += servicePriceVal + prodSum
-      computedTotals.totalServicesSum += servicePriceVal
-      computedTotals.totalProductsSum += prodSum
-    }
-  } else {
-    for (const r of allForTotals) {
-      const finalP = r.finalPrice != null ? Number(r.finalPrice) : null
-      const prodSum = parseSoldProducts(r.soldProducts).sum
-      const servicePriceVal = r.service?.price ? Number(r.service.price) : 0
-      if (finalP != null) computedTotals.totalAmount += finalP
-      else computedTotals.totalAmount += servicePriceVal + prodSum
-      computedTotals.totalServicesSum += servicePriceVal
-      computedTotals.totalProductsSum += prodSum
-    }
+  for (const r of allForTotals) {
+    const finalP = r.finalPrice != null ? Number(r.finalPrice) : null
+    const prodSum = r.productsTotal != null ? Number(r.productsTotal || 0) : parseSoldProducts(r.soldProducts).sum
+    const servicePriceVal = r.service?.price ? Number(r.service.price) : 0
+    if (finalP != null) computedTotals.totalAmount += finalP
+    else computedTotals.totalAmount += servicePriceVal + prodSum
+    computedTotals.totalServicesSum += servicePriceVal
+    computedTotals.totalProductsSum += prodSum
   }
 
   return { items, total, totals: computedTotals }
