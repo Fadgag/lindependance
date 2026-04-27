@@ -4,10 +4,10 @@ import React from 'react'
 import { toast } from 'sonner'
 import { isAbortError } from '@/lib/utils'
 import { format, addMinutes, isValid, parse, differenceInMinutes } from 'date-fns'
-import { z } from 'zod'
 import type { Customer as CustomerType, Service as ServiceType, CustomerPackageSummary } from '@/types/models'
 import type { DateSelectArg } from '@fullcalendar/core'
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings'
+import { useCustomerPackages } from '@/hooks/useCustomerPackages'
 
 type Range = { start: Date; end: Date }
 type InitialData = Partial<{
@@ -17,17 +17,10 @@ type InitialData = Partial<{
   extendedProps?: Record<string, unknown>
 }>
 
-const CustomerPackageResponseSchema = z.array(z.object({
-  id: z.string(),
-  sessionsRemaining: z.number(),
-  package: z.object({ id: z.string().optional(), name: z.string().optional() }).optional(),
-  serviceId: z.string().nullable().optional(),
-}))
-
 function extractErrorMessage(payload: unknown): string | null {
   if (!payload) return null
   if (typeof payload === 'string') return payload
-  if (typeof payload === 'object' && payload !== null) {
+  if (typeof payload === 'object') {
     const p = payload as Record<string, unknown>
     const e = p['error'] ?? p['message'] ?? p['detail']
     if (typeof e === 'string') return e
@@ -97,11 +90,12 @@ export function useAppointmentForm({
   const [startTime, setStartTime] = useState('')
   const [date, setDate] = useState('')
   const [duration, setDuration] = useState(30)
-  const [customerPackages, setCustomerPackages] = useState<CustomerPackageSummary[]>([])
-  const [usePackage, setUsePackage] = useState(false)
-  const [selectedCustomerPackageId, setSelectedCustomerPackageId] = useState<string | null>(null)
   const mountedRef = useRef(true)
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false } }, [])
+
+  // Forfaits — délégués au hook dédié
+  const { customerPackages, usePackage, setUsePackage, selectedCustomerPackageId, setSelectedCustomerPackageId } =
+    useCustomerPackages(isOpen, selectedCustomer?.id, serviceId)
 
   // Initialisation du formulaire
   useEffect(() => {
@@ -139,28 +133,6 @@ export function useAppointmentForm({
     if (!isOpen) return
     setTimeout(() => { setCollision(false); setForceSave(false) }, 0)
   }, [isOpen])
-
-  // Chargement des forfaits client
-  useEffect(() => {
-    setCustomerPackages([]); setUsePackage(false); setSelectedCustomerPackageId(null)
-    if (!isOpen || !selectedCustomer || !serviceId) return
-    const controller = new AbortController()
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/customers/${encodeURIComponent(selectedCustomer.id)}/packages?serviceId=${encodeURIComponent(serviceId)}`, { signal: controller.signal, credentials: 'include' })
-        if (res.ok) {
-          const parsed = CustomerPackageResponseSchema.safeParse(await res.json())
-          // RAISON: l'API retourne CustomerPackage[] — res.json() est unknown, shape vérifiée par Zod CustomerPackageResponseSchema
-          if (parsed.success) setCustomerPackages(parsed.data as CustomerPackageSummary[])
-        }
-      } catch (err) {
-        if (isAbortError(err)) return
-        import('@/lib/clientLogger').then(({ clientError }) => clientError('Erreur chargement forfaits client', err))
-      }
-    }
-    load()
-    return () => controller.abort()
-  }, [isOpen, selectedCustomer, serviceId])
 
   const { openingTime: HORAIRE_OUVERTURE, closingTime: HORAIRE_FERMETURE } = useOrganizationSettings()
 
@@ -262,4 +234,13 @@ export function useAppointmentForm({
     getEndTimeLabel, handleServiceChange, handleSave, handleDelete, handleConfirmDelete,
   }
 }
+
+
+
+
+
+
+
+
+
 

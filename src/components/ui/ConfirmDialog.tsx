@@ -84,6 +84,10 @@ export default function ConfirmDialog({
                     <Dialog.Title className="text-base font-bold text-slate-800 leading-tight">
                       {title}
                     </Dialog.Title>
+                    {/* Description invisible pour l'accessibilité (WCAG 2.1 / Radix) */}
+                    <Dialog.Description className="sr-only">
+                      {message ?? title}
+                    </Dialog.Description>
                   </div>
 
                   {message && (
@@ -117,5 +121,6 @@ export default function ConfirmDialog({
     </AnimatePresence>
   )
 }
+
 
 
