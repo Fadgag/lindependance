@@ -6,6 +6,7 @@ import apiErrorResponse from '@/lib/api'
 import { RECURRENCE_OPTIONS } from '@/types/models'
 import type { Recurrence } from '@/types/models'
 import { buildOccurrences } from '@/services/unavailability.service'
+import type { UnavailabilityWhereClause } from '@/services/unavailability.service'
 
 const CreateSchema = z.object({
   title: z.string().min(1).max(200),
@@ -25,11 +26,7 @@ export async function GET(request: Request) {
     const startParam = url.searchParams.get('start')
     const endParam = url.searchParams.get('end')
 
-    type WhereClause = {
-      organizationId: string
-      AND?: Array<{ start?: { lt: Date }; end?: { gt: Date } }>
-    }
-    const where: WhereClause = { organizationId }
+    const where: UnavailabilityWhereClause = { organizationId }
     if (startParam && endParam) {
       const rangeStart = new Date(startParam)
       const rangeEnd = new Date(endParam)
@@ -137,3 +134,4 @@ export async function DELETE(request: Request) {
     return apiErrorResponse(err)
   }
 }
+

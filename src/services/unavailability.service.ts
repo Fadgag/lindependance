@@ -1,5 +1,11 @@
 import type { Recurrence } from '@/types/models'
 
+/** Prisma-compatible WHERE filter for unavailabilities — overlap semantics */
+export type UnavailabilityWhereClause = {
+  organizationId: string
+  AND?: Array<{ start?: { lt: Date }; end?: { gt: Date } }>
+}
+
 /** Generate series of (start, end) pairs based on recurrence rule — up to 6 months ahead */
 export function buildOccurrences(
   start: Date,
@@ -30,4 +36,5 @@ export function buildOccurrences(
   }
   return occurrences
 }
+
 

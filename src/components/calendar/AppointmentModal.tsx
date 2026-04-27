@@ -11,6 +11,14 @@ import { CustomerPicker } from "./CustomerPicker"
 // QuickCustomerModal removed — creation is now inline in CustomerPicker
 import type { Customer as CustomerType, Service as ServiceType, Staff as StaffType, CustomerPackageSummary } from '@/types/models'
 import type { DateSelectArg } from '@fullcalendar/core'
+import { z } from 'zod'
+
+const CustomerPackageResponseSchema = z.array(z.object({
+  id: z.string(),
+  sessionsRemaining: z.number(),
+  package: z.object({ id: z.string().optional(), name: z.string().optional() }).optional(),
+  serviceId: z.string().nullable().optional(),
+}))
 
 // Utility to extract error message safely from unknown payloads
 function extractErrorMessage(payload: unknown): string | null {
@@ -164,7 +172,8 @@ export default function AppointmentModal({
                     const data = await res.json()
                     // data: array of CustomerPackage with package info
                     // RAISON: l'API retourne CustomerPackage[] — res.json() est unknown, shape vérifiée par le contrat API
-                    setCustomerPackages((data || []) as CustomerPackageSummary[])
+                    const parsed = CustomerPackageResponseSchema.safeParse(data)
+                    if (parsed.success) setCustomerPackages(parsed.data as CustomerPackageSummary[])
                 }
             } catch (err) {
                     if (isAbortError(err)) return
