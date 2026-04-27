@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import apiErrorResponse from '@/lib/api'
-import type { Service, Product as PProduct } from '@prisma/client'
 
 type CatalogItem = {
   id: string
@@ -29,18 +28,18 @@ export async function GET() {
       prisma.product.findMany({ where: { organizationId: orgId } }),
     ])
 
-    const mappedServices: CatalogItem[] = (services as Service[]).map((s: Service) => ({
+    const mappedServices: CatalogItem[] = services.map((s) => ({
       id: s.id,
-      type: 'SERVICE',
+      type: 'SERVICE' as const,
       name: s.name,
       price: Number(s.price ?? 0),
       durationMinutes: s.durationMinutes,
       color: s.color ?? null,
     }))
 
-    const mappedProducts: CatalogItem[] = (products as PProduct[]).map((p: PProduct) => ({
+    const mappedProducts: CatalogItem[] = products.map((p) => ({
       id: p.id,
-      type: 'PRODUCT',
+      type: 'PRODUCT' as const,
       name: p.name,
       priceTTC: p.priceTTC,
       stock: p.stock,
