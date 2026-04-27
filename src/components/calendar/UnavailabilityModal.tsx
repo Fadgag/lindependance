@@ -6,6 +6,7 @@ import { format, isValid } from 'date-fns'
 import { fr as frLocale } from 'date-fns/locale'
 import { Trash2, BanIcon, RefreshCw } from 'lucide-react'
 import BaseModal from '@/components/ui/BaseModal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import type { Recurrence } from '@/types/models'
 import { RECURRENCE_OPTIONS, RECURRENCE_LABELS } from '@/types/models'
 
@@ -35,6 +36,7 @@ export default function UnavailabilityModal({
   const [allDay, setAllDay] = useState(false)
   const [recurrence, setRecurrence] = useState<Recurrence>('NONE')
   const [isSaving, setIsSaving] = useState(false)
+  const [confirmState, setConfirmState] = useState<{ open: boolean; deleteAll: boolean }>({ open: false, deleteAll: false })
 
   useEffect(() => {
     if (!isOpen) return
@@ -108,7 +110,14 @@ export default function UnavailabilityModal({
   }
 
   const handleDelete = async (deleteAll: boolean) => {
-    if (!editingId || !confirm(deleteAll ? 'Supprimer toute la série récurrente ?' : 'Supprimer cette occurrence ?')) return
+    if (!editingId) return
+    setConfirmState({ open: true, deleteAll })
+  }
+
+  const handleConfirmDelete = async () => {
+    const { deleteAll } = confirmState
+    setConfirmState({ open: false, deleteAll: false })
+    if (!editingId) return
     setIsSaving(true)
     try {
       const qs = deleteAll ? `?id=${editingId}&deleteAll=1` : `?id=${editingId}`
@@ -127,7 +136,8 @@ export default function UnavailabilityModal({
   const isSeries = !!editingRecurrenceGroupId
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Indisponibilité bloquée' : 'Bloquer un créneau'}>
+    <>
+      <BaseModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Indisponibilité bloquée' : 'Bloquer un créneau'}>
       <form onSubmit={handleSave} className="flex flex-col gap-5">
 
         {/* Motif */}
@@ -236,6 +246,15 @@ export default function UnavailabilityModal({
         </div>
       </form>
     </BaseModal>
+    <ConfirmDialog
+      isOpen={confirmState.open}
+      title={confirmState.deleteAll ? 'Supprimer toute la série ?' : 'Supprimer cette occurrence ?'}
+      message={confirmState.deleteAll ? 'Toutes les occurrences récurrentes seront supprimées.' : 'Cette occurrence sera supprimée définitivement.'}
+      confirmLabel="Supprimer"
+      onConfirm={handleConfirmDelete}
+      onCancel={() => setConfirmState({ open: false, deleteAll: false })}
+    />
+    </>
   )
 }
 

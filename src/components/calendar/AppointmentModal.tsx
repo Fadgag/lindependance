@@ -7,6 +7,7 @@ import { format, addMinutes, isValid, parse, differenceInMinutes } from "date-fn
 import { fr as frLocale } from 'date-fns/locale'
 import { Trash2, AlertTriangle, Zap } from "lucide-react"
 import BaseModal from "@/components/ui/BaseModal"
+import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import { CustomerPicker } from "./CustomerPicker"
 // QuickCustomerModal removed — creation is now inline in CustomerPicker
 import type { Customer as CustomerType, Service as ServiceType, Staff as StaffType, CustomerPackageSummary } from '@/types/models'
@@ -77,6 +78,7 @@ export default function AppointmentModal({
      
     const [collision, setCollision] = useState(false)
     const [forceSave, setForceSave] = useState(false)
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
     // Initialize local state with sensible defaults; we'll populate them when the modal opens
     const [selectedCustomerState, setSelectedCustomerState] = useState<CustomerType | null>(null)
@@ -323,7 +325,13 @@ const { openingTime: HORAIRE_OUVERTURE, closingTime: HORAIRE_FERMETURE } = useOr
     }
 
     const handleDelete = async () => {
-        if (!initialData?.id || !confirm("Supprimer ce rendez-vous ?")) return
+        if (!initialData?.id) return
+        setConfirmDeleteOpen(true)
+    }
+
+    const handleConfirmDelete = async () => {
+        setConfirmDeleteOpen(false)
+        if (!initialData?.id) return
         setIsSaving(true)
         try {
             const res = await fetch(`/api/appointments?id=${initialData.id}`, { method: 'DELETE', credentials: 'include' })
@@ -356,7 +364,8 @@ const { openingTime: HORAIRE_OUVERTURE, closingTime: HORAIRE_FERMETURE } = useOr
     if (!isOpen) return null
 
     return (
-                <BaseModal isOpen={isOpen} onClose={onCloseAction} title={initialData?.id ? "Modifier le RDV" : "Nouveau RDV"}>
+        <>
+            <BaseModal isOpen={isOpen} onClose={onCloseAction} title={initialData?.id ? "Modifier le RDV" : "Nouveau RDV"}>
             <form onSubmit={handleSave} className="flex flex-col gap-5">
 
                 {/* SECTION CLIENT */}
@@ -516,6 +525,15 @@ const { openingTime: HORAIRE_OUVERTURE, closingTime: HORAIRE_FERMETURE } = useOr
                 </div>
                 </form>
             </BaseModal>
+            <ConfirmDialog
+                isOpen={confirmDeleteOpen}
+                title="Supprimer ce rendez-vous ?"
+                message="Cette action est irréversible."
+                confirmLabel="Supprimer"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setConfirmDeleteOpen(false)}
+            />
+        </>
         )
     }
 
