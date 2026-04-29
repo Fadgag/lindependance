@@ -79,5 +79,29 @@ describe('parseSoldProducts', () => {
     const r = parseSoldProducts(input)
     expect(r.sum).toBe(5 * 2 + 3 * 4)
   })
+
+  // --- Branches L14-16 : qty/priceTTC en string (truthy non-number) ---
+
+  it('convertit quantity en nombre si c\'est une string truthy — L14', () => {
+    // it.quantity est "3" (string) → Number("3") = 3
+    const input = [{ priceTTC: 10, quantity: '3', totalTTC: 30 }]
+    const r = parseSoldProducts(input)
+    expect(r.sum).toBe(30)
+    expect(r.products[0].quantity).toBe(3)
+  })
+
+  it('convertit priceTTC en nombre si c\'est une string truthy — L15', () => {
+    // it.priceTTC est "12.5" (string) → Number("12.5") = 12.5
+    const input = [{ priceTTC: '12.5', quantity: 2 }]
+    const r = parseSoldProducts(input)
+    expect(r.sum).toBeCloseTo(25)
+    expect(r.products[0].priceTTC).toBeCloseTo(12.5)
+  })
+
+  it('calcule lineTotal via unit×qty si totalTTC est absent et les champs sont des strings — L16', () => {
+    const input = [{ priceTTC: '8', quantity: '4' }]
+    const r = parseSoldProducts(input)
+    expect(r.sum).toBe(32)
+  })
 })
 

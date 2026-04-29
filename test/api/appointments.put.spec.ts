@@ -179,5 +179,24 @@ describe('PUT /api/appointments', () => {
     expect(res.status).toBe(401)
     expect(prisma.appointment.findFirst).not.toHaveBeenCalled()
   })
+
+  it('retourne 404 si updateMany ne modifie aucune ligne (count=0) — L227', async () => {
+    mockSession()
+    // existence check → OK (le RDV existe)
+    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(EXISTING_APT)
+    // conflict check → pas de conflit
+    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(null)
+    // updateMany → 0 lignes modifiées (race condition ou IDOR entre findFirst et updateMany)
+    ;(prisma.appointment.updateMany as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ count: 0 })
+
+    const res = await PUT(makePutRequest(VALID_PUT_BODY))
+
+    expect(res.status).toBe(404)
+    const body = await (res as Response).json()
+    expect(body.error).toBe('Not found')
+  })
 })
 

@@ -117,12 +117,86 @@ describe('POST /api/appointments', () => {
     expect(res.status).toBe(400)
   })
 
-  it('retourne 401 si non authentifié', async () => {
-    ;(auth as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null)
+  it('décrémente les sessions du forfait si customerPackageId est fourni (L161)', async () => {
+    mockSession()
+    ;(prisma.service.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ price: 50 })
+    const createdRow = {
+      id: CUID_APT, startTime: NOW, endTime: LATER, status: 'CONFIRMED',
+      finalPrice: null, price: 50, serviceId: CUID_SVC,
+      customerId: CUID_CUST, staffId: CUID_STAFF, note: null, duration: 60,
+    }
+    ;(prisma.appointment.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(createdRow)
+    ;(prisma.customerPackage.updateMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ count: 1 })
 
-    const res = await POST(makePostRequest(VALID_POST_BODY))
+    const CUID_PKG = 'ctest_pkg_hhh0000000007'
+    const res = await POST(makePostRequest({ ...VALID_POST_BODY, customerPackageId: CUID_PKG }))
 
-    expect(res.status).toBe(401)
+    expect(res.status).toBe(200)
+    // customerPackage.updateMany doit avoir été appelé avec le bon id
+    expect(prisma.customerPackage.updateMany).toHaveBeenCalledOnce()
+    const pkgCall = (prisma.customerPackage.updateMany as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(pkgCall.where.id).toBe(CUID_PKG)
+    expect(pkgCall.data.sessionsRemaining.decrement).toBe(1)
+  })
+})
+
+// ===========================================================================
+//  DELETE /api/appointments — edge cases
+// ===========================================================================
+
+describe('DELETE /api/appointments — edge cases', () => {
+  it('accepte l\'id depuis le body JSON (priorité body > query param)', async () => {
+    mockSession()
+    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: CUID_APT, status: 'CONFIRMED', finalPrice: null, staffId: CUID_STAFF,
+    })
+    ;(prisma.appointment.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ count: 1 })
+
+    // id passé via body JSON (L250-254)
+    const req = new Request('http://localhost/api/appointments', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: CUID_APT }),
+    })
+    const res = await DELETE(req)
+
+    expect(res.status).toBe(200)
+    const body = await (res as Response).json()
+    expect(body.ok).toBe(true)
+  })
+
+  it('retourne 400 si from=checkout sans confirm=true (L282)', async () => {
+    mockSession()
+    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: CUID_APT, status: 'CONFIRMED', finalPrice: null, staffId: CUID_STAFF,
+    })
+
+    const req = new Request(
+      `http://localhost/api/appointments?id=${CUID_APT}&from=checkout`,
+      { method: 'DELETE' }
+    )
+    const res = await DELETE(req)
+
+    expect(res.status).toBe(400)
+    const body = await (res as Response).json()
+    expect(body.error).toMatch(/confirmation/i)
+    expect(prisma.appointment.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('supprime avec confirm=true depuis checkout (L284+)', async () => {
+    mockSession()
+    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: CUID_APT, status: 'CONFIRMED', finalPrice: null, staffId: CUID_STAFF,
+    })
+    ;(prisma.appointment.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ count: 1 })
+
+    const req = new Request(
+      `http://localhost/api/appointments?id=${CUID_APT}&from=checkout&confirm=true`,
+      { method: 'DELETE' }
+    )
+    const res = await DELETE(req)
+
+    expect(res.status).toBe(200)
   })
 })
 

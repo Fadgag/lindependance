@@ -61,6 +61,47 @@ describe('/api/stats/dashboard', () => {
     const body = await (res as any).json()
     expect(body).toBeDefined()
   })
+
+  it('retourne 401 si non authentifié', async () => {
+    ;(auth as any).mockResolvedValueOnce(null)
+
+    const req = new Request('http://localhost/api/stats/dashboard')
+    const res = await GET(req)
+
+    expect(res.status).toBe(401)
+  })
+
+  it('retourne 403 si session sans organizationId', async () => {
+    ;(auth as any).mockResolvedValueOnce({ user: {} })
+
+    const req = new Request('http://localhost/api/stats/dashboard')
+    const res = await GET(req)
+
+    expect(res.status).toBe(403)
+  })
+
+  it('retourne 400 si les paramètres de date sont invalides — L26', async () => {
+    ;(auth as any).mockResolvedValueOnce({ user: { organizationId: 'org-1' } })
+
+    const req = new Request('http://localhost/api/stats/dashboard?start=NOT_A_DATE&end=ALSO_INVALID')
+    const res = await GET(req)
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toMatch(/invalid date/i)
+  })
+
+  it('retourne 500 si le service lance une exception — L35', async () => {
+    ;(auth as any).mockResolvedValueOnce({ user: { organizationId: 'org-1' } })
+    ;(prisma.appointment.findMany as any).mockRejectedValueOnce(new Error('DB connection lost'))
+
+    const req = new Request('http://localhost/api/stats/dashboard')
+    const res = await GET(req)
+
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).toBe('Internal server error')
+  })
 })
 
 

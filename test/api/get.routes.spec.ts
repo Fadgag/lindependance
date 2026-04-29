@@ -186,6 +186,77 @@ describe('GET /api/unavailability', () => {
     const findCall = (prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(findCall.where.organizationId).toBe(CUID_ORG)
   })
+
+  it('retourne le mapping complet (type, color, display, classNames, extendedProps)', async () => {
+    mockSession()
+    const CUID_UNA = 'ctest_una_iii0000000008'
+    const row = {
+      id: CUID_UNA,
+      title: 'Congé annuel',
+      start: new Date('2026-06-01T08:00:00.000Z'),
+      end:   new Date('2026-06-01T18:00:00.000Z'),
+      allDay: false,
+      recurrence: 'NONE',
+      recurrenceGroupId: null,
+    }
+    ;(prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([row])
+
+    const res = await getUnavailability(makeGetRequest('/api/unavailability'))
+    const body = await (res as Response).json()
+
+    expect(res.status).toBe(200)
+    expect(body).toHaveLength(1)
+    const u = body[0]
+    expect(u.title).toBe('Congé annuel')
+    expect(u.type).toBe('unavailability')
+    expect(u.color).toBe('#94a3b8')
+    expect(u.display).toBe('block')
+    expect(u.classNames).toContain('unavailability-block')
+    expect(u.extendedProps.type).toBe('unavailability')
+    expect(u.extendedProps.recurrence).toBe('NONE')
+  })
+
+  it('filtre avec start seul — where.AND injecté (L41-42)', async () => {
+    mockSession()
+    ;(prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
+
+    const res = await getUnavailability(makeGetRequest('/api/unavailability', {
+      start: '2026-06-01T00:00:00.000Z',
+    }))
+
+    expect(res.status).toBe(200)
+    const findCall = (prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    // start seul → AND avec end > startParam
+    expect(findCall.where.AND).toBeDefined()
+  })
+
+  it('filtre avec end seul — where.AND injecté (L43-44)', async () => {
+    mockSession()
+    ;(prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
+
+    const res = await getUnavailability(makeGetRequest('/api/unavailability', {
+      end: '2026-06-30T23:59:59.000Z',
+    }))
+
+    expect(res.status).toBe(200)
+    const findCall = (prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    // end seul → AND avec start < endParam
+    expect(findCall.where.AND).toBeDefined()
+  })
+
+  it('filtre avec start ET end — overlap query (L39-40)', async () => {
+    mockSession()
+    ;(prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
+
+    const res = await getUnavailability(makeGetRequest('/api/unavailability', {
+      start: '2026-06-01T00:00:00.000Z',
+      end:   '2026-06-30T23:59:59.000Z',
+    }))
+
+    expect(res.status).toBe(200)
+    const findCall = (prisma.unavailability.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(findCall.where.AND).toHaveLength(2)
+  })
 })
 
 
