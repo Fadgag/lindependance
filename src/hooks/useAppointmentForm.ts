@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import React from 'react'
 import { toast } from 'sonner'
-import { isAbortError } from '@/lib/utils'
 import { format, addMinutes, isValid, parse, differenceInMinutes } from 'date-fns'
 import type { Customer as CustomerType, Service as ServiceType, CustomerPackageSummary } from '@/types/models'
 import type { DateSelectArg } from '@fullcalendar/core'
@@ -126,6 +125,7 @@ export function useAppointmentForm({
     }
     setSelectedCustomer(null); setServiceId(''); setNote(''); setStartTime('')
     setDate(format(new Date(), 'yyyy-MM-dd')); setDuration(30)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- setUsePackage/setSelectedCustomerPackageId sont des setters stables issus de useCustomerPackages (équivalents useState), les inclure provoquerait des re-renders infinis
   }, [isOpen, initialData, selectedRange, customers])
 
   // Reset collision au montage
