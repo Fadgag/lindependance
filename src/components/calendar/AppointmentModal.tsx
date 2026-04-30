@@ -10,7 +10,6 @@ import { PackageSelector } from "./PackageSelector"
 import { TimeRangeSection } from "./TimeRangeSection"
 import { CustomerPicker } from "./CustomerPicker"
 import type { Customer as CustomerType, Service as ServiceType, Staff as StaffType } from '@/types/models'
-import type { DateSelectArg } from '@fullcalendar/core'
 import { useAppointmentForm } from '@/hooks/useAppointmentForm'
 
 type Range = { start: Date; end: Date }
