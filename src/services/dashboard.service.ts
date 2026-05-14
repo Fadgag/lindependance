@@ -85,7 +85,9 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
     const ad = new Date(a.startTime)
     const key = `${ad.getUTCFullYear()}-${pad(ad.getUTCMonth() + 1)}-${pad(ad.getUTCDate())}`
     const cur = map.get(key) ?? { realized: new Decimal(0), projected: new Decimal(0), count: 0 }
-    const isPaid = a.status === 'PAID'
+    // Consider appointment as paid when status explicitly marks it as paid
+    // (some legacy rows may use 'PAYED') or when a finalPrice was recorded (> 0).
+    const isPaid = a.status === 'PAID' || a.status === 'PAYED' || (a.finalPrice != null && a.finalPrice > 0)
     // service price
     const servicePriceValue = a.service?.price ?? 0
     const serviceDec = new Decimal(String(servicePriceValue))
@@ -119,7 +121,10 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
         // ignore JSON parse / shape errors for backward compatibility
       }
     }
-    const price = serviceDec.plus(productsSum)
+    // Prefer `finalPrice` when available (actual amount paid / recorded) — this
+    // ensures reported CA (réalisé / prévisionnel) respects discounts / adjustments
+    // that may have been stored in `finalPrice`.
+    const price = a.finalPrice != null ? new Decimal(String(a.finalPrice)) : serviceDec.plus(productsSum)
     // allocate service vs product totals
     if (isPaid) {
       totalRealized = totalRealized.plus(price)
