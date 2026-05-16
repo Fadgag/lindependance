@@ -17,8 +17,9 @@ export async function GET(request: Request) {
 
         const url = new URL(request.url)
         const GetQuerySchema = z.object({
-            start: z.string().datetime().optional(),
-            end: z.string().datetime().optional(),
+            // Accept query params with timezone offset (RFC3339)
+            start: z.string().datetime({ offset: true }).optional(),
+            end: z.string().datetime({ offset: true }).optional(),
         })
         const queryParsed = GetQuerySchema.safeParse({
             start: url.searchParams.get('start') ?? undefined,
