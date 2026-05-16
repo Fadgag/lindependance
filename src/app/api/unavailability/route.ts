@@ -7,11 +7,14 @@ import { RECURRENCE_OPTIONS } from '@/types/models'
 import type { Recurrence } from '@/types/models'
 import { buildOccurrences } from '@/services/unavailability.service'
 import type { UnavailabilityWhereClause } from '@/services/unavailability.service'
+import { logger } from '@/lib/logger'
 
 const CreateSchema = z.object({
+  // Title is required for usability in the calendar (motif obligatoire)
   title: z.string().min(1).max(200),
-  start: z.string().datetime(),
-  end: z.string().datetime(),
+  // Accept datetimes with Z or timezone offset (RFC3339)
+  start: z.string().datetime({ offset: true }),
+  end: z.string().datetime({ offset: true }),
   allDay: z.boolean().optional().default(false),
   recurrence: z.enum(RECURRENCE_OPTIONS).optional().default('NONE'),
 })
@@ -24,8 +27,9 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url)
     const QuerySchema = z.object({
-      start: z.string().datetime().optional(),
-      end: z.string().datetime().optional(),
+      // Accept query params with timezone offset (e.g. 2026-07-06T00:00:00+02:00)
+      start: z.string().datetime({ offset: true }).optional(),
+      end: z.string().datetime({ offset: true }).optional(),
     })
     const queryParsed = QuerySchema.safeParse({
       start: url.searchParams.get('start') ?? undefined,
@@ -82,6 +86,16 @@ export async function POST(request: Request) {
     if (!parsed.success) return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 })
 
     const { title, start, end, allDay, recurrence } = parsed.data
+    // Log incoming payload for debugging timezone/day shifts
+    logger.info('unavailability: received body', {
+      title,
+      start,
+      end,
+      startLocal: new Date(start).toString(),
+      endLocal: new Date(end).toString(),
+      recurrence,
+      organizationId,
+    })
     if (new Date(start) >= new Date(end)) {
       return NextResponse.json({ error: 'La date de fin doit être après la date de début' }, { status: 400 })
     }
@@ -94,6 +108,8 @@ export async function POST(request: Request) {
     // recurrenceGroupId shared by all instances in this series
     const recurrenceGroupId = rule !== 'NONE' ? crypto.randomUUID() : null
 
+    // Log occurrences being created to help debugging timezone/validation issues in production
+    logger.info('Creating unavailability occurrences', occurrences.map((o) => ({ start: o.start.toISOString(), end: o.end.toISOString(), durationMs: o.end.getTime() - o.start.getTime() })))
     await prisma.unavailability.createMany({
       data: occurrences.map((o) => ({
         title,

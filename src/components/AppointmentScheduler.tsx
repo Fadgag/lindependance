@@ -11,7 +11,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import frLocale from '@fullcalendar/core/locales/fr';
-import type { DateSelectArg, EventClickArg, EventContentArg, EventMountArg, EventDropArg, DatesSetArg } from '@fullcalendar/core';
+import type { DateSelectArg, EventClickArg, EventContentArg, EventMountArg, EventDropArg, DatesSetArg, CalendarApi } from '@fullcalendar/core';
 import AppointmentModal from './calendar/AppointmentModal';
 import UnavailabilityModal from './calendar/UnavailabilityModal';
 import 'tippy.js/dist/tippy.css';
@@ -19,26 +19,27 @@ import 'tippy.js/animations/shift-away.css';
 import { BanIcon } from 'lucide-react';
 
 export default function AppointmentScheduler() {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedRange, setSelectedRange] = useState<DateSelectArg | null>(null);
-    const [editingEvent, setEditingEvent] = useState<InitialAppointmentData | null>(null);
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => { const id = setTimeout(() => setMounted(true), 0); return () => clearTimeout(id) }, []);
-    const lastRangeRef = useRef<{ start?: string; end?: string } | null>(null);
-    const rangeControllerRef = useRef<AbortController | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedRange, setSelectedRange] = useState<DateSelectArg | null>(null)
+    const [editingEvent, setEditingEvent] = useState<InitialAppointmentData | null>(null)
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => { const id = setTimeout(() => setMounted(true), 0); return () => clearTimeout(id) }, [])
+    const lastRangeRef = useRef<{ start?: string; end?: string } | null>(null)
+    const rangeControllerRef = useRef<AbortController | null>(null)
+    const calendarRef = useRef<{ getApi?: () => CalendarApi } | null>(null)
 
     // Unavailability modal state
-    const [isUnavailModalOpen, setIsUnavailModalOpen] = useState(false);
-    const [unavailInitialStart, setUnavailInitialStart] = useState<Date | null>(null);
-    const [unavailInitialEnd, setUnavailInitialEnd] = useState<Date | null>(null);
-    const [unavailEditingId, setUnavailEditingId] = useState<string | null>(null);
-    const [unavailEditingTitle, setUnavailEditingTitle] = useState<string | null>(null);
-    const [unavailEditingGroupId, setUnavailEditingGroupId] = useState<string | null>(null);
+    const [isUnavailModalOpen, setIsUnavailModalOpen] = useState(false)
+    const [unavailInitialStart, setUnavailInitialStart] = useState<Date | null>(null)
+    const [unavailInitialEnd, setUnavailInitialEnd] = useState<Date | null>(null)
+    const [unavailEditingId, setUnavailEditingId] = useState<string | null>(null)
+    const [unavailEditingTitle, setUnavailEditingTitle] = useState<string | null>(null)
+    const [unavailEditingGroupId, setUnavailEditingGroupId] = useState<string | null>(null)
 
     const { openingTime, closingTime } = useOrganizationSettings()
     const { events, unavailabilities, customers, services, staffs, fetchAppointments, fetchUnavailabilities, checkUnavailabilityConflict } = useCalendarData()
 
-    const allEvents = [...events, ...unavailabilities];
+    const allEvents = [...events, ...unavailabilities]
 
     return (
         <div className="flex-1 flex flex-col h-full w-full p-6 min-h-0">
@@ -46,8 +47,27 @@ export default function AppointmentScheduler() {
             <div className="flex justify-end mb-3">
                 <button
                     onClick={() => {
-                        setUnavailInitialStart(new Date())
-                        setUnavailInitialEnd(new Date(Date.now() + 3600000))
+                        // If possible, prefill modal with currently visible calendar range.
+                        let last = lastRangeRef.current
+                        if ((!last || !last.start || !last.end) && calendarRef.current?.getApi) {
+                            try {
+                                const api = calendarRef.current.getApi()
+                                const activeStart: Date = api.view.activeStart
+                                const activeEnd: Date = api.view.activeEnd
+                                // use ISO strings for consistency with other code
+                                last = { start: activeStart.toISOString(), end: activeEnd.toISOString() }
+                            } catch {
+                                last = null
+                            }
+                        }
+
+                        if (last && last.start && last.end) {
+                            setUnavailInitialStart(new Date(last.start))
+                            setUnavailInitialEnd(new Date(last.end))
+                        } else {
+                            setUnavailInitialStart(new Date())
+                            setUnavailInitialEnd(new Date(Date.now() + 3600000))
+                        }
                         setUnavailEditingId(null)
                         setUnavailEditingTitle(null)
                         setIsUnavailModalOpen(true)
@@ -61,6 +81,7 @@ export default function AppointmentScheduler() {
             <div className="studio-card flex-1 p-6 min-h-0 overflow-hidden bg-white rounded-4xl border border-studio-border shadow-sm">
                 {mounted ? (
                     <FullCalendar
+                        ref={calendarRef}
                         key={`${openingTime}-${closingTime}`}
                         plugins={[timeGridPlugin, interactionPlugin, dayGridPlugin]}
                         initialView="timeGridWeek"
@@ -170,10 +191,18 @@ export default function AppointmentScheduler() {
                 isOpen={isUnavailModalOpen}
                 onClose={() => setIsUnavailModalOpen(false)}
                 onSuccess={() => {
-                    const now = new Date()
-                    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
-                    const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString()
-                    fetchUnavailabilities(start, end)
+                    // Refresh unavailabilities for the currently visible calendar range if possible.
+                    // Previously we used a fixed range around "now" which didn't include future months
+                    // (e.g. creating a July unavailability while "now" is May). Use lastRangeRef if set.
+                    const last = lastRangeRef.current
+                    if (last && last.start && last.end) {
+                        fetchUnavailabilities(last.start, last.end)
+                    } else {
+                        const now = new Date()
+                        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
+                        const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString()
+                        fetchUnavailabilities(start, end)
+                    }
                 }}
                 initialStart={unavailInitialStart}
                 initialEnd={unavailInitialEnd}
