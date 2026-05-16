@@ -7,6 +7,7 @@ import { fr as frLocale } from 'date-fns/locale'
 import { Trash2, BanIcon, RefreshCw } from 'lucide-react'
 import BaseModal from '@/components/ui/BaseModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { logger } from '@/lib/logger'
 import type { Recurrence } from '@/types/models'
 import { RECURRENCE_OPTIONS, RECURRENCE_LABELS } from '@/types/models'
 
@@ -60,14 +61,25 @@ export default function UnavailabilityModal({
     } catch { return '' }
   }
 
+  // Construire explicitement un Date en timezone locale (évite les parseurs ISO ambigus
+  // et le suffixe 'Z' qui force l'interprétation en UTC). On retourne ensuite
+  // l'ISO UTC via toISOString() pour stockage côté serveur.
   const buildISO = (date: string, time: string) => {
     if (!date) return null
-    const iso = allDay ? `${date}T00:00:00.000Z` : `${date}T${time || '00:00'}:00.000Z`
-    const d = new Date(iso)
-    return isValid(d) ? d.toISOString() : null
+    try {
+      const [y, m, d] = date.split('-').map((v) => parseInt(v, 10))
+      const [hh, mm] = (time || '00:00').split(':').map((v) => parseInt(v, 10))
+      if ([y, m, d].some((v) => Number.isNaN(v))) return null
+      // month index in Date constructor is 0-based
+      const dt = new Date(y, m - 1, d, hh ?? 0, mm ?? 0, 0, 0)
+      return isValid(dt) ? dt.toISOString() : null
+    } catch {
+      return null
+    }
   }
 
-  const isFormInvalid = !title.trim() || !dateFrom || !dateTo
+  // Title (motif) is optional now — only require dates
+  const isFormInvalid = !dateFrom || !dateTo
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,9 +89,17 @@ export default function UnavailabilityModal({
     let start: string | null
     let end: string | null
     if (allDay) {
-      if (!dateFrom) { toast.error('Date requise'); return }
-      start = `${dateFrom}T00:00:00.000Z`
-      end   = `${dateFrom}T23:59:59.000Z`
+      if (!dateFrom || !dateTo) { toast.error('Dates requises'); return }
+      // Construire en local et renvoyer l'ISO UTC pour stockage (évite les sauts de jour
+      // lors des conversions entre Europe/Paris et UTC). Ici on supporte une plage multi-jours.
+      const [y1, m1, d1] = dateFrom.split('-').map((v) => parseInt(v, 10))
+      const [y2, m2, d2] = dateTo.split('-').map((v) => parseInt(v, 10))
+      if ([y1, m1, d1, y2, m2, d2].some((v) => Number.isNaN(v))) { toast.error('Date invalide'); return }
+      const startDt = new Date(y1, m1 - 1, d1, 0, 0, 0, 0)
+      const endDt = new Date(y2, m2 - 1, d2, 23, 59, 59, 0)
+      if (startDt > endDt) { toast.error('La fin doit être après le début'); return }
+      start = startDt.toISOString()
+      end = endDt.toISOString()
     } else {
       start = buildISO(dateFrom, timeFrom)
       end   = buildISO(dateTo, timeTo)
@@ -89,6 +109,18 @@ export default function UnavailabilityModal({
     if (new Date(start) >= new Date(end)) { toast.error('La fin doit être après le début'); return }
     setIsSaving(true)
     try {
+      // DEBUG: log what we are about to send to the server (ISO and local string)
+      // Helps trace timezone/day-shift issues for problematic months (e.g. July)
+      logger.info('unavailability: sending', {
+        title: title.trim(),
+        start,
+        end,
+        startLocal: start ? new Date(start).toString() : null,
+        endLocal: end ? new Date(end).toString() : null,
+        allDay,
+        recurrence,
+      })
+
       const res = await fetch('/api/unavailability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,26 +195,24 @@ export default function UnavailabilityModal({
             </label>
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-3 p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase">{allDay ? 'Jour' : 'Du'}</label>
-                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full border-none bg-transparent text-base font-bold outline-none text-slate-800 mt-1" />
-                {dateFrom && <div className="text-[11px] text-slate-500 mt-0.5">{humanDate(dateFrom)}</div>}
-                {!allDay && <input type="time" value={timeFrom} onChange={(e) => setTimeFrom(e.target.value)}
-                  className="w-full border-none bg-transparent text-sm font-semibold outline-none text-slate-600 mt-1" />}
-              </div>
-              {!allDay && (
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Au</label>
-                  <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full border-none bg-transparent text-base font-bold outline-none text-slate-800 mt-1" />
-                  {dateTo && <div className="text-[11px] text-slate-500 mt-0.5">{humanDate(dateTo)}</div>}
-                  <input type="time" value={timeTo} onChange={(e) => setTimeTo(e.target.value)}
-                    className="w-full border-none bg-transparent text-sm font-semibold outline-none text-slate-600 mt-1" />
-                </div>
-              )}
-            </div>
+                <div className="grid grid-cols-2 gap-3 p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
+               <div>
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Du</label>
+                 <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+                   className="w-full border-none bg-transparent text-base font-bold outline-none text-slate-800 mt-1" />
+                 {dateFrom && <div className="text-[11px] text-slate-500 mt-0.5">{humanDate(dateFrom)}</div>}
+                 {!allDay && <input type="time" value={timeFrom} onChange={(e) => setTimeFrom(e.target.value)}
+                   className="w-full border-none bg-transparent text-sm font-semibold outline-none text-slate-600 mt-1" />}
+               </div>
+               <div>
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Au</label>
+                 <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                   className="w-full border-none bg-transparent text-base font-bold outline-none text-slate-800 mt-1" />
+                 {dateTo && <div className="text-[11px] text-slate-500 mt-0.5">{humanDate(dateTo)}</div>}
+                 {!allDay && <input type="time" value={timeTo} onChange={(e) => setTimeTo(e.target.value)}
+                   className="w-full border-none bg-transparent text-sm font-semibold outline-none text-slate-600 mt-1" />}
+               </div>
+             </div>
 
             {/* Récurrence */}
             <div>
