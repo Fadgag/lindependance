@@ -49,13 +49,13 @@ export default function AppointmentModal({
   const found = services.find(s => s.id === serviceId)
   const currentServiceColor = (found && found.color) ? found.color : "#CBD5E1"
 
-  if (!isOpen) return null
-
   const [unsavedNoteOpen, setUnsavedNoteOpen] = React.useState(false)
+
+  if (!isOpen) return null
 
   const attemptClose = async () => {
     // If note has unsaved changes, prompt
-    if ((form as any).noteDirty) {
+    if (form.noteDirty) {
       setUnsavedNoteOpen(true)
       return
     }
@@ -65,7 +65,7 @@ export default function AppointmentModal({
   return (
     <>
       <BaseModal isOpen={isOpen} onClose={attemptClose} title={initialData?.id ? "Modifier le RDV" : "Nouveau RDV"}>
-        <form onSubmit={handleSave} className="flex flex-col gap-5">
+        <form data-testid="appointment-modal" onSubmit={handleSave} className="flex flex-col gap-5">
 
           {/* CLIENT */}
           <div>
@@ -130,17 +130,18 @@ export default function AppointmentModal({
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-studio-muted uppercase">Note</label>
               <div className="flex items-center gap-2">
-                <input
+                 <input
                   type="text"
+                    data-testid="appointment-note"
                   placeholder="Ex: Cheveux épais, café noir..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   onBlur={async () => { if (initialData?.id) await form.handleSaveNote() }}
                   className="flex-1 p-2.5 rounded-xl border border-slate-200 outline-none bg-white text-sm text-slate-800"
                 />
-                <div className="text-[12px] text-slate-500">
-                  {form.isNoteSaving ? 'Sauvegarde...' : (form.noteSavedAt && (Date.now() - form.noteSavedAt) < 5000) ? '✅ Enregistré' : null}
-                </div>
+                  <div data-testid="save-indicator" className="text-[12px] text-slate-500">
+                    {form.isNoteSaving ? 'Sauvegarde...' : (form.noteSavedAt && (Date.now() - form.noteSavedAt) < 5000) ? '✅ Enregistré' : null}
+                  </div>
               </div>
               <div className="mt-2">
                 <button type="button" onClick={async () => { if (initialData?.id) await form.handleSaveNote() }} className="px-3 py-1 bg-white border border-slate-200 rounded-md text-sm">Enregistrer la note</button>
@@ -168,7 +169,7 @@ export default function AppointmentModal({
               </button>
             )}
               <div className="flex gap-2 ml-auto">
-               <button type="button" onClick={attemptClose} className="px-5 py-2 text-slate-400 font-bold text-sm">ANNULER</button>
+                <button data-testid="close-modal" type="button" onClick={attemptClose} className="px-5 py-2 text-slate-400 font-bold text-sm">ANNULER</button>
               <button type="submit" disabled={isFormInvalid || isSaving} className="px-7 py-3 bg-studio-primary text-white rounded-full font-bold text-sm flex items-center gap-2 shadow-lg shadow-studio-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                 {isSaving ? "..." : <><Zap size={14} /> CONFIRMER</>}
               </button>

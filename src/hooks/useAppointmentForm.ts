@@ -176,9 +176,27 @@ export function useAppointmentForm({
     if (!noteDirty) return true
     setIsNoteSaving(true)
     try {
+      // Build a minimal payload satisfying UpdateAppointmentSchema (server requires start/end/duration)
+      let startIso = initialData.start ?? ''
+      let endIso = initialData.end ?? ''
+      let dur = initialData.duration ?? Number(duration || 30)
+      if (!startIso) {
+        // Try to build start from current form date & startTime
+        if (date && startTime) {
+          const base = new Date(date)
+          const [h, m] = startTime.split(':').map(Number)
+          base.setHours(h, m, 0, 0)
+          startIso = base.toISOString()
+          endIso = new Date(base.getTime() + dur * 60000).toISOString()
+        } else {
+          // fallback
+          startIso = new Date().toISOString()
+          endIso = new Date(Date.now() + dur * 60000).toISOString()
+        }
+      }
       const res = await fetch('/api/appointments', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-        body: JSON.stringify({ id: initialData.id, note })
+        body: JSON.stringify({ id: initialData.id, note, start: startIso, end: endIso, duration: Number(dur) })
       })
       if (res.ok) {
         setNoteSavedAt(Date.now())

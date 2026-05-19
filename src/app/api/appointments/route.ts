@@ -6,6 +6,7 @@ import { CreateAppointmentSchema, UpdateAppointmentSchema } from '@/schemas/appo
 import { auth } from "@/auth"
 import { parseJsonField } from '@/lib/parseAppointmentJson'
 import type { Extra, SoldProduct } from '@/types/models'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
     try {
@@ -233,15 +234,17 @@ export async function PUT(request: Request) {
                     ...(note !== undefined && { note: note || null }),
                 }
             }))
-        } catch (err) {
+        } catch (err: unknown) {
             // Distinguish timeout vs Prisma connection errors
-            const msg = (err && typeof err === 'object' && 'message' in err) ? String((err as any).message) : 'Unknown DB error'
-            if (msg === 'DB_TIMEOUT' || (err as any)?.code === 'P1001') {
+            const errObj = (err && typeof err === 'object') ? err as Record<string, unknown> : null
+            const msg = errObj && typeof errObj.message === 'string' ? String(errObj.message) : 'Unknown DB error'
+            const code = errObj && typeof errObj.code !== 'undefined' ? String(errObj.code) : undefined
+            if (msg === 'DB_TIMEOUT' || code === 'P1001') {
                 return NextResponse.json({ error: 'Database timeout or unavailable' }, { status: 504 })
             }
             throw err
         }
-        if ((res as any).count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+        if ((res as Prisma.BatchPayload).count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
         const updated = await withTimeout(prisma.appointment.findFirst({ where: { id, organizationId: session.user.organizationId }, select: { id: true, startTime: true, endTime: true, duration: true, serviceId: true, customerId: true, note: true } }))
         return NextResponse.json(updated)
     } catch (err) {
