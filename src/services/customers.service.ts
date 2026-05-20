@@ -17,6 +17,9 @@ export async function getCustomersClient(): Promise<Customer[]> {
     throw new Error('Invalid customers payload')
   }
 
+  // RAISON: we validated above that `payload` is an array (runtime check).
+  // Casting to `Customer[]` is safe here because each element is expected to
+  // follow the API contract; strict shape validation can be added later if needed.
   return payload as Customer[]
 }
 

@@ -30,6 +30,9 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
   1. vérifier/réutiliser la branche existante (voir règle ci-dessus),
   2. produire un résumé des changements (changelog),
   3. demander la validation humaine `GO` avant d'exécuter `git push`.
+ - **Ne pas utiliser la pagination pour les commandes Git quand la sortie n'est pas visible :**
+   - Les agents DOIVENT exécuter les commandes `git` sans pagination (par ex. `git --no-pager <commande>` ou en ajoutant `| cat`) si la sortie ne peut pas être consultée dans la console. Ceci évite des résultats tronqués ou suspendus par un pager (less, more) et garantit que l'agent peut analyser la sortie immédiatement.
+   - Ne jamais dépendre d'un pager interactif pour prendre des décisions automatiques.
 - **Branche protégée :** `main` est la branche de production. Un merge sans PR et sans review est interdit même pour un "petit fix".
   
 ## 🛡️ Proxy & Sécurité (Nouveau Standard Next.js 2026)

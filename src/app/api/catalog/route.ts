@@ -49,7 +49,7 @@ export async function GET() {
     const catalog = [...mappedServices, ...mappedProducts].sort((a, b) => a.name.localeCompare(b.name))
 
     return NextResponse.json(catalog)
-  } catch (err) {
+  } catch (err: unknown) {
     return apiErrorResponse(err)
   }
 }

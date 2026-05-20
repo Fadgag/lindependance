@@ -19,7 +19,8 @@ type InitialData = Partial<{
 function extractErrorMessage(payload: unknown): string | null {
   if (!payload) return null
   if (typeof payload === 'string') return payload
-  if (typeof payload === 'object') {
+  if (typeof payload === 'object' && payload !== null) {
+    // RAISON: narrowing nécessaire pour traiter `payload` typé `unknown` comme objet
     const p = payload as Record<string, unknown>
     const e = p['error'] ?? p['message'] ?? p['detail']
     if (typeof e === 'string') return e
@@ -48,6 +49,9 @@ export interface UseAppointmentFormReturn {
   selectedCustomerPackageId: string | null
   setSelectedCustomerPackageId: (v: string | null) => void
   isSaving: boolean
+  isNoteSaving: boolean
+  noteSavedAt: number | null
+  noteDirty: boolean
   collision: boolean
   setCollision: (v: boolean) => void
   confirmDeleteOpen: boolean
@@ -63,6 +67,7 @@ export interface UseAppointmentFormReturn {
   handleSave: (e: React.FormEvent) => Promise<void>
   handleDelete: () => void
   handleConfirmDelete: () => Promise<void>
+  handleSaveNote: () => Promise<boolean>
 }
 
 interface UseAppointmentFormProps {
@@ -80,12 +85,16 @@ export function useAppointmentForm({
   isOpen, initialData, selectedRange, customers, services, onCloseAction, onSuccess,
 }: UseAppointmentFormProps): UseAppointmentFormReturn {
   const [isSaving, setIsSaving] = useState(false)
+  const [isNoteSaving, setIsNoteSaving] = useState(false)
+  const [noteSavedAt, setNoteSavedAt] = useState<number | null>(null)
+  const [noteDirty, setNoteDirty] = useState(false)
   const [collision, setCollision] = useState(false)
   const [forceSave, setForceSave] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null)
   const [serviceId, setServiceId] = useState('')
   const [note, setNote] = useState('')
+  const setNoteWrapper = React.useCallback((v: string) => { setNote(v); setNoteDirty(true) }, [])
   const [startTime, setStartTime] = useState('')
   const [date, setDate] = useState('')
   const [duration, setDuration] = useState(30)
@@ -104,7 +113,9 @@ export function useAppointmentForm({
       const d = initialData.duration || initialData.extendedProps?.duration || 30
       setSelectedCustomer(customers.find((c) => c.id === String(initialData.customerId ?? initialData.extendedProps?.customerId ?? '')) || null)
       setServiceId(String(initialData.serviceId ?? initialData.extendedProps?.serviceId ?? ''))
-      setNote(String(initialData.note ?? initialData.extendedProps?.note ?? ''))
+      const initialNote = String(initialData.note ?? initialData.extendedProps?.note ?? '')
+      setNote(initialNote)
+      setNoteDirty(false)
       setStartTime(start && isValid(start) ? format(start, 'HH:mm') : '')
       setDate(start && isValid(start) ? format(start, 'yyyy-MM-dd') : '')
       setDuration(Number(d))
@@ -159,6 +170,58 @@ export function useAppointmentForm({
     if (found) setDuration(Number(found.durationMinutes || 30))
   }
 
+  // Save note only (used for autosave / explicit note save)
+  const handleSaveNote = async (): Promise<boolean> => {
+    // Only applicable for existing appointments
+    if (!initialData?.id) return false
+    if (!noteDirty) return true
+    setIsNoteSaving(true)
+    try {
+      // Build a minimal payload satisfying UpdateAppointmentSchema (server requires start/end/duration)
+      let startIso = initialData.start ?? ''
+      let endIso = initialData.end ?? ''
+      let dur = initialData.duration ?? Number(duration || 30)
+        if (!startIso) {
+        // Try to build start from current form date & startTime
+        if (date && startTime) {
+          const base = new Date(date)
+          const [h, m] = startTime.split(':').map(Number)
+          base.setHours(h, m, 0, 0)
+          startIso = base.toISOString()
+          endIso = new Date(base.getTime() + dur * 60000).toISOString()
+        } else {
+          // fallback -> Do NOT invent a date. Log and abort the note save to avoid data corruption.
+          import('@/lib/clientLogger').then(({ clientError }) => clientError('Save note aborted: missing start/date in form and initial data', { initialData, date, startTime }))
+          setIsNoteSaving(false)
+          return false
+        }
+      }
+      const res = await fetch('/api/appointments', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ id: initialData.id, note, start: startIso, end: endIso, duration: Number(dur) })
+      })
+      if (res.ok) {
+        setNoteSavedAt(Date.now())
+        setNoteDirty(false)
+        setIsNoteSaving(false)
+        return true
+      }
+      // Non ok -> log payload for debugging
+      try {
+        const payload = await res.json()
+        import('@/lib/clientLogger').then(({ clientError }) => clientError('Save note failed', { status: res.status, payload }))
+      } catch (e: unknown) {
+        import('@/lib/clientLogger').then(({ clientError }) => clientError('Save note failed: unable to parse json response', e))
+      }
+      setIsNoteSaving(false)
+      return false
+    } catch (err: unknown) {
+      import('@/lib/clientLogger').then(({ clientError }) => clientError('Save note error', err))
+      setIsNoteSaving(false)
+      return false
+    }
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isFormInvalid || !selectedCustomer) return
@@ -180,9 +243,12 @@ export function useAppointmentForm({
           ...(usePackage && selectedCustomerPackageId ? { customerPackageId: selectedCustomerPackageId } : {}),
         }),
       })
-      if (res.ok) {
+        if (res.ok) {
+          // after a full save, consider note persisted
+          setNoteDirty(false)
+          setNoteSavedAt(Date.now())
         try { onCloseAction(); await onSuccess() }
-        catch (err) {
+        catch (err: unknown) {
           import('@/lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed', err))
           if (mountedRef.current) toast.error("Erreur lors de la mise à jour de l'agenda.")
         } finally { if (mountedRef.current) setIsSaving(false) }
@@ -193,8 +259,8 @@ export function useAppointmentForm({
         if (res.status === 409) { setCollision(true); setIsSaving(false) }
         else { toast.error('Erreur serveur: ' + (extractErrorMessage(payload) || `HTTP ${res.status}`)); setIsSaving(false) }
       }
-    } catch (error) {
-      import('@/lib/clientLogger').then(({ clientError }) => clientError('Save error', error))
+    } catch (err: unknown) {
+      import('@/lib/clientLogger').then(({ clientError }) => clientError('Save error', err))
       setIsSaving(false)
     }
   }
@@ -209,7 +275,7 @@ export function useAppointmentForm({
       const res = await fetch(`/api/appointments?id=${initialData.id}`, { method: 'DELETE', credentials: 'include' })
       if (res.ok) {
         try { onCloseAction(); await onSuccess() }
-        catch (err) {
+        catch (err: unknown) {
           import('@/lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed (delete)', err))
           if (mountedRef.current) toast.error("Erreur lors de la mise à jour de l'agenda.")
         } finally { if (mountedRef.current) setIsSaving(false) }
@@ -219,19 +285,20 @@ export function useAppointmentForm({
         toast.error('Erreur suppression: ' + (extractErrorMessage(payload) || `HTTP ${res.status}`))
         if (mountedRef.current) setIsSaving(false)
       }
-    } catch (err) {
+    } catch (err: unknown) {
       import('@/lib/clientLogger').then(({ clientError }) => clientError('Delete error', err))
       if (mountedRef.current) setIsSaving(false)
     }
   }
 
   return {
-    selectedCustomer, setSelectedCustomer, serviceId, setServiceId, note, setNote,
+    selectedCustomer, setSelectedCustomer, serviceId, setServiceId, note, setNote: setNoteWrapper,
+    noteSavedAt, noteDirty,
     startTime, setStartTime, duration, setDuration, date, setDate,
     customerPackages, usePackage, setUsePackage, selectedCustomerPackageId, setSelectedCustomerPackageId,
-    isSaving, collision, setCollision, confirmDeleteOpen, setConfirmDeleteOpen,
+    isSaving, isNoteSaving, collision, setCollision, confirmDeleteOpen, setConfirmDeleteOpen,
     HORAIRE_OUVERTURE, HORAIRE_FERMETURE, isTimeOutOfBounds, isFormInvalid,
-    getEndTimeLabel, handleServiceChange, handleSave, handleDelete, handleConfirmDelete,
+    getEndTimeLabel, handleServiceChange, handleSave, handleDelete, handleConfirmDelete, handleSaveNote,
   }
 }
 

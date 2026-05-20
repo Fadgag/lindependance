@@ -59,7 +59,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(stats)
 
-  } catch (err) {
+  } catch (err: unknown) {
     // Si apiErrorResponse n'est pas dispo, utilise : return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     return apiErrorResponse(err)
   }

@@ -49,6 +49,10 @@ export default function BaseModal({ isOpen, onClose, title, children, maxWidth =
             try {
                 const el = contentRef.current?.querySelector(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                // RAISON: querySelector returns Element | null — we narrow to
+                // HTMLElement | null because focusable elements here are HTML elements
+                // and we need to call `.focus()` on them. The cast is safe after
+                // the DOM query performed above.
                 ) as HTMLElement | null
                 if (el) {
                     el.focus()

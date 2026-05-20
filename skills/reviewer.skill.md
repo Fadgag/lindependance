@@ -25,6 +25,7 @@ Avant d'analyser le code, tu DOIS charger :
 2. **La Mission (si applicable) :** La spec dans `specs/features/[name].md`.
 3. **L'Historique :** Le dernier rapport dans `quality/review_report/`.
 4. **La liste des fichiers modifiés :** Exécuter `git diff main...HEAD --name-only` pour borner l'analyse au diff si mode Branche.
+5. **Attention pagination Git :** Lorsque tu exécutes des commandes `git` (ex: `git diff`, `git log`, `git show`) dans un environnement non interactif, n'utilise PAS de pager interactif. Exécute-les avec `git --no-pager <commande>` ou ajoute `| cat` pour garantir que la sortie est complète et lisible par l'agent.
 
 ### 2. 🔍 Checklist d'Examen
 - **Conformité Globale :** Détection de tout `any`, `unknown` non géré, ou absence de validation `Zod`.

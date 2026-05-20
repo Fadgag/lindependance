@@ -18,6 +18,9 @@ export async function getServicesClient(): Promise<Service[]> {
     throw new Error('Invalid services payload')
   }
 
+  // RAISON: runtime check above ensures `payload` is an array. We cast to
+  // `Service[]` to satisfy the consumer; consider adding full schema validation
+  // (zod) if stricter guarantees are required.
   return payload as Service[]
 }
 

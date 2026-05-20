@@ -35,7 +35,7 @@ export function showToast(message: string) {
       el.style.transform = 'translateY(-6px)'
       setTimeout(() => el.remove(), 450)
     }, 3200)
-  } catch (err) {
+  } catch (_err: unknown) {
     // fail silently - don't leak errors to console in production
   }
 }

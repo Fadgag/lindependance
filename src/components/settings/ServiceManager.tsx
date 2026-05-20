@@ -19,6 +19,7 @@ export default function ServiceManager() {
     const fetchServices = async () => {
         const res = await fetch('/api/services', { credentials: 'include' })
         if (res.ok) {
+            // RAISON: response shape is validated by the API; we assert the array type here
             const data = await res.json() as ServiceType[]
             setServices(data)
         }
@@ -44,7 +45,7 @@ export default function ServiceManager() {
                 setIsEditing(null)
                 fetchServices()
             }
-        } catch (err) {
+        } catch (err: unknown) {
             import('../../lib/clientLogger').then(({ clientError }) => clientError('ServiceManager error', err))
         } finally {
             setIsLoading(false)

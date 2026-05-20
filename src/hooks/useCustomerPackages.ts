@@ -49,7 +49,7 @@ export function useCustomerPackages(
           // RAISON: l'API retourne CustomerPackage[] — res.json() est unknown, shape vérifiée par Zod
           if (parsed.success) setCustomerPackages(parsed.data as CustomerPackageSummary[])
         }
-      } catch (err) {
+      } catch (err: unknown) {
         if (isAbortError(err)) return
         import('@/lib/clientLogger').then(({ clientError }) => clientError('Erreur chargement forfaits client', err))
       }

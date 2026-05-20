@@ -17,7 +17,7 @@ export default function FinanceSettings() {
         if (!res.ok) return
         const data = await res.json()
         if (mounted && typeof data?.dailyTarget === 'number') setTarget(data.dailyTarget)
-      } catch (err) {
+      } catch (_err: unknown) {
         // silent failure: keep default 0
       }
     })()
@@ -32,7 +32,7 @@ export default function FinanceSettings() {
         body: JSON.stringify({ dailyTarget: Number(target) }),
       });
       if (res.ok) toast.success("Objectif de CA mis à jour !");
-    } catch (error) {
+    } catch (_error: unknown) {
       toast.error("Erreur lors de la sauvegarde");
     } finally {
       setLoading(false);

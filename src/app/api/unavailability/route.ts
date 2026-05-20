@@ -70,7 +70,7 @@ export async function GET(request: Request) {
         extendedProps: { type: 'unavailability', title: u.title, recurrence: u.recurrence, recurrenceGroupId: u.recurrenceGroupId },
       }))
     )
-  } catch (err) {
+  } catch (err: unknown) {
     return apiErrorResponse(err)
   }
 }
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ count: occurrences.length, recurrence: rule }, { status: 201 })
-  } catch (err) {
+  } catch (err: unknown) {
     return apiErrorResponse(err)
   }
 }
@@ -149,7 +149,7 @@ export async function DELETE(request: Request) {
       await prisma.unavailability.deleteMany({ where: { id, organizationId } })
     }
     return NextResponse.json({ success: true })
-  } catch (err) {
+  } catch (err: unknown) {
     return apiErrorResponse(err)
   }
 }

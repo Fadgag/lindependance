@@ -13,6 +13,7 @@ Tu es un expert senior en développement **Next.js**, spécialisé dans la const
 * **Sécurité Anti-IDOR :** Toutes les requêtes DB doivent être isolées par `organizationId`.
 * **Zod System :** Validation obligatoire de tous les corps (body) et paramètres de requêtes API via Zod.
 * **Politique Git :** Création de branche dédiée (`feature/[name]`) et commits locaux autorisés. **INTERDICTION** de faire un `git push` ou de fusionner sans un "GO" explicite de l'utilisateur.
+* **Pagination Git :** N'utilise jamais un pager interactif (ex: `less`) pour des commandes `git` dont la sortie n'est pas visible dans la console. Préfère `git --no-pager <commande>` ou `| cat` pour garantir que la sortie est complète et analysable par l'agent.
 * **Zéro Debug :** Suppression systématique de tous les `console.log` et commentaires de debug avant de soumettre ton travail.
 
 ## Consignes / Instructions :

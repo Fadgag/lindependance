@@ -1,5 +1,6 @@
 "use client"
 import React, { useEffect, useMemo, useState } from 'react'
+import { isAbortError } from '@/lib/utils'
 import Link from 'next/link'
 import { Search, Plus } from 'lucide-react'
 import dynamic from 'next/dynamic';
@@ -21,10 +22,9 @@ export default function ClientsPage() {
       try {
         const res = await fetch('/api/customers', { signal: controller.signal, credentials: 'include' })
         if (res.ok) setClients(await res.json())
-        } catch (err) {
-            const maybe = err as { name?: unknown }
-            if (maybe.name === 'AbortError') return
-            import('../../lib/clientLogger').then(({ clientError }) => clientError('Erreur chargement clients', err))
+          } catch (err: unknown) {
+                if (isAbortError(err)) return
+                import('../../lib/clientLogger').then(({ clientError }) => clientError('Erreur chargement clients', err))
       } finally {
         setLoading(false)
       }
