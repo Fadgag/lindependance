@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     const users = await prisma.user.findMany({ where: { organizationId: session.user?.organizationId  }, select: { id: true, name: true, email: true, role: true } })
     return NextResponse.json(users)
-  } catch (err) {
+  } catch (err: unknown) {
     return apiErrorResponse(err)
   }
 }
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS)
     const user = await prisma.user.create({ data: { email, name, hashedPassword: hashed, organizationId: session.user?.organizationId , role: role ?? 'USER' } })
     return NextResponse.json({ id: user.id, email: user.email, name: user.name, role: user.role })
-  } catch (err) {
+  } catch (err: unknown) {
     return apiErrorResponse(err)
   }
 }

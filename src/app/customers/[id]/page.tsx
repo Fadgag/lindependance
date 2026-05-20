@@ -29,7 +29,7 @@ export default function ClientDetail() {
         setClient(data)
         setEditingNotes(data.Note || '')
       }
-    } catch (err) {
+    } catch (err: unknown) {
       clientError('Erreur chargement client', err)
     } finally {
       setLoading(false)

@@ -50,9 +50,9 @@ export default function CustomerModal({ isOpen, onCloseAction }: Props) {
         reset()
         onCloseAction()
         // request server-side revalidation (or refresh Server Components)
-        try { router.refresh() } catch { /* ignore */ }
+        try { router.refresh() } catch (_e: unknown) { /* ignore */ }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError(String(err))
     } finally {
       setLoading(false)

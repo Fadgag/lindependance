@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     await prisma.passwordResetToken.delete({ where: { token } })
 
     return NextResponse.json({ ok: true })
-  } catch (err) {
+  } catch (err: unknown) {
     return apiErrorResponse(err)
   }
 }

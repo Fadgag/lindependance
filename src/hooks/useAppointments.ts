@@ -19,7 +19,7 @@ export function useAppointments() {
                     .sort((a, b) => new Date(String(a.start ?? a.startTime ?? '')).getTime() - new Date(String(b.start ?? b.startTime ?? '')).getTime());
                 setAppointments(filtered);
             }
-        } catch (err) {
+        } catch (err: unknown) {
             if (!isAbortError(err)) clientError('Erreur chargement rendez-vous', err);
         } finally {
             setLoading(false);

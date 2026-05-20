@@ -214,14 +214,15 @@ export async function PUT(request: Request) {
         const TIMEOUT_MS = Number(process.env.DB_OPERATION_TIMEOUT_MS || 5000)
 
         const withTimeout = async <T>(p: Promise<T>, ms = TIMEOUT_MS) => {
-            let timer: NodeJS.Timeout
+            // Use a safe timer type and avoid non-null assertion
+            let timer: ReturnType<typeof setTimeout> | undefined
             const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('DB_TIMEOUT')), ms) })
             try {
                 return await Promise.race([p, timeout]) as T
-            } finally { clearTimeout(timer!) }
+            } finally { if (timer) clearTimeout(timer) }
         }
 
-        let res
+        let res: Prisma.BatchPayload
         try {
             res = await withTimeout(prisma.appointment.updateMany({
                 where: { id, organizationId: session.user.organizationId },
@@ -236,15 +237,16 @@ export async function PUT(request: Request) {
             }))
         } catch (err: unknown) {
             // Distinguish timeout vs Prisma connection errors
+            // RAISON: narrowing nécessaire sur `unknown` pour accéder aux propriétés message/code
             const errObj = (err && typeof err === 'object') ? err as Record<string, unknown> : null
-            const msg = errObj && typeof errObj.message === 'string' ? String(errObj.message) : 'Unknown DB error'
-            const code = errObj && typeof errObj.code !== 'undefined' ? String(errObj.code) : undefined
+            const msg = errObj && typeof (errObj as any).message === 'string' ? String((errObj as any).message) : 'Unknown DB error'
+            const code = errObj && typeof (errObj as any).code !== 'undefined' ? String((errObj as any).code) : undefined
             if (msg === 'DB_TIMEOUT' || code === 'P1001') {
                 return NextResponse.json({ error: 'Database timeout or unavailable' }, { status: 504 })
             }
             throw err
         }
-        if ((res as Prisma.BatchPayload).count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+        if (res.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
         const updated = await withTimeout(prisma.appointment.findFirst({ where: { id, organizationId: session.user.organizationId }, select: { id: true, startTime: true, endTime: true, duration: true, serviceId: true, customerId: true, note: true } }))
         return NextResponse.json(updated)
     } catch (err) {

@@ -45,7 +45,7 @@ export function useCalendarData(): UseCalendarDataReturn {
         const data = await res.json()
         if (!signal || !signal.aborted) setEvents(data)
       }
-    } catch (err) {
+    } catch (err: unknown) {
       if (isAbortError(err)) return
       import('@/lib/clientLogger').then(({ clientError }) => clientError('Erreur RDV', err))
     }
@@ -59,7 +59,7 @@ export function useCalendarData(): UseCalendarDataReturn {
       const url = `/api/unavailability${params.toString() ? `?${params}` : ''}`
       const res = await fetch(url, { credentials: 'include' })
       if (res.ok) setUnavailabilities(await res.json())
-    } catch (err) {
+    } catch (err: unknown) {
       if (isAbortError(err)) return
       import('@/lib/clientLogger').then(({ clientError }) => clientError('fetchUnavailabilities error', err))
     }
@@ -77,7 +77,7 @@ export function useCalendarData(): UseCalendarDataReturn {
       try {
         const res = await fetch('/api/customers', { credentials: 'include' })
         if (res.ok) setCustomers(await res.json())
-      } catch { /* ignore */ }
+      } catch (_err: unknown) { /* ignore */ }
     }
     window.addEventListener('appointments:updated', onUpdated)
     window.addEventListener('customers:updated', onCustomersUpdated)
@@ -108,7 +108,7 @@ export function useCalendarData(): UseCalendarDataReturn {
           if (resS.ok) setServices(await resS.json())
           if (resT.ok) setStaffs(await resT.json())
         }
-      } catch (err) {
+      } catch (err: unknown) {
         if (isAbortError(err)) return
         import('@/lib/clientLogger').then(({ clientError }) => clientError('Erreur ressources', err))
       }

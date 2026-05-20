@@ -90,12 +90,12 @@ export function CustomerPicker({ customers, onSelectAction, selectedId, onCreate
                 onSelectAction(result.customer.id)
                 onCreatedAction?.(result.customer)
                 // notify scheduler to refresh customers list
-                try { window.dispatchEvent(new CustomEvent('customers:updated')) } catch {}
+                try { window.dispatchEvent(new CustomEvent('customers:updated')) } catch (_e: unknown) {}
                 setCreating(false)
                 setOpen(false)
                 setSearch("")
             }
-        } catch (err) {
+        } catch (err: unknown) {
             setCreateError(String(err))
         } finally {
             setCreateLoading(false)
