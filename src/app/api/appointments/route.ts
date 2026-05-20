@@ -239,6 +239,7 @@ export async function PUT(request: Request) {
         }
         if (res.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
         const updated = await withTimeout(prisma.appointment.findFirst({ where: { id, organizationId: session.user.organizationId }, select: { id: true, startTime: true, endTime: true, duration: true, serviceId: true, customerId: true, note: true } }))
+        if (!updated) return NextResponse.json({ error: 'Not found after update' }, { status: 404 })
         return NextResponse.json(updated)
     } catch (err) {
         return apiErrorResponse(err)

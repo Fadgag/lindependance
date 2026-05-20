@@ -51,8 +51,14 @@ export default function AppointmentModal({
 
   const [unsavedNoteOpen, setUnsavedNoteOpen] = React.useState(false)
   const [showSavedIndicator, setShowSavedIndicator] = React.useState(false)
-
-  if (!isOpen) return null
+  // Show the 'saved' indicator for 5s after `form.noteSavedAt` is updated.
+  // Must be declared before any early return to respect React Hooks rules.
+  React.useEffect(() => {
+    if (!form.noteSavedAt) { setShowSavedIndicator(false); return }
+    setShowSavedIndicator(true)
+    const t = setTimeout(() => setShowSavedIndicator(false), 5000)
+    return () => clearTimeout(t)
+  }, [form.noteSavedAt])
 
   const attemptClose = async () => {
     // If note has unsaved changes, prompt
@@ -63,13 +69,7 @@ export default function AppointmentModal({
     onCloseAction()
   }
 
-  // Show the 'saved' indicator for 5s after `form.noteSavedAt` is updated.
-  React.useEffect(() => {
-    if (!form.noteSavedAt) { setShowSavedIndicator(false); return }
-    setShowSavedIndicator(true)
-    const t = setTimeout(() => setShowSavedIndicator(false), 5000)
-    return () => clearTimeout(t)
-  }, [form.noteSavedAt])
+  if (!isOpen) return null
 
   return (
     <>
