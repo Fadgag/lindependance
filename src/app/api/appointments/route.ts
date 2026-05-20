@@ -7,6 +7,7 @@ import { auth } from "@/auth"
 import { parseJsonField } from '@/lib/parseAppointmentJson'
 import type { Extra, SoldProduct } from '@/types/models'
 import type { Prisma } from '@prisma/client'
+import { withTimeout } from '@/lib/withTimeout'
 
 export async function GET(request: Request) {
     try {
@@ -211,19 +212,9 @@ export async function PUT(request: Request) {
 
         // Use updateMany to ensure organizationId scope in a single atomic DB operation,
         // then fetch the updated record for the response.
-        const TIMEOUT_MS = Number(process.env.DB_OPERATION_TIMEOUT_MS || 5000)
-
-        const withTimeout = async <T>(p: Promise<T>, ms = TIMEOUT_MS) => {
-            // Use a safe timer type and avoid non-null assertion
-            let timer: ReturnType<typeof setTimeout> | undefined
-            const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('DB_TIMEOUT')), ms) })
-            try {
-                return await Promise.race([p, timeout]) as T
-            } finally { if (timer) clearTimeout(timer) }
-        }
-
         let res: Prisma.BatchPayload
         try {
+            // TIMEOUT_MS is optional and handled by `withTimeout`'s default if not passed
             res = await withTimeout(prisma.appointment.updateMany({
                 where: { id, organizationId: session.user.organizationId },
                 data: {
@@ -237,10 +228,10 @@ export async function PUT(request: Request) {
             }))
         } catch (err: unknown) {
             // Distinguish timeout vs Prisma connection errors
-            // RAISON: narrowing nécessaire sur `unknown` pour accéder aux propriétés message/code
+            // RAISON: narrowing necessary on `unknown` before reading properties
             const errObj = (err && typeof err === 'object') ? err as Record<string, unknown> : null
-            const msg = errObj && typeof (errObj as any).message === 'string' ? String((errObj as any).message) : 'Unknown DB error'
-            const code = errObj && typeof (errObj as any).code !== 'undefined' ? String((errObj as any).code) : undefined
+            const msg = typeof errObj?.['message'] === 'string' ? String(errObj['message']) : 'Unknown DB error'
+            const code = (errObj && typeof errObj['code'] !== 'undefined') ? String(errObj['code']) : undefined
             if (msg === 'DB_TIMEOUT' || code === 'P1001') {
                 return NextResponse.json({ error: 'Database timeout or unavailable' }, { status: 504 })
             }

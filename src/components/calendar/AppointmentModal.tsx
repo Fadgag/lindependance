@@ -50,6 +50,7 @@ export default function AppointmentModal({
   const currentServiceColor = (found && found.color) ? found.color : "#CBD5E1"
 
   const [unsavedNoteOpen, setUnsavedNoteOpen] = React.useState(false)
+  const [showSavedIndicator, setShowSavedIndicator] = React.useState(false)
 
   if (!isOpen) return null
 
@@ -61,6 +62,14 @@ export default function AppointmentModal({
     }
     onCloseAction()
   }
+
+  // Show the 'saved' indicator for 5s after `form.noteSavedAt` is updated.
+  React.useEffect(() => {
+    if (!form.noteSavedAt) { setShowSavedIndicator(false); return }
+    setShowSavedIndicator(true)
+    const t = setTimeout(() => setShowSavedIndicator(false), 5000)
+    return () => clearTimeout(t)
+  }, [form.noteSavedAt])
 
   return (
     <>
@@ -130,18 +139,18 @@ export default function AppointmentModal({
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-studio-muted uppercase">Note</label>
               <div className="flex items-center gap-2">
-                 <input
+                <input
                   type="text"
-                    data-testid="appointment-note"
-                  placeholder="Ex: Cheveux épais, café noir..."
+                  data-testid="appointment-note"
+                  placeholder="Ex: Cheveux pais, caf noir..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   onBlur={async () => { if (initialData?.id) await form.handleSaveNote() }}
                   className="flex-1 p-2.5 rounded-xl border border-slate-200 outline-none bg-white text-sm text-slate-800"
                 />
-                  <div data-testid="save-indicator" className="text-[12px] text-slate-500">
-                    {form.isNoteSaving ? 'Sauvegarde...' : (form.noteSavedAt && (Date.now() - form.noteSavedAt) < 5000) ? '✅ Enregistré' : null}
-                  </div>
+                <div data-testid="save-indicator" className="text-[12px] text-slate-500">
+                  {form.isNoteSaving ? 'Sauvegarde...' : showSavedIndicator ? '✅ Enregistr' : null}
+                </div>
               </div>
               <div className="mt-2">
                 <button type="button" onClick={async () => { if (initialData?.id) await form.handleSaveNote() }} className="px-3 py-1 bg-white border border-slate-200 rounded-md text-sm">Enregistrer la note</button>
