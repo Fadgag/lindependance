@@ -162,6 +162,10 @@ export async function POST(request: Request) {
         })
 
         if (parsed.data.customerPackageId) {
+          // RAISON: règle "canConsumeSession" (src/domain/package/sessionCredit.ts) reproduite
+          // ici au niveau DB via une garde atomique Prisma (sessionsRemaining: { gt: 0 }) —
+          // volontairement pas remplacée par un fetch + check applicatif, qui réintroduirait
+          // une race condition entre deux réservations concurrentes du même forfait.
           await prisma.customerPackage.updateMany({
             where: { id: parsed.data.customerPackageId, customer: { organizationId: session.user.organizationId }, sessionsRemaining: { gt: 0 } },
             data: { sessionsRemaining: { decrement: 1 } }
