@@ -4,6 +4,7 @@ import apiErrorResponse from '@/lib/api'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { auth } from "@/auth";
+import { canConsumeSession } from '@/domain/package/sessionCredit'
 
 export async function GET(_request: Request) {
     try {
@@ -29,7 +30,6 @@ export async function GET(_request: Request) {
             where: {
                 customerId,
                 customer: { organizationId: orgId }, // double guard Anti-IDOR
-                sessionsRemaining: { gt: 0 },
                 OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
                 // Filtre optionnel par service
                 ...(serviceId ? { package: { packageServices: { some: { serviceId } } } } : {})
@@ -51,7 +51,9 @@ export async function GET(_request: Request) {
             }
         });
 
-        return NextResponse.json(packs);
+        // RAISON: règle "forfait utilisable" centralisée dans src/domain/package/sessionCredit.ts
+        // (filtrée en app plutôt qu'en base : volume borné par client, quelques forfaits au plus).
+        return NextResponse.json(packs.filter(canConsumeSession));
     } catch (err) {
         logger.error('GET customer packages error:', err);
         return apiErrorResponse(err);

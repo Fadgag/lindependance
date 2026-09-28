@@ -6,6 +6,7 @@ vi.mock('../../src/lib/prisma', () => ({
   prisma: {
     appointment: {
       findFirst: vi.fn(),
+      findMany: vi.fn(),
       updateMany: vi.fn(),
     },
   },
@@ -29,7 +30,6 @@ const CUID_SVC   = 'ctest_svc_ccc0000000001'
 const CUID_CUST  = 'ctest_cus_ddd0000000001'
 const CUID_STAFF = 'ctest_stf_eee0000000001'
 const CUID_ORG_B = 'ctest_org_fff0000000002'
-const CUID_APT_B = 'ctest_apt_ggg0000000003'
 
 const NOW   = new Date('2026-05-01T10:00:00.000Z')
 const LATER = new Date('2026-05-01T11:00:00.000Z')
@@ -88,13 +88,13 @@ describe('PUT /api/appointments', () => {
     // 1st findFirst → existence check (Anti-IDOR)
     ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(EXISTING_APT)
-    // 2nd findFirst → conflict check (returns null = no conflict)
-    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce(null)
+    // findMany → conflict check (returns [] = no conflicting candidate in the ±24h window)
+    ;(prisma.appointment.findMany as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce([])
     // updateMany → success
     ;(prisma.appointment.updateMany as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ count: 1 })
-    // 3rd findFirst → fetch updated record
+    // 2nd findFirst → fetch updated record
     ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(UPDATED_APT)
 
@@ -115,9 +115,9 @@ describe('PUT /api/appointments', () => {
     // existence check → OK
     ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(EXISTING_APT)
-    // conflict check → conflit trouvé
-    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ id: CUID_APT_B })
+    // conflict check → un créneau existant chevauche exactement le candidat
+    ;(prisma.appointment.findMany as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce([{ startTime: NOW, endTime: LATER }])
 
     const res = await PUT(makePutRequest({ ...VALID_PUT_BODY, force: false }))
 
@@ -132,7 +132,7 @@ describe('PUT /api/appointments', () => {
     // existence check → OK
     ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(EXISTING_APT)
-    // Pas de 2ème findFirst pour le conflit (force=true skips it)
+    // Pas de findMany pour le conflit (force=true skips it)
     // updateMany → success
     ;(prisma.appointment.updateMany as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ count: 1 })
@@ -186,8 +186,8 @@ describe('PUT /api/appointments', () => {
     ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(EXISTING_APT)
     // conflict check → pas de conflit
-    ;(prisma.appointment.findFirst as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce(null)
+    ;(prisma.appointment.findMany as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce([])
     // updateMany → 0 lignes modifiées (race condition ou IDOR entre findFirst et updateMany)
     ;(prisma.appointment.updateMany as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ count: 0 })

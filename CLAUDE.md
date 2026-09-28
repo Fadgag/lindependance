@@ -33,6 +33,11 @@ Invoque ces protocoles immédiatement par commande `/` ou par texte :
 - **Sécurité :** Zéro-Trust. Chaque accès data doit être filtré par `organizationId`.
 - **DRY :** Extraction systématique de la logique métier dans `@/services`.
 - **Types :** Typage strict via `@/types/models.ts`.
+- **Domaine (DDD léger) :** Toute règle métier (calcul, policy, validation conditionnelle)
+  va dans `src/domain/<sous-domaine>/`, en fonctions pures sans dépendance Next/Prisma/React.
+  `route.ts` reste mince (auth + parsing + orchestration) ; `src/services/` reste la couche
+  de persistance. Voir `src/domain/README.md`. Aucune règle métier avec `if` conditionnel
+  ne doit être ajoutée directement dans un `route.ts`.
 
 ### `/build` (ou "Installe la feature [X]")
 - **Agent :** `builder.skill.md`

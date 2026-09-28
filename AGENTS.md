@@ -21,6 +21,15 @@ Avant toute action, l'agent doit charger et respecter :
 
 Note: Les fichiers de skills sont stockés dans le répertoire `skills/` à la racine du projet. Pour régénérer automatiquement la liste des skills dans `AGENTS.md` et `CLAUDE.md`, utilisez le script `scripts/sync_skills.sh` (il met à jour les sections entre marqueurs dans ces fichiers).
 
+## 🏗️ Convention d'architecture (DDD léger)
+- Toute règle métier (calcul, policy, validation conditionnelle) va dans `src/domain/<sous-domaine>/`,
+  en fonctions pures sans dépendance Next.js/Prisma/React (voir `src/domain/README.md`).
+- `src/app/api/**/route.ts` reste mince : auth, parsing Zod, orchestration — aucune règle
+  métier conditionnelle directe.
+- `src/services/` reste la couche de persistance (accès Prisma), appelée après validation
+  par le domaine.
+- Tests du domaine dans `test/domain/**/*.spec.ts`, sans mock Prisma.
+
 
 ## ⚡ Commandes de Qualité (Qualité & Sécurité)
 
