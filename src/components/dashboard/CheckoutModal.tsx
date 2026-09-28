@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { CheckoutAppointment, Extra, AppointmentSummary, SoldProduct, Product } from "@/types/models";
 import { parseJsonField } from "@/lib/parseAppointmentJson";
+import { computeSoldProductLine } from "@/domain/billing/vat";
 import ProductPicker from "@/components/dashboard/ProductPicker";
 
 // Résolution icône produit
@@ -163,8 +164,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
             updateProductQty(existing, soldProducts[existing].quantity + 1)
             return
         }
-        const totalTTC = product.priceTTC
-        const totalTax = product.taxRate > 0 ? totalTTC - totalTTC / (1 + product.taxRate / 100) : 0
+        const { totalTTC, totalTax } = computeSoldProductLine(product.priceTTC, 1, product.taxRate)
         setSoldProducts((prev) => [...prev, {
             productId: product.id,
             name: product.name,
@@ -173,7 +173,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
             priceTTC: product.priceTTC,
             taxRate: product.taxRate,
             totalTTC,
-            totalTax: Math.round(totalTax * 100) / 100,
+            totalTax,
         }])
 
         // Mettre à jour la liste des récents (populaires) — localStorage MVP
@@ -190,9 +190,8 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
         if (qty < 1) return
         setSoldProducts((prev) => prev.map((p, i) => {
             if (i !== index) return p
-            const totalTTC = p.priceTTC * qty
-            const totalTax = p.taxRate > 0 ? totalTTC - totalTTC / (1 + p.taxRate / 100) : 0
-            return { ...p, quantity: qty, totalTTC, totalTax: Math.round(totalTax * 100) / 100 }
+            const { totalTTC, totalTax } = computeSoldProductLine(p.priceTTC, qty, p.taxRate)
+            return { ...p, quantity: qty, totalTTC, totalTax }
         }))
     }
 

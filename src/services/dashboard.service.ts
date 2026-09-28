@@ -3,6 +3,7 @@ import Decimal from 'decimal.js'
 import type { Prisma } from '@prisma/client'
 import type { DashboardTotals } from '@/types/dashboard'
 import parseSoldProducts from '@/lib/parseSoldProducts'
+import { computeVatFromTtc } from '@/domain/billing/vat'
 import {
   startOfDay,
   endOfDay,
@@ -111,9 +112,11 @@ export async function getDashboardForOrg(orgId: string, periodOrRange: PeriodPar
             const lineTotal = new Decimal(String(it.totalTTC ?? (unit * (qty || 1))))
             productsSum = productsSum.plus(lineTotal)
             // compute tax per line (don't add to global until we know the appointment is paid)
+            // RAISON: règle de calcul TVA centralisée dans src/domain/billing/vat.ts pour éviter
+            // toute divergence avec le calcul équivalent côté encaissement (CheckoutModal.tsx).
             const lineTax = typeof it.totalTax === 'number'
               ? new Decimal(String(it.totalTax))
-              : (it.taxRate ? lineTotal.minus(lineTotal.dividedBy(new Decimal(1).plus(new Decimal(String(it.taxRate)).dividedBy(100)))) : new Decimal(0))
+              : new Decimal(String(computeVatFromTtc(lineTotal.toNumber(), it.taxRate ?? 0)))
             productsTaxSum = productsTaxSum.plus(lineTax)
           }
         }
