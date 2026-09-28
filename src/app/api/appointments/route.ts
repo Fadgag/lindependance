@@ -8,6 +8,7 @@ import { parseJsonField } from '@/lib/parseAppointmentJson'
 import type { Extra, SoldProduct } from '@/types/models'
 import type { Prisma } from '@prisma/client'
 import { withTimeout } from '@/lib/withTimeout'
+import { canDeleteAppointment, findFirstSchedulingConflict } from '@/domain/appointment/policies'
 
 export async function GET(request: Request) {
     try {
@@ -196,17 +197,22 @@ export async function PUT(request: Request) {
         const newEnd = new Date(end)
 
         if (!force) {
-            const conflict = await prisma.appointment.findFirst({
+            // RAISON: fenêtre de sécurité de 24h autour du créneau candidat — aucun RDV ne
+            // dépasse un jour, ce qui permet de borner le fetch (index organizationId+startTime)
+            // tout en réutilisant la règle de conflit pure et testée du domaine.
+            const WINDOW_MS = 24 * 60 * 60 * 1000
+            const windowStart = new Date(newStart.getTime() - WINDOW_MS)
+            const windowEnd = new Date(newEnd.getTime() + WINDOW_MS)
+            const candidates = await prisma.appointment.findMany({
                 where: {
                     id: { not: id },
                     staffId: existing.staffId,
                     organizationId: session.user.organizationId,
-                    AND: [
-                        { startTime: { lt: newEnd } },
-                        { endTime: { gt: newStart } },
-                    ],
-                }
+                    startTime: { gte: windowStart, lte: windowEnd },
+                },
+                select: { startTime: true, endTime: true }
             })
+            const conflict = findFirstSchedulingConflict({ startTime: newStart, endTime: newEnd }, candidates)
             if (conflict) return NextResponse.json({ error: 'Conflit horaire détecté' }, { status: 409 })
         }
 
@@ -289,9 +295,8 @@ export async function DELETE(request: Request) {
 
         // Défense en profondeur (inconditionnelle) : interdire la suppression d'un RDV payé
         // quelle que soit l'origine de la requête (agenda, encaissement, API directe).
-        const isPaid = existing.status === 'PAID' || existing.status === 'PAYED'
-            || (existing.finalPrice ? Number(existing.finalPrice) : 0) > 0
-        if (isPaid) {
+        // RAISON: règle centralisée dans src/domain/appointment/policies.ts
+        if (!canDeleteAppointment(existing)) {
             return NextResponse.json({ error: 'Cannot delete a paid appointment' }, { status: 403 })
         }
 
