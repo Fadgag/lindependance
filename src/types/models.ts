@@ -119,6 +119,7 @@ export interface Client {
   firstName: string
   lastName: string
   phone?: string
+  email?: string | null
   Note?: string
   appointments?: CheckoutAppointment[]
 }
@@ -149,6 +150,7 @@ export interface Staff {
   id: string
   firstName: string
   lastName: string
+  active: boolean
   organizationId?: string | null
 }
 
@@ -219,4 +221,3 @@ export const RECURRENCE_LABELS: Record<Recurrence, string> = {
 // Minimal session / auth types used across the app
 // Note: Session type is declared above and reused by imports; avoid duplicating it here.
  
-

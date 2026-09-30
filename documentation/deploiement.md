@@ -86,9 +86,9 @@ Le projet est un Next.js standard, déployable directement sur
 3. S'assurer que `DATABASE_URL` pointe vers l'URL **pooler** de Neon (compatible avec les
    fonctions serverless de Vercel) et `DIRECT_URL` vers l'URL directe (utilisée par Prisma
    pour les migrations).
-4. Les migrations Prisma (`prisma migrate deploy`) ne sont **pas** exécutées automatiquement
-   par le build Vercel par défaut — les lancer manuellement (ou via une étape CI dédiée)
-   avant/pendant le déploiement d'une nouvelle version qui modifie le schéma.
+4. Le build Vercel ne lance pas les migrations Prisma. Le workflow GitHub Actions les
+   applique automatiquement après les contrôles CI réussis sur les pushes vers `preprod`
+   et `main` (jamais sur une PR), après vérification qu'elles ne modifient pas les données.
 5. Le build Vercel exécute `pnpm run build` (donc `check-env` + `prisma generate` + `next build`
    — cf. §5) : le déploiement échoue proprement si `NEXTAUTH_SECRET` manque.
 
@@ -125,9 +125,25 @@ exigeant une PR, en interdisant les pushes directs et en exigeant les contrôles
 bypass administrateur si la règle doit s’appliquer à tous les contributeurs.
 Les règles de `preprod` devraient également exiger la CI avant fusion.
 
-Les migrations Prisma ne sont pas lancées automatiquement. Appliquer
-`prisma migrate deploy` manuellement à la base Preview avant de valider une
-modification de schéma ; vérifier les URLs de connexion avant chaque migration.
+Le job `CI / Apply Prisma migrations` utilise les environnements GitHub `preprod`
+et `Production`, avec les secrets `DATABASE_URL` et `DIRECT_URL` propres à chaque
+environnement. Configurer ces secrets pour pointer vers les bonnes bases Neon.
+Ajouter au moins un réviseur obligatoire à **Settings → Environments → production** :
+le job de production attendra son approbation avant d'accéder aux secrets et d'appliquer
+les migrations.
+
+Le garde-fou `scripts/check-additive-migrations.mjs` n'autorise que la création de
+tables/index, l'ajout de colonnes/contraintes et le relâchement d'une contrainte
+`NOT NULL`. Il bloque notamment `UPDATE`, `DELETE`, `INSERT`, les backfills, les seeds
+et les suppressions de schéma. Les valeurs par défaut des nouvelles colonnes restent
+autorisées : elles initialisent donc ces nouvelles colonnes pour les lignes existantes,
+mais aucune colonne métier préexistante n'est réécrite.
+
+Dans Vercel, ajouter le check GitHub **CI / Apply Prisma migrations** aux Deployment
+Checks de production pour empêcher la mise en ligne d'un déploiement avant la réussite
+de la migration. Pour le Preview `preprod`, attendre également la réussite du job avant
+de tester le domaine stable : son déploiement Preview peut être construit en parallèle
+du workflow GitHub.
 
 ## 7. Déploiement sur un autre hébergeur (Node.js générique)
 

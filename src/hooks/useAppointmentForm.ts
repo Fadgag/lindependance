@@ -89,7 +89,6 @@ export function useAppointmentForm({
   const [noteSavedAt, setNoteSavedAt] = useState<number | null>(null)
   const [noteDirty, setNoteDirty] = useState(false)
   const [collision, setCollision] = useState(false)
-  const [forceSave, setForceSave] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null)
   const [serviceId, setServiceId] = useState('')
@@ -142,7 +141,7 @@ export function useAppointmentForm({
   // Reset collision au montage
   useEffect(() => {
     if (!isOpen) return
-    setTimeout(() => { setCollision(false); setForceSave(false) }, 0)
+    setTimeout(() => { setCollision(false) }, 0)
   }, [isOpen])
 
   const { openingTime: HORAIRE_OUVERTURE, closingTime: HORAIRE_FERMETURE } = useOrganizationSettings()
@@ -180,8 +179,8 @@ export function useAppointmentForm({
       // Build a minimal payload satisfying UpdateAppointmentSchema (server requires start/end/duration)
       let startIso = initialData.start ?? ''
       let endIso = initialData.end ?? ''
-      let dur = initialData.duration ?? Number(duration || 30)
-        if (!startIso) {
+      const dur = initialData.duration ?? Number(duration || 30)
+      if (!startIso) {
         // Try to build start from current form date & startTime
         if (date && startTime) {
           const base = new Date(date)
@@ -239,7 +238,7 @@ export function useAppointmentForm({
         headers: { 'Content-Type': 'application/json' }, credentials: 'include',
         body: JSON.stringify({
           id: initialData?.id, start: baseDate.toISOString(), end: addMinutes(baseDate, duration).toISOString(),
-          duration: Number(duration), customerId: selectedCustomer.id, serviceId, note, force: forceSave,
+          duration: Number(duration), customerId: selectedCustomer.id, serviceId, note,
           ...(usePackage && selectedCustomerPackageId ? { customerPackageId: selectedCustomerPackageId } : {}),
         }),
       })
@@ -301,8 +300,6 @@ export function useAppointmentForm({
     getEndTimeLabel, handleServiceChange, handleSave, handleDelete, handleConfirmDelete, handleSaveNote,
   }
 }
-
-
 
 
 
