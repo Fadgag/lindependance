@@ -5,7 +5,7 @@ export interface PortalAppointmentSlot extends TimeRange {
   status: string
 }
 
-export interface PortalUnavailability extends TimeRange {}
+export type PortalUnavailability = TimeRange
 
 export interface AvailableSlotsInput {
   date: string
