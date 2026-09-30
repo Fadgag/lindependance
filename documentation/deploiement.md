@@ -92,6 +92,43 @@ Le projet est un Next.js standard, déployable directement sur
 5. Le build Vercel exécute `pnpm run build` (donc `check-env` + `prisma generate` + `next build`
    — cf. §5) : le déploiement échoue proprement si `NEXTAUTH_SECRET` manque.
 
+### CI/CD trunk-based
+
+Le flux utilise `main` comme branche de production et `preprod` comme branche
+de validation permanente. Les branches de fonctionnalité ouvrent une PR vers
+`preprod`. Le workflow GitHub Actions `CI` exécute ESLint sur les fichiers
+JavaScript/TypeScript modifiés, vérification TypeScript, tests Vitest et build
+sur les PR vers `preprod` ou `main`, ainsi que sur les pushes vers ces branches.
+Le lint est limité aux fichiers modifiés pour éviter que les erreurs
+préexistantes ailleurs dans le dépôt bloquent une PR.
+
+Le projet Vercel conserve `main` comme branche **Production**. L’environnement
+Vercel **Preview** suit la branche `preprod` et son domaine stable
+`https://lindependance-testing.vercel.app`. Une PR vers `preprod` obtient aussi
+son propre déploiement Preview ; après validation, sa fusion dans `preprod`
+actualise le domaine stable. Les variables `DATABASE_URL`, `DIRECT_URL`,
+`NEXTAUTH_SECRET` et `AUTH_SECRET` de Preview doivent rester distinctes de celles
+de Production. Pour le domaine stable, `NEXTAUTH_URL` Preview doit être
+configurée spécifiquement pour la branche `preprod` ; aucune URL Preview ne doit
+rediriger vers le domaine Production.
+
+Une fois la préprod validée, une PR de `preprod` vers `main` constitue la
+promotion. Le workflow **Main promotion source** échoue si une PR vers `main`
+ne provient pas de la branche `preprod` du même dépôt. Après fusion, Vercel
+déploie `main` en Production. Ne pas utiliser le workflow manuel historique
+**Promote Preview to Production** pour cette stratégie.
+
+Dans **GitHub → Settings → Rules / Branch protection**, protéger `main` en
+exigeant une PR, en interdisant les pushes directs et en exigeant les contrôles
+`CI / Lint, typecheck, test, and build` et
+`Main promotion source / Only preprod may target main`. Ne pas autoriser le
+bypass administrateur si la règle doit s’appliquer à tous les contributeurs.
+Les règles de `preprod` devraient également exiger la CI avant fusion.
+
+Les migrations Prisma ne sont pas lancées automatiquement. Appliquer
+`prisma migrate deploy` manuellement à la base Preview avant de valider une
+modification de schéma ; vérifier les URLs de connexion avant chaque migration.
+
 ## 7. Déploiement sur un autre hébergeur (Node.js générique)
 
 ```bash
