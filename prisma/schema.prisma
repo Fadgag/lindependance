@@ -9,35 +9,39 @@ datasource db {
 }
 
 model Organization {
-  id               String           @id @default(cuid())
-  name             String
-  dailyTarget      Float            @default(0)
-  openingTime      String           @default("08:00")
-  closingTime      String           @default("20:00")
-  services         Service[]
-  customers        Customer[]
-  staff            Staff[]
-  users            User[]
-  appointments     Appointment[]
-  Package          Package[]
-  products         Product[]
-  unavailabilities Unavailability[]
+  id                String             @id @default(cuid())
+  name              String
+  dailyTarget       Float              @default(0)
+  openingTime       String             @default("08:00")
+  closingTime       String             @default("20:00")
+  slug              String?            @unique
+  portalEnabled     Boolean            @default(false)
+  timezone          String             @default("Europe/Paris")
+  services          Service[]
+  customers         Customer[]
+  staff             Staff[]
+  users             User[]
+  appointments      Appointment[]
+  Package           Package[]
+  products          Product[]
+  unavailabilities  Unavailability[]
+  customerEmailOtps CustomerEmailOtp[]
 }
 
 /// Unavailability: blocs d'indisponibilité (congés, RDV perso, etc.)
 /// N'est PAS comptabilisé dans le CA.
 model Unavailability {
-  id             String       @id @default(cuid())
-  title          String
-  start          DateTime
-  end            DateTime
-  allDay             Boolean      @default(false)
-  recurrence         String       @default("NONE") // NONE | WEEKLY | BIWEEKLY | MONTHLY
-  recurrenceGroupId  String?      // Groups all instances of a recurring series
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                String       @id @default(cuid())
+  title             String
+  start             DateTime
+  end               DateTime
+  allDay            Boolean      @default(false)
+  recurrence        String       @default("NONE") // NONE | WEEKLY | BIWEEKLY | MONTHLY
+  recurrenceGroupId String? // Groups all instances of a recurring series
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   @@index([organizationId, start])
 }
@@ -73,20 +77,22 @@ model Customer {
   id              String            @id @default(cuid())
   firstName       String
   lastName        String
+  email           String?
   Note            String?
   phone           String?
   organizationId  String
   organization    Organization      @relation(fields: [organizationId], references: [id])
   appointments    Appointment[]
   CustomerPackage CustomerPackage[]
-  createdAt         DateTime         @default(now())
-  updatedAt        DateTime @default(now())        @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
 }
 
 model Staff {
   id             String        @id @default(cuid())
   firstName      String
   lastName       String
+  active         Boolean       @default(true)
   organizationId String
   organization   Organization  @relation(fields: [organizationId], references: [id])
   appointments   Appointment[]
@@ -101,14 +107,15 @@ model Appointment {
   duration          Int
   note              String?
   status            String           @default("CONFIRMED") // CONFIRMED, PAID, CANCELLED
-  finalPrice        Float?           // Le prix total payé (Base + Extras)
+  bookingSource     String           @default("STAFF")
+  finalPrice        Float? // Le prix total payé (Base + Extras)
   price             Decimal          @default(0)
   startDate         String?
-  paymentMethod     String?          // CB, Espèces, Chèque
-  extras        String?
-  soldProducts  String?          // JSON: SoldProduct[] (compat legacy)
-  soldProductsJson Json?         // New safe jsonb column (migrate safely and backfill)
-  productsTotal  Float?          // Aggregated total price of products for quick queries
+  paymentMethod     String? // CB, Espèces, Chèque
+  extras            String?
+  soldProducts      String? // JSON: SoldProduct[] (compat legacy)
+  soldProductsJson  Json? // New safe jsonb column (migrate safely and backfill)
+  productsTotal     Float? // Aggregated total price of products for quick queries
   customerPackageId String?
   customerPackage   CustomerPackage? @relation(fields: [customerPackageId], references: [id])
   serviceId         String
@@ -116,13 +123,38 @@ model Appointment {
   customerId        String
   customer          Customer         @relation(fields: [customerId], references: [id])
   staffId           String?
-  staff             Staff?            @relation(fields: [staffId], references: [id])
+  staff             Staff?           @relation(fields: [staffId], references: [id])
   organizationId    String
   organization      Organization     @relation(fields: [organizationId], references: [id])
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
   @@index([organizationId, startTime])
+}
+
+model CustomerEmailOtp {
+  id             String       @id @default(cuid())
+  email          String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  codeHash       String
+  expiresAt      DateTime
+  attempts       Int          @default(0)
+  consumedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, email, createdAt])
+  @@index([expiresAt])
+}
+
+model CustomerPortalRateLimitEvent {
+  id        String   @id @default(cuid())
+  scope     String
+  keyHash   String
+  createdAt DateTime @default(now())
+
+  @@index([scope, keyHash, createdAt])
+  @@index([createdAt])
 }
 
 model Package {
@@ -160,21 +192,21 @@ model CustomerPackage {
 
 /// NextAuth models (Prisma Adapter)
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
+  id             String        @id @default(cuid())
+  name           String?
+  email          String?       @unique
   hashedPassword String?
-  role          String    @default("USER")
+  role           String        @default("USER")
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
-  emailVerified DateTime?
-  image         String?
+  emailVerified  DateTime?
+  image          String?
   // application specific relations
   // optionally link user to organization if needed
   // organizationId String?
   // organization   Organization? @relation(fields: [organizationId], references: [id])
-  accounts      Account[]
-  sessions      Session[]
+  accounts       Account[]
+  sessions       Session[]
 }
 
 model Account {
@@ -214,9 +246,8 @@ model VerificationToken {
 }
 
 model PasswordResetToken {
-  id     String   @id @default(cuid())
-  email  String   @unique
-  token  String   @unique
+  id      String   @id @default(cuid())
+  email   String   @unique
+  token   String   @unique
   expires DateTime
 }
-

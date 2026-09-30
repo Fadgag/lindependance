@@ -170,7 +170,7 @@ export default function AppointmentModal({
               <div className="text-[12px] text-yellow-600 flex items-center gap-2"><AlertTriangle size={14} /> Veuillez sélectionner un client et un service</div>
             )}
             {collision && (
-              <div className="text-[12px] text-red-600 flex items-center gap-2"><AlertTriangle size={14} /> Conflit détecté — vérifiez les horaires ou forcez l&apos;enregistrement</div>
+              <div className="text-[12px] text-red-600 flex items-center gap-2"><AlertTriangle size={14} /> Conflit détecté — choisissez un autre horaire</div>
             )}
             {initialData?.id && (
               <button type="button" onClick={handleDelete} className="text-red-500 text-[11px] font-bold flex items-center gap-1.5 hover:opacity-80 transition-opacity">

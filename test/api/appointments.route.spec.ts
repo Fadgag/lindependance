@@ -16,12 +16,17 @@ vi.mock('../../src/lib/prisma', () => ({
 }))
 
 vi.mock('../../src/auth', () => ({ auth: vi.fn() }))
+vi.mock('../../src/services/appointmentScheduling.service', () => ({
+  createStaffAppointment: vi.fn(),
+  updateStaffAppointment: vi.fn(),
+}))
 
 // --- Imports (after mocks) -------------------------------------------------
 
 import { POST, DELETE } from '../../src/app/api/appointments/route'
 import { prisma } from '../../src/lib/prisma'
 import { auth } from '../../src/auth'
+import { createStaffAppointment } from '../../src/services/appointmentScheduling.service'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,7 +38,6 @@ const CUID_APT   = 'ctest_apt_bbb0000000001'
 const CUID_SVC   = 'ctest_svc_ccc0000000001'
 const CUID_CUST  = 'ctest_cus_ddd0000000001'
 const CUID_STAFF = 'ctest_stf_eee0000000001'
-const CUID_ORG_B = 'ctest_org_fff0000000002'
 
 const NOW   = new Date('2026-05-01T10:00:00.000Z')
 const LATER = new Date('2026-05-01T11:00:00.000Z')
@@ -78,14 +82,13 @@ beforeEach(() => {
 describe('POST /api/appointments', () => {
   it('crée un RDV et retourne l\'objet créé — organizationId injecté depuis la session (jamais du body)', async () => {
     mockSession()
-    ;(prisma.service.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ price: 50 })
     const createdRow = {
       id: CUID_APT,
       startTime: NOW, endTime: LATER, status: 'CONFIRMED',
       finalPrice: null, price: 50, serviceId: CUID_SVC,
       customerId: CUID_CUST, staffId: CUID_STAFF, note: null, duration: 60,
     }
-    ;(prisma.appointment.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(createdRow)
+    vi.mocked(createStaffAppointment).mockResolvedValueOnce(createdRow as never)
 
     const res = await POST(makePostRequest(VALID_POST_BODY))
     const body = await (res as Response).json()
@@ -94,9 +97,11 @@ describe('POST /api/appointments', () => {
     expect(body.id).toBe(CUID_APT)
     expect(body.status).toBe('CONFIRMED')
 
-    // Vérifier que create() a bien reçu l'organizationId de la SESSION (pas du body)
-    const createCall = (prisma.appointment.create as ReturnType<typeof vi.fn>).mock.calls[0][0]
-    expect(createCall.data.organizationId).toBe(CUID_ORG)
+    expect(createStaffAppointment).toHaveBeenCalledWith(expect.objectContaining({
+      organizationId: CUID_ORG,
+      serviceId: CUID_SVC,
+      customerId: CUID_CUST,
+    }))
   })
 
   it('retourne 400 si le body est invalide (duration négative)', async () => {
@@ -119,24 +124,21 @@ describe('POST /api/appointments', () => {
 
   it('décrémente les sessions du forfait si customerPackageId est fourni (L161)', async () => {
     mockSession()
-    ;(prisma.service.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ price: 50 })
     const createdRow = {
       id: CUID_APT, startTime: NOW, endTime: LATER, status: 'CONFIRMED',
       finalPrice: null, price: 50, serviceId: CUID_SVC,
       customerId: CUID_CUST, staffId: CUID_STAFF, note: null, duration: 60,
     }
-    ;(prisma.appointment.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(createdRow)
-    ;(prisma.customerPackage.updateMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ count: 1 })
+    vi.mocked(createStaffAppointment).mockResolvedValueOnce(createdRow as never)
 
     const CUID_PKG = 'ctest_pkg_hhh0000000007'
     const res = await POST(makePostRequest({ ...VALID_POST_BODY, customerPackageId: CUID_PKG }))
 
     expect(res.status).toBe(200)
-    // customerPackage.updateMany doit avoir été appelé avec le bon id
-    expect(prisma.customerPackage.updateMany).toHaveBeenCalledOnce()
-    const pkgCall = (prisma.customerPackage.updateMany as ReturnType<typeof vi.fn>).mock.calls[0][0]
-    expect(pkgCall.where.id).toBe(CUID_PKG)
-    expect(pkgCall.data.sessionsRemaining.decrement).toBe(1)
+    expect(createStaffAppointment).toHaveBeenCalledWith(expect.objectContaining({
+      customerPackageId: CUID_PKG,
+      organizationId: CUID_ORG,
+    }))
   })
 })
 
@@ -270,4 +272,3 @@ describe('DELETE /api/appointments', () => {
     expect(res.status).toBe(401)
   })
 })
-

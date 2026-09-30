@@ -8,8 +8,10 @@ export const CreateAppointmentSchema = z.object({
   customerId: z.string().min(1),
   staffId: z.string().min(1).optional(),
   note: z.string().optional(),
-  force: z.boolean().optional(),
   customerPackageId: z.string().nullable().optional()
+}).refine((appointment) => Date.parse(appointment.end) > Date.parse(appointment.start), {
+  message: 'end must be after start',
+  path: ['end'],
 })
 
 export const UpdateAppointmentSchema = z.object({
@@ -22,8 +24,10 @@ export const UpdateAppointmentSchema = z.object({
   customerId: z.string().min(1).optional(),
   staffId: z.string().min(1).optional(),
   note: z.string().optional(),
-  force: z.boolean().optional(),
   customerPackageId: z.string().nullable().optional()
+}).refine((appointment) => Date.parse(appointment.end) > Date.parse(appointment.start), {
+  message: 'end must be after start',
+  path: ['end'],
 })
 
 export const UpdatePaymentDetailsSchema = z.object({
@@ -56,4 +60,3 @@ export type CheckoutInput = z.infer<typeof CheckoutInputSchema>
 
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>
 export type UpdateAppointmentInput = z.infer<typeof UpdateAppointmentSchema>
-

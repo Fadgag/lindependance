@@ -6,9 +6,22 @@ import { CreateAppointmentSchema, UpdateAppointmentSchema } from '@/schemas/appo
 import { auth } from "@/auth"
 import { parseJsonField } from '@/lib/parseAppointmentJson'
 import type { Extra, SoldProduct } from '@/types/models'
-import type { Prisma } from '@prisma/client'
-import { withTimeout } from '@/lib/withTimeout'
-import { canDeleteAppointment, findFirstSchedulingConflict } from '@/domain/appointment/policies'
+import { canDeleteAppointment } from '@/domain/appointment/policies'
+import {
+    createStaffAppointment,
+    updateStaffAppointment,
+} from '@/services/appointmentScheduling.service'
+import { CustomerPortalHttpError, SerializableConflictError } from '@/services/customerPortal.service'
+
+function schedulingErrorResponse(error: unknown): Response {
+    if (error instanceof CustomerPortalHttpError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    if (error instanceof SerializableConflictError) {
+        return NextResponse.json({ error: 'Conflit horaire détecté' }, { status: 409 })
+    }
+    return apiErrorResponse(error)
+}
 
 export async function GET(request: Request) {
     try {
@@ -126,52 +139,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 })
         }
 
-        const { start, end, duration, serviceId, customerId, staffId, note } = parsed.data
-        // Narrow organizationId for Prisma queries
-        const organizationId = session.user.organizationId!
-
-        const svc = await prisma.service.findFirst({ where: { id: serviceId, organizationId }, select: { price: true } })
-        const servicePrice = svc?.price ?? 0
-
-        const appointment = await prisma.appointment.create({
-            data: {
-                startTime: new Date(start),
-                endTime: new Date(end),
-                duration: Number(duration),
-                note: note || null,
-                serviceId,
-                customerId,
-                staffId,
+        try {
+            const appointment = await createStaffAppointment({
                 organizationId: session.user.organizationId,
-                status: "CONFIRMED",
-                price: servicePrice
-            },
-            select: {
-              id: true,
-              startTime: true,
-              endTime: true,
-              status: true,
-              finalPrice: true,
-              price: true,
-              serviceId: true,
-              customerId: true,
-              staffId: true,
-              note: true,
-              duration: true,
-            }
-        })
-
-        if (parsed.data.customerPackageId) {
-          // RAISON: règle "canConsumeSession" (src/domain/package/sessionCredit.ts) reproduite
-          // ici au niveau DB via une garde atomique Prisma (sessionsRemaining: { gt: 0 }) —
-          // volontairement pas remplacée par un fetch + check applicatif, qui réintroduirait
-          // une race condition entre deux réservations concurrentes du même forfait.
-          await prisma.customerPackage.updateMany({
-            where: { id: parsed.data.customerPackageId, customer: { organizationId: session.user.organizationId }, sessionsRemaining: { gt: 0 } },
-            data: { sessionsRemaining: { decrement: 1 } }
-          })
+                start: new Date(parsed.data.start),
+                end: new Date(parsed.data.end),
+                duration: parsed.data.duration,
+                serviceId: parsed.data.serviceId,
+                customerId: parsed.data.customerId,
+                staffId: parsed.data.staffId,
+                note: parsed.data.note,
+                customerPackageId: parsed.data.customerPackageId,
+            })
+            return NextResponse.json(appointment)
+        } catch (error: unknown) {
+            return schedulingErrorResponse(error)
         }
-        return NextResponse.json(appointment)
     } catch (err) {
         return apiErrorResponse(err)
     }
@@ -187,70 +170,27 @@ export async function PUT(request: Request) {
         if (!parsed.success) {
             return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 })
         }
-        const { id, start, end, duration, serviceId, customerId, note, force } = parsed.data
+        const { id, start, end, duration, serviceId, customerId, staffId, note } = parsed.data
 
         if (!id) return NextResponse.json({ error: 'Missing appointment id' }, { status: 400 })
 
-        const existing = await prisma.appointment.findFirst({
-            where: { id, organizationId: session.user.organizationId },
-            select: { id: true, status: true, finalPrice: true, staffId: true }
-        })
-        if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-        const newStart = new Date(start)
-        const newEnd = new Date(end)
-
-        if (!force) {
-            // RAISON: fenêtre de sécurité de 24h autour du créneau candidat — aucun RDV ne
-            // dépasse un jour, ce qui permet de borner le fetch (index organizationId+startTime)
-            // tout en réutilisant la règle de conflit pure et testée du domaine.
-            const WINDOW_MS = 24 * 60 * 60 * 1000
-            const windowStart = new Date(newStart.getTime() - WINDOW_MS)
-            const windowEnd = new Date(newEnd.getTime() + WINDOW_MS)
-            const candidates = await prisma.appointment.findMany({
-                where: {
-                    id: { not: id },
-                    staffId: existing.staffId,
-                    organizationId: session.user.organizationId,
-                    startTime: { gte: windowStart, lte: windowEnd },
-                },
-                select: { startTime: true, endTime: true }
-            })
-            const conflict = findFirstSchedulingConflict({ startTime: newStart, endTime: newEnd }, candidates)
-            if (conflict) return NextResponse.json({ error: 'Conflit horaire détecté' }, { status: 409 })
-        }
-
-        // Use updateMany to ensure organizationId scope in a single atomic DB operation,
-        // then fetch the updated record for the response.
-        let res: Prisma.BatchPayload
         try {
-            // TIMEOUT_MS is optional and handled by `withTimeout`'s default if not passed
-            res = await withTimeout(prisma.appointment.updateMany({
-                where: { id, organizationId: session.user.organizationId },
-                data: {
-                    startTime: newStart,
-                    endTime: newEnd,
-                    ...(duration !== undefined && { duration: Number(duration) }),
-                    ...(serviceId && { serviceId }),
-                    ...(customerId && { customerId }),
-                    ...(note !== undefined && { note: note || null }),
-                }
-            }))
-        } catch (err: unknown) {
-            // Distinguish timeout vs Prisma connection errors
-            // RAISON: narrowing necessary on `unknown` before reading properties
-            const errObj = (err && typeof err === 'object') ? err as Record<string, unknown> : null
-            const msg = typeof errObj?.['message'] === 'string' ? String(errObj['message']) : 'Unknown DB error'
-            const code = (errObj && typeof errObj['code'] !== 'undefined') ? String(errObj['code']) : undefined
-            if (msg === 'DB_TIMEOUT' || code === 'P1001') {
-                return NextResponse.json({ error: 'Database timeout or unavailable' }, { status: 504 })
-            }
-            throw err
+            const updated = await updateStaffAppointment({
+                organizationId: session.user.organizationId,
+                id,
+                start: new Date(start),
+                end: new Date(end),
+                duration,
+                serviceId,
+                customerId,
+                staffId,
+                note,
+            })
+            if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+            return NextResponse.json(updated)
+        } catch (error: unknown) {
+            return schedulingErrorResponse(error)
         }
-        if (res.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-        const updated = await withTimeout(prisma.appointment.findFirst({ where: { id, organizationId: session.user.organizationId }, select: { id: true, startTime: true, endTime: true, duration: true, serviceId: true, customerId: true, note: true } }))
-        if (!updated) return NextResponse.json({ error: 'Not found after update' }, { status: 404 })
-        return NextResponse.json(updated)
     } catch (err) {
         return apiErrorResponse(err)
     }

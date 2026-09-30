@@ -1,10 +1,13 @@
 import { z } from 'zod'
 
+const portalEmailSchema = z.string().trim().email().transform((email) => email.toLowerCase()).nullable()
+
 export const CustomerCreateSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   // phone is optional for quick-creation flows (inline picker). Store as nullable in DB.
   phone: z.string().min(1).optional().nullable(),
+  email: portalEmailSchema.optional(),
   notes: z.string().optional().nullable()
 })
 
@@ -13,9 +16,9 @@ export const CustomerUpdateSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   phone: z.string().min(1).optional().nullable(),
+  email: portalEmailSchema.optional(),
   notes: z.string().optional().nullable()
 })
 
 export type CustomerCreateInput = z.infer<typeof CustomerCreateSchema>
 export type CustomerUpdateInput = z.infer<typeof CustomerUpdateSchema>
-

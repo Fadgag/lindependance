@@ -6,6 +6,7 @@ import apiErrorResponse from '@/lib/api'
 import { logger } from '@/lib/logger'
 import { CustomerCreateSchema, CustomerUpdateSchema } from '@/schemas/customers'
 import { auth } from "@/auth"
+import { updateCustomerForStaff } from '@/services/customerPortal.service'
 
 
 // --- GET : Récupérer les clients (Unité ou Liste) ---
@@ -31,6 +32,7 @@ export async function GET(_request: Request) {
           id: true,
           firstName: true,
           lastName: true,
+          email: true,
           phone: true,
           Note: true,
           createdAt: true,
@@ -73,6 +75,7 @@ export async function GET(_request: Request) {
         id: true,
         firstName: true,
         lastName: true,
+        email: true,
         phone: true,
         createdAt: true,
         appointments: {
@@ -107,7 +110,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parse.error.message }, { status: 400 });
     }
 
-    const { firstName, lastName, phone, notes } = parse.data;
+    const { firstName, lastName, phone, email, notes } = parse.data;
 
     // Vérifier les doublons par téléphone au sein de l'organisation (seulement si phone fourni)
     if (phone) {
@@ -127,6 +130,7 @@ export async function POST(request: Request) {
       data: {
         firstName,
         lastName,
+        email: email ?? null,
         // RAISON: phone est optionnel dans le schema — le DB accept null
         phone: phone ?? null,
         Note: notes ?? null,
@@ -158,24 +162,23 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: parse.error.message }, { status: 400 });
     }
 
-    const { id, firstName, lastName, phone, notes } = parse.data;
+    const { id, firstName, lastName, phone, email, notes } = parse.data;
 
     // Mise à jour sécurisée par organizationId
     const dataToUpdate: Partial<Prisma.CustomerUncheckedUpdateInput> = {};
     if (firstName !== undefined) dataToUpdate.firstName = firstName;
     if (lastName !== undefined) dataToUpdate.lastName = lastName;
     if (phone !== undefined) dataToUpdate.phone = phone ?? null;
+    if (email !== undefined) dataToUpdate.email = email;
     if (notes !== undefined) dataToUpdate.Note = notes ?? null;
 
-    const updatedRecord = await prisma.customer.updateMany({
-      where: {
-        id,
-        organizationId: orgId
-      },
-      data: dataToUpdate
+    const updatedCount = await updateCustomerForStaff({
+      organizationId: orgId,
+      customerId: id,
+      data: dataToUpdate,
     });
 
-    if (updatedRecord.count === 0) {
+    if (updatedCount === 0) {
       return NextResponse.json({ error: 'Customer not found or unauthorized' }, { status: 404 });
     }
 
@@ -186,6 +189,7 @@ export async function PUT(request: Request) {
         id: true,
         firstName: true,
         lastName: true,
+        email: true,
         Note: true,
         appointments: {
           take: 5,
