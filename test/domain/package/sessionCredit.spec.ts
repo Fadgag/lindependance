@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { canConsumeSession, consumeSession } from '@/domain/package/sessionCredit'
+import {
+  canConsumeSession,
+  consumeSession,
+  getSessionRefundAmount,
+} from '@/domain/package/sessionCredit'
 
 describe('canConsumeSession', () => {
   it('autorise la consommation quand il reste des séances', () => {
@@ -19,6 +23,12 @@ describe('consumeSession', () => {
   it('décrémente le nombre de séances restantes', () => {
     const result = consumeSession({ sessionsRemaining: 3 })
     expect(result.sessionsRemaining).toBe(2)
+  })
+
+  describe('getSessionRefundAmount', () => {
+    it('returns exactly one session for an eligible customer cancellation', () => {
+      expect(getSessionRefundAmount()).toBe(1)
+    })
   })
 
   it('préserve les autres champs du forfait', () => {

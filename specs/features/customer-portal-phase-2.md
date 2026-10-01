@@ -1,5 +1,5 @@
 # 🏗️ Feature Blueprint — Portail client, Phase 2
-**Statut :** PLANNED
+**Statut :** IMPLEMENTED
 **Feature :** Mes rendez-vous et annulation client
 
 > Dépend de la [Phase 1 — Réservation](customer-portal-phase-1.md) et des

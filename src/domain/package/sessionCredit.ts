@@ -34,3 +34,7 @@ export function consumeSession<T extends SessionCredit>(pkg: T): T {
   }
   return { ...pkg, sessionsRemaining: pkg.sessionsRemaining - 1 }
 }
+
+export function getSessionRefundAmount(): 1 {
+  return 1
+}

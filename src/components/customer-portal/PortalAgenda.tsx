@@ -61,6 +61,9 @@ export default function PortalAgenda({
         <Link href={`/portail/${encodeURIComponent(organizationSlug)}/reserver`} className="mt-2 inline-block text-sm text-indigo-700 underline">
           Réserver une prestation
         </Link>
+        <Link href={`/portail/${encodeURIComponent(organizationSlug)}/mes-rdv`} className="ml-4 mt-2 inline-block text-sm text-indigo-700 underline">
+          Mes rendez-vous
+        </Link>
       </header>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-6">

@@ -1,14 +1,51 @@
 import { NextResponse } from 'next/server'
 import apiErrorResponse from '@/lib/api'
 import { logger } from '@/lib/logger'
-import { CustomerPortalBookingSchema } from '@/schemas/customerPortal'
+import {
+  CustomerPortalAppointmentsSchema,
+  CustomerPortalBookingSchema,
+} from '@/schemas/customerPortal'
 import {
   getCustomerPortalSession,
   isCustomerPortalHttpError,
   SerializableConflictError,
 } from '@/services/customerPortal.service'
+import { getCustomerPortalAppointments } from '@/services/customerPortalAppointments.service'
 import { createCustomerPortalAppointment } from '@/services/customerPortalBooking.service'
 import { sendAppointmentConfirmation } from '@/services/customerPortalEmail.service'
+
+export async function GET(request: Request) {
+  const session = getCustomerPortalSession(request)
+  if (!session || session.accountType !== 'CUSTOMER') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const result = await getCustomerPortalAppointments({
+      organizationId: session.organizationId,
+      verifiedEmail: session.verifiedEmail,
+    })
+    const payload = CustomerPortalAppointmentsSchema.parse({
+      timezone: result.timezone,
+      appointments: result.appointments.map((appointment) => ({
+        id: appointment.id,
+        startTime: appointment.startTime.toISOString(),
+        endTime: appointment.endTime.toISOString(),
+        status: appointment.status,
+        customer: appointment.customer,
+        service: appointment.service,
+        staff: appointment.staff,
+        canCancel: appointment.canCancel,
+      })),
+    })
+    return NextResponse.json(payload)
+  } catch (error: unknown) {
+    if (isCustomerPortalHttpError(error)) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    return apiErrorResponse(error)
+  }
+}
 
 function bookingErrorResponse(error: unknown): Response {
   if (isCustomerPortalHttpError(error)) {
