@@ -15,6 +15,7 @@ export function isAppointmentChangeRequestable(input: {
   now: Date
 }): boolean {
   return input.status !== 'CANCELLED'
+    && input.status !== 'PAID'
     && input.startTime > input.now
     && input.staffId !== null
 }
@@ -31,12 +32,15 @@ export function isAppointmentChangeStartValid(input: {
 export function isAppointmentChangeApprovable(input: {
   requestStatus: string
   appointmentStatus: string
+  appointmentStart: Date
   staffId: string | null
   requestedStart: Date
   now: Date
 }): boolean {
   return input.requestStatus === 'PENDING'
     && input.appointmentStatus !== 'CANCELLED'
+    && input.appointmentStatus !== 'PAID'
+    && input.appointmentStart > input.now
     && input.staffId !== null
     && input.requestedStart > input.now
 }

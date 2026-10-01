@@ -170,7 +170,6 @@ export async function getPendingAppointmentChangeRequests(input: {
     orderBy: { createdAt: 'asc' },
     select: {
       id: true,
-      status: true,
       requestedStart: true,
       requestedEnd: true,
       reason: true,
@@ -190,9 +189,17 @@ export async function getPendingAppointmentChangeRequests(input: {
 
   return {
     timezone: organization.timezone,
-    requests: requests.flatMap((request) => request.appointment
-      ? [{ ...request, appointment: request.appointment }]
-      : []),
+    requests: requests.flatMap((request) => {
+      if (!request.appointment) return []
+      return [{
+        id: request.id,
+        requestedStart: request.requestedStart,
+        requestedEnd: request.requestedEnd,
+        reason: request.reason,
+        createdAt: request.createdAt,
+        appointment: request.appointment,
+      }]
+    }),
   }
 }
 
@@ -280,6 +287,7 @@ export async function approveAppointmentChangeRequest(input: {
     if (!isAppointmentChangeApprovable({
       requestStatus: changeRequest.status,
       appointmentStatus: appointment.status,
+      appointmentStart: appointment.startTime,
       staffId: appointment.staffId,
       requestedStart: changeRequest.requestedStart,
       now,
@@ -344,8 +352,8 @@ export async function approveAppointmentChangeRequest(input: {
       where: {
         id: appointment.id,
         organizationId: appointment.organization.id,
-        status: { not: 'CANCELLED' },
-        startTime: appointment.startTime,
+        status: { notIn: ['CANCELLED', 'PAID'] },
+        startTime: { equals: appointment.startTime, gt: now },
       },
       data: {
         startTime: changeRequest.requestedStart,

@@ -1,17 +1,18 @@
 # This is NOT the Next.js you know
 This version has breaking changes. Read `node_modules/next/dist/docs/` before writing code.
 
+<!-- BEGIN:skills-list -->
 ## Skills disponibles
+
+Liste générée depuis `skills/`. Voir `skills/README.md` pour les rôles et l’utilisation.
 - `skills/agentic-workflow.agent.md`
-- `skills/taxe-core-technical-writer.agend.md`
-- `skills/quality-playbook.skill.md`
-- `skills/draw-io-diagram-generator.skill.md`
-- `skills/send-weekly-report.skill.md`
-- `skills/reviewer.skill.md`
-- `skills/auto-fixer.skill.md`  # actual filename uses kebab-case
+- `skills/auto-fixer.skill.md`
 - `skills/builder.skill.md`
+- `skills/draw-io-diagram-generator.skill.md`
 - `skills/global-rules.md`
- - `skills/template/boost-prompt.md`
+- `skills/quality-playbook.skill.md`
+- `skills/reviewer.skill.md`
+<!-- END:skills-list -->
 
 ## 📋 Instructions Générales
 Avant toute action, l'agent doit charger et respecter :
@@ -40,8 +41,12 @@ Dès qu'une commande est invoquée (via `/` ou par texte), exécute le protocole
 - **Action :** Audit de sécurité (Anti-IDOR), Performance et Clean Code.
 - **Sortie :** Génère un rapport daté dans `quality/review_report/`.
 
+### Revue automatique après développement
+- Après toute tâche qui modifie du code ou de la configuration, exécuter les tests/contrôles ciblés puis `skills/reviewer.skill.md` avant le compte rendu, même sans demande explicite `/review`.
+- Comparer les changements, y compris staged, unstaged et nouveaux fichiers, à `preprod` (ou à la base réelle de la PR), enregistrer le rapport daté et traiter les constats confirmés liés à la tâche. Les changements strictement documentaires sont exclus.
+
 ### `/autofixer` (ou "Fais un auto fixer")
-- **Skill :** `AutoFixer.skill.md`
+- **Skill :** `skills/auto-fixer.skill.md`
 - **Cible :** Analyse le rapport le plus récent dans `quality/review_report/`.
 - **Règles :** Priorité Sécurité > DRY > Types. Applique les correctifs directement dans le code source (0% `any`, check `organizationId` Prisma, validation `zod`).
 - **Push & Branching :** L'agent PEUT modifier le code localement, mais NE DOIT PAS pousser automatiquement sur un remote. Avant tout push vers un dépôt distant l'agent doit :

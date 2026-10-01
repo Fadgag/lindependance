@@ -5,8 +5,18 @@ Tu as accès à une forge d'automatisation de la qualité via les commandes suiv
 
 ---
 
+<!-- BEGIN:skills-list -->
 ## Skills disponibles
-- `skills/template/boost-prompt.md`
+
+Liste générée depuis `skills/`. Voir `skills/README.md` pour les rôles et l’utilisation.
+- `skills/agentic-workflow.agent.md`
+- `skills/auto-fixer.skill.md`
+- `skills/builder.skill.md`
+- `skills/draw-io-diagram-generator.skill.md`
+- `skills/global-rules.md`
+- `skills/quality-playbook.skill.md`
+- `skills/reviewer.skill.md`
+<!-- END:skills-list -->
 
 ## ⚡ Automations de Qualité (Slash Commands)
 
@@ -17,11 +27,15 @@ Invoque ces protocoles immédiatement par commande `/` ou par texte :
 - **Mission :** Audit de sécurité (Anti-IDOR), Performance et Scalabilité.
 - **Livrable :** Rapport Markdown horodaté dans `quality/review_report/`.
 
+### Revue automatique après développement
+- Après toute tâche qui modifie du code ou de la configuration, exécuter les tests/contrôles ciblés puis `skills/reviewer.skill.md` avant le compte rendu, même sans demande explicite `/review`.
+- Comparer les changements, y compris staged, unstaged et nouveaux fichiers, à `preprod` (ou à la base réelle de la PR), enregistrer le rapport daté et traiter les constats confirmés liés à la tâche. Les changements strictement documentaires sont exclus.
+
 ### 2️⃣ `/autofixer` (ou "Fais un auto fixer")
-- **Protocole :** Charge `skills/AutoFixer.skill.md`.
+- **Protocole :** Charge `skills/auto-fixer.skill.md`.
 - **Action :** Analyse le rapport le plus récent dans `quality/review_report/`.
 - **Règles :** Corriger 🔴 Critical et 🟠 Major. Appliquer les standards V3.0 (Prisma organizationId, Zod, 0% any).
-- **Rigueur :** Modifie le code source directement pour atteindre 100/100 au score de review.
+- **Rigueur :** Corrige les constats confirmés, en priorisant la sévérité et les preuves ; ne revendique aucun score global.
 - **Sécurité Push :** L'agent peut modifier les fichiers localement, MAIS NE DOIT PAS effectuer de `git push` automatique. Avant tout push distant, l'agent doit :
   1. **vérifier si une branche active (non mergée dans `main`) existe déjà** (`git branch --merged main`). Si oui, se placer dessus via `git checkout`. Sinon, créer une branche dédiée.
   2. produire un résumé des changements.

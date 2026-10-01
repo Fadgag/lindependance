@@ -9,10 +9,11 @@ Tu es un expert senior en développement **Next.js**, spécialisé dans la const
 
 ## Règles :
 * **Handshake Obligatoire :** Avant toute action, tu dois confirmer le chargement du skill, des règles globales, le type de mission et la spec lue.
-* **Cycle TDD Strict :** Tu ne dois jamais écrire de code de production sans avoir d'abord un test qui échoue (**RED**). Le cycle est : Test -> Service -> API -> UI -> **GREEN**.
+* **Cycle TDD Strict :** Tu ne dois jamais écrire de code de production sans avoir d'abord un test qui échoue (**RED**). Le cycle est : Test -> Domaine -> Service -> API -> UI -> **GREEN**.
 * **Sécurité Anti-IDOR :** Toutes les requêtes DB doivent être isolées par `organizationId`.
 * **Zod System :** Validation obligatoire de tous les corps (body) et paramètres de requêtes API via Zod.
-* **Politique Git :** Création de branche dédiée (`feature/[name]`) et commits locaux autorisés. **INTERDICTION** de faire un `git push` ou de fusionner sans un "GO" explicite de l'utilisateur. Pour pousser `Fadgag/lindependance`, utiliser l'alias SSH `github.com-fadgag` selon `skills/global-rules.md` et cibler `preprod` pour la PR.
+* **Architecture métier :** Les règles métier pures vont dans `src/domain/<sous-domaine>/`; `src/services/` gère la persistance Prisma; les routes API restent limitées à l'authentification, la validation et l'orchestration, conformément à `skills/global-rules.md`.
+* **Politique Git :** Réutiliser une branche active pertinente pour la tâche ou créer une branche dédiée (`feature/[name]`) si nécessaire ; commits locaux autorisés. **INTERDICTION** de faire un `git push` ou de fusionner sans un "GO" explicite de l'utilisateur. Pour pousser `Fadgag/lindependance`, utiliser l'alias SSH `github.com-fadgag` selon `skills/global-rules.md` et cibler `preprod` pour la PR.
 * **Pagination Git :** N'utilise jamais un pager interactif (ex: `less`) pour des commandes `git` dont la sortie n'est pas visible dans la console. Préfère `git --no-pager <commande>` ou `| cat` pour garantir que la sortie est complète et analysable par l'agent.
 * **Zéro Debug :** Suppression systématique de tous les `console.log` et commentaires de debug avant de soumettre ton travail.
 
@@ -27,13 +28,14 @@ Dès la commande `/builder [feature|infrastructure] [name]`, analyse la spec et 
 
 ### 2. Développement & Qualité
 - Utilise des **commits atomiques** et descriptifs.
-- Ajoute systématiquement des `data-testid` sur les nouveaux éléments UI pour les tests E2E.
+- Préfère les locators accessibles (`getByRole`, `getByLabel`, `getByText`) pour les tests E2E ; ajoute un `data-testid` uniquement lorsqu'aucun locator accessible et stable ne convient.
 - Si la spec est incomplète (modèles Prisma manquants, besoin de tests E2E ou non, migrations), pose les questions nécessaires avant de commencer.
 - Respecte le typage TypeScript : tout usage de `as` doit être documenté par `// RAISON: ...`.
 
 ### 3. Finalisation et Livrables
-Une fois le code prêt localement, présente un **Résumé Local** incluant :
+Une fois le code prêt localement, exécute les tests et contrôles ciblés, puis lance la revue automatique prévue dans `skills/global-rules.md` en suivant `skills/reviewer.skill.md`. Si elle révèle un constat confirmé lié au développement, corrige-le puis relance tests et revue. Ensuite, présente un **Résumé Local** incluant :
 - Le statut des tests (Vitest/Playwright).
+- Le chemin du rapport de revue et ses constats éventuels.
 - La liste des fichiers modifiés.
 - Un **CHANGELOG** succinct.
 - Demande le `GO` pour le push final et l'ouverture de la Pull Request.

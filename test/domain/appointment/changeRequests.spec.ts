@@ -44,6 +44,12 @@ describe('appointment change-request policies', () => {
       staffId: null,
       now,
     })).toBe(false)
+    expect(isAppointmentChangeRequestable({
+      startTime,
+      status: 'PAID',
+      staffId: 'staff-1',
+      now,
+    })).toBe(false)
   })
 
   it('requires a distinct future start and only approves pending requests for active appointments', () => {
@@ -53,6 +59,7 @@ describe('appointment change-request policies', () => {
     expect(isAppointmentChangeApprovable({
       requestStatus: 'PENDING',
       appointmentStatus: 'CONFIRMED',
+      appointmentStart: startTime,
       staffId: 'staff-1',
       requestedStart,
       now,
@@ -60,6 +67,23 @@ describe('appointment change-request policies', () => {
     expect(isAppointmentChangeApprovable({
       requestStatus: 'PENDING',
       appointmentStatus: 'CANCELLED',
+      appointmentStart: startTime,
+      staffId: 'staff-1',
+      requestedStart,
+      now,
+    })).toBe(false)
+    expect(isAppointmentChangeApprovable({
+      requestStatus: 'PENDING',
+      appointmentStatus: 'PAID',
+      appointmentStart: startTime,
+      staffId: 'staff-1',
+      requestedStart,
+      now,
+    })).toBe(false)
+    expect(isAppointmentChangeApprovable({
+      requestStatus: 'PENDING',
+      appointmentStatus: 'CONFIRMED',
+      appointmentStart: new Date(now.getTime() - 1),
       staffId: 'staff-1',
       requestedStart,
       now,

@@ -28,6 +28,7 @@ import {
   rejectAppointmentChangeRequest,
 } from '@/services/appointmentChangeRequests.service'
 import { prisma } from '@/lib/prisma'
+import { StaffAppointmentChangeRequestsSchema } from '@/schemas/customerPortal'
 
 const now = new Date('2026-10-01T08:00:00.000Z')
 const identity = {
@@ -147,6 +148,27 @@ describe('createCustomerPortalChangeRequest', () => {
     expect(transactionMock.appointmentChangeRequest.create).not.toHaveBeenCalled()
   })
 
+  it('refuses to create a change request for an appointment already paid', async () => {
+    transactionMock.appointment.findFirst.mockResolvedValueOnce({
+      id: 'appointment-1',
+      customerId: 'customer-1',
+      startTime: new Date('2026-10-03T08:00:00.000Z'),
+      status: 'PAID',
+      staffId: 'staff-1',
+      service: { durationMinutes: 45 },
+    })
+
+    await expect(createCustomerPortalChangeRequest({
+      ...identity,
+      appointmentId: 'appointment-1',
+      requestedStart: '2026-10-04T08:30:00.000Z',
+      now,
+    })).rejects.toMatchObject({ status: 409 })
+
+    expect(transactionMock.appointmentChangeRequest.create).not.toHaveBeenCalled()
+    expect(transactionMock.customerPortalRateLimitEvent.findMany).not.toHaveBeenCalled()
+  })
+
   it('enforces the five requests per rolling 24 hours in the same transaction', async () => {
     transactionMock.customerPortalRateLimitEvent.findMany.mockResolvedValue(
       Array.from({ length: 5 }, (_, index) => ({
@@ -185,6 +207,30 @@ describe('staff review of appointment change requests', () => {
     }))
   })
 
+  it('returns a queue payload accepted by the strict staff response schema', async () => {
+    vi.mocked(prisma.appointmentChangeRequest.findMany).mockResolvedValue([{
+      id: 'request-1',
+      status: 'PENDING',
+      requestedStart: new Date('2026-10-04T08:30:00.000Z'),
+      requestedEnd: new Date('2026-10-04T09:30:00.000Z'),
+      reason: 'Un imprévu',
+      createdAt: new Date('2026-10-01T07:00:00.000Z'),
+      appointment: {
+        id: 'appointment-1',
+        startTime: new Date('2026-10-03T08:00:00.000Z'),
+        endTime: new Date('2026-10-03T09:00:00.000Z'),
+        customer: { firstName: 'Ada', lastName: 'Lovelace' },
+        service: { name: 'Consultation' },
+        staff: { firstName: 'Grace', lastName: 'Hopper' },
+      },
+    }] as never)
+
+    const response = await getPendingAppointmentChangeRequests({ organizationId: 'org-1' })
+    const parsed = StaffAppointmentChangeRequestsSchema.safeParse(JSON.parse(JSON.stringify(response)))
+
+    expect(parsed.success).toBe(true)
+  })
+
   it('revalidates the slot in a serializable transaction and moves the original appointment without changing credits', async () => {
     await approveAppointmentChangeRequest({
       requestId: 'request-1',
@@ -205,7 +251,8 @@ describe('staff review of appointment change requests', () => {
       where: expect.objectContaining({
         id: 'appointment-1',
         organizationId: 'org-1',
-        status: { not: 'CANCELLED' },
+        status: { notIn: ['CANCELLED', 'PAID'] },
+        startTime: { equals: new Date('2026-10-03T08:00:00.000Z'), gt: now },
       }),
       data: {
         startTime: new Date('2026-10-04T08:30:00.000Z'),
@@ -220,6 +267,41 @@ describe('staff review of appointment change requests', () => {
         reviewedByUserId: 'staff-user-1',
       }),
     }))
+  })
+
+  it('does not approve a paid appointment', async () => {
+    transactionMock.appointmentChangeRequest.findFirst.mockResolvedValueOnce({
+      ...pendingRequest,
+      appointment: { ...pendingRequest.appointment, status: 'PAID' },
+    })
+
+    await expect(approveAppointmentChangeRequest({
+      requestId: 'request-1',
+      organizationId: 'org-1',
+      reviewerId: 'staff-user-1',
+      now,
+    })).rejects.toMatchObject({ status: 409 })
+
+    expect(transactionMock.appointment.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('does not approve a request after the original appointment has started', async () => {
+    transactionMock.appointmentChangeRequest.findFirst.mockResolvedValueOnce({
+      ...pendingRequest,
+      appointment: {
+        ...pendingRequest.appointment,
+        startTime: new Date(now.getTime() - 1),
+      },
+    })
+
+    await expect(approveAppointmentChangeRequest({
+      requestId: 'request-1',
+      organizationId: 'org-1',
+      reviewerId: 'staff-user-1',
+      now,
+    })).rejects.toMatchObject({ status: 409 })
+
+    expect(transactionMock.appointment.updateMany).not.toHaveBeenCalled()
   })
 
   it('does not change either record when the requested slot now conflicts', async () => {
