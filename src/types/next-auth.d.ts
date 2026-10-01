@@ -6,7 +6,6 @@ declare module 'next-auth' {
       id: string
       organizationId?: string | null
       role?: string | null
-      accountType?: 'STAFF' | 'CUSTOMER'
     }
   }
 
@@ -18,7 +17,6 @@ declare module 'next-auth' {
     image?: string | null
     organizationId?: string | null
     role?: string | null
-    accountType?: 'STAFF' | 'CUSTOMER'
   }
 }
 
@@ -27,8 +25,8 @@ declare module 'next-auth/jwt' {
     id?: string | number
     role?: string | null
     organizationId?: string | null
-    accountType?: 'STAFF' | 'CUSTOMER'
     [key: string]: unknown
   }
 }
+
 

@@ -28,10 +28,9 @@ Pour chaque bug ou faille identifiée :
 - **Arbitrage Humain :** Si un correctif de sécurité rend un test fonctionnel impossible à passer (conflit de logique), stopper l'exécution et demander une validation.
 
 - **Push / Branching :** L'agent PEUT créer des commits locaux, mais NE DOIT PAS pousser automatiquement sur un dépôt distant. Avant tout `git push` vers un remote, l'agent doit :
-  1. réutiliser une branche active pertinente ou créer une branche dédiée si nécessaire (ex: `feature/xxx` ou `fix/yyy`),
+  1. créer une branche dédiée (ex: `feature/xxx` ou `fix/yyy`),
   2. générer un résumé des changements (changelog) et présenter-le à l'utilisateur,
   3. demander explicitement la confirmation humaine `GO` pour effectuer le `git push`.
-  4. pour `Fadgag/lindependance`, utiliser après ce `GO` l'alias SSH `github.com-fadgag` et la commande documentée dans `skills/global-rules.md` ; la PR cible `preprod`.
  - **Pagination Git :** Lors de l'exécution de commandes `git` pour analyser le diff ou l'historique, n'utilise pas de pager interactif. Exécute les commandes avec `git --no-pager <commande>` ou ajoute `| cat` si la sortie n'est pas affichable dans la console. Ne jamais dépendre d'un pager interactif pour prendre des décisions automatiques.
 
 ---
@@ -47,8 +46,7 @@ Pour chaque fichier traité, lister :
 
 ## 🏁 CONDITION DE SORTIE (DEFINITION OF DONE)
 Un cycle d'AutoFix n'est terminé que si :
-1. ✅ **Vitest :** Les tests pertinents passent ; signaler séparément tout échec préexistant ou hors périmètre.
-2. ✅ **Playwright :** Les scénarios E2E pertinents passent ; signaler séparément tout échec préexistant ou hors périmètre.
+1. ✅ **Vitest :** 100% de succès sur les tests unitaires.
+2. ✅ **Playwright :** 100% de succès sur les TNR (Tests de Non-Régression).
 3. ✅ **Lint & Type-check :** Aucune erreur TypeScript ou ESLint détectée.
 4. ❌ **No Cheat :** Aucun test existant n'a été altéré ou supprimé.
-5. ✅ **Revue finale :** Après les contrôles, lancer `skills/reviewer.skill.md` sur le diff complet par rapport à `preprod` (incluant les changements staged, unstaged et nouveaux fichiers), enregistrer son rapport daté et corriger les constats confirmés liés aux changements avant de relancer les contrôles et la revue.
