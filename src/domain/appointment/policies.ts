@@ -10,6 +10,12 @@ export interface AppointmentPaymentInfo {
   finalPrice?: number | null
 }
 
+const CUSTOMER_CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000
+
+export function canCancelPortalAppointment(startTime: Date, now: Date): boolean {
+  return startTime.getTime() > now.getTime() + CUSTOMER_CANCELLATION_WINDOW_MS
+}
+
 /**
  * Un rendez-vous ne peut pas être supprimé s'il est marqué payé (status `PAID`/`PAYED`,
  * legacy) ou si un `finalPrice` positif a été enregistré (défense en profondeur,

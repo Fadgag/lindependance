@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   canDeleteAppointment,
+  canCancelPortalAppointment,
   hasSchedulingConflict,
   findFirstSchedulingConflict,
 } from '@/domain/appointment/policies'
@@ -24,6 +25,22 @@ describe('canDeleteAppointment', () => {
 
   it('autorise la suppression si finalPrice vaut 0', () => {
     expect(canDeleteAppointment({ status: 'CONFIRMED', finalPrice: 0 })).toBe(true)
+  })
+})
+
+describe('canCancelPortalAppointment', () => {
+  const now = new Date('2026-10-01T10:00:00.000Z')
+
+  it('allows cancellation strictly more than 24 hours before the appointment', () => {
+    expect(canCancelPortalAppointment(new Date('2026-10-02T10:00:00.001Z'), now)).toBe(true)
+  })
+
+  it('refuses cancellation exactly 24 hours before the appointment', () => {
+    expect(canCancelPortalAppointment(new Date('2026-10-02T10:00:00.000Z'), now)).toBe(false)
+  })
+
+  it('refuses cancellation less than 24 hours before the appointment', () => {
+    expect(canCancelPortalAppointment(new Date('2026-10-02T09:59:59.999Z'), now)).toBe(false)
   })
 })
 

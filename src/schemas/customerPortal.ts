@@ -45,3 +45,27 @@ export const CustomerPortalBookingSchema = z.object({
   staffId: z.string().min(1).optional(),
   start: z.string().datetime({ offset: true }),
 }).strict()
+
+export const CustomerPortalAppointmentIdSchema = z.string().min(1).max(128)
+
+export const CustomerPortalAppointmentSummarySchema = z.object({
+  id: z.string().min(1),
+  startTime: z.string().datetime(),
+  endTime: z.string().datetime(),
+  status: z.string().min(1),
+  customer: z.object({
+    firstName: z.string(),
+    lastName: z.string(),
+  }).strict(),
+  service: z.object({ name: z.string() }).strict(),
+  staff: z.object({
+    firstName: z.string(),
+    lastName: z.string(),
+  }).strict().nullable(),
+  canCancel: z.boolean(),
+}).strict()
+
+export const CustomerPortalAppointmentsSchema = z.object({
+  timezone: timezoneSchema,
+  appointments: z.array(CustomerPortalAppointmentSummarySchema),
+}).strict()
