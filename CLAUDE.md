@@ -26,6 +26,7 @@ Invoque ces protocoles immédiatement par commande `/` ou par texte :
   1. **vérifier si une branche active (non mergée dans `main`) existe déjà** (`git branch --merged main`). Si oui, se placer dessus via `git checkout`. Sinon, créer une branche dédiée.
   2. produire un résumé des changements.
   3. demander explicitement la confirmation `GO` de l'utilisateur avant tout push.
+  4. pour `Fadgag/lindependance`, utiliser après le `GO` l'alias SSH `github.com-fadgag` défini dans `skills/global-rules.md` ; la PR cible `preprod`, sauf demande contraire.
 
 ---
 

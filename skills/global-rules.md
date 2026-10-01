@@ -30,6 +30,11 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
   1. vérifier/réutiliser la branche existante (voir règle ci-dessus),
   2. produire un résumé des changements (changelog),
   3. demander la validation humaine `GO` avant d'exécuter `git push`.
+- **Push GitHub de `Fadgag/lindependance` :** utiliser l'alias SSH `github.com-fadgag` défini dans le `~/.ssh/config` local, plutôt que `origin` en HTTPS, qui peut sélectionner le mauvais compte. Vérifier l'identité avec `ssh -T git@github.com-fadgag` ; le message attendu est `Hi Fadgag!` (GitHub peut terminer cette vérification avec un code de sortie non nul). Après le `GO`, pousser la branche explicitement sans changer la configuration du remote :
+  ```bash
+  git push -u git@github.com-fadgag:Fadgag/lindependance.git <branche>
+  ```
+  Remplacer `<branche>` par la branche courante. Les PR de ce dépôt doivent cibler `preprod`, sauf demande contraire de l'utilisateur.
  - **Ne pas utiliser la pagination pour les commandes Git quand la sortie n'est pas visible :**
    - Les agents DOIVENT exécuter les commandes `git` sans pagination (par ex. `git --no-pager <commande>` ou en ajoutant `| cat`) si la sortie ne peut pas être consultée dans la console. Ceci évite des résultats tronqués ou suspendus par un pager (less, more) et garantit que l'agent peut analyser la sortie immédiatement.
    - Ne jamais dépendre d'un pager interactif pour prendre des décisions automatiques.

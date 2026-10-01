@@ -48,6 +48,7 @@ Dès qu'une commande est invoquée (via `/` ou par texte), exécute le protocole
   1. **vérifier si une branche active (non mergée dans `main`) existe déjà** pour la tâche (`git branch --merged main`). Si oui, se placer dessus. Sinon, créer une branche dédiée (ex: `feature/xxx` ou `fix/yyy`).
   2. générer un résumé des changements et demander explicitement la confirmation humaine `GO` pour effectuer le `git push`.
   3. ne pas pousser sans l'accord explicite de l'utilisateur.
+  4. pour `Fadgag/lindependance`, après le `GO`, utiliser l'alias SSH `github.com-fadgag` comme indiqué dans `skills/global-rules.md` ; la PR cible `preprod`, sauf demande contraire.
 
 ### `/builder feature [name]`
 - **Rôle :** Active le Skill `skills/builder.skill.md`.

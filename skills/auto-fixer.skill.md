@@ -31,6 +31,7 @@ Pour chaque bug ou faille identifiée :
   1. créer une branche dédiée (ex: `feature/xxx` ou `fix/yyy`),
   2. générer un résumé des changements (changelog) et présenter-le à l'utilisateur,
   3. demander explicitement la confirmation humaine `GO` pour effectuer le `git push`.
+  4. pour `Fadgag/lindependance`, utiliser après ce `GO` l'alias SSH `github.com-fadgag` et la commande documentée dans `skills/global-rules.md` ; la PR cible `preprod`.
  - **Pagination Git :** Lors de l'exécution de commandes `git` pour analyser le diff ou l'historique, n'utilise pas de pager interactif. Exécute les commandes avec `git --no-pager <commande>` ou ajoute `| cat` si la sortie n'est pas affichable dans la console. Ne jamais dépendre d'un pager interactif pour prendre des décisions automatiques.
 
 ---
