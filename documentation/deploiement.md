@@ -47,12 +47,16 @@ secret réel dans `.env.example`.
 ## 4. Migrations de base de données
 
 ```bash
-# Appliquer les migrations existantes (production / CI) — n'écrit jamais de nouvelle migration
+# Appliquer les migrations en attente sur la base ciblée
 pnpm exec prisma migrate deploy
 
 # Créer une nouvelle migration en local après modification de prisma/schema.prisma
 pnpm exec prisma migrate dev --name <description_courte>
 ```
+
+Pour appliquer une migration manuellement sur Neon, suivre la procédure détaillée dans
+[`migrations-manuelles.md`](./migrations-manuelles.md). Ne pas utiliser `migrate dev`
+sur une base partagée ou de production.
 
 Scripts pratiques déjà fournis dans `package.json` (pointent vers une DB locale par défaut,
 à adapter) :
@@ -86,9 +90,10 @@ Le projet est un Next.js standard, déployable directement sur
 3. S'assurer que `DATABASE_URL` pointe vers l'URL **pooler** de Neon (compatible avec les
    fonctions serverless de Vercel) et `DIRECT_URL` vers l'URL directe (utilisée par Prisma
    pour les migrations).
-4. Le build Vercel ne lance pas les migrations Prisma. Le workflow GitHub Actions les
-   applique automatiquement après les contrôles CI réussis sur les pushes vers `preprod`
-   et `main` (jamais sur une PR), après vérification qu'elles ne modifient pas les données.
+4. Le build Vercel et la CI ne lancent pas les migrations Prisma. Elles doivent être
+   vérifiées et appliquées manuellement par un opérateur, selon
+   [`migrations-manuelles.md`](./migrations-manuelles.md), avant de tester ou promouvoir
+   un changement de schéma.
 5. Le build Vercel exécute `pnpm run build` (donc `check-env` + `prisma generate` + `next build`
    — cf. §5) : le déploiement échoue proprement si `NEXTAUTH_SECRET` manque.
 
@@ -125,32 +130,21 @@ exigeant une PR, en interdisant les pushes directs et en exigeant les contrôles
 bypass administrateur si la règle doit s’appliquer à tous les contributeurs.
 Les règles de `preprod` devraient également exiger la CI avant fusion.
 
-Le job `CI / Apply Prisma migrations` utilise les environnements GitHub `preprod`
-et `Production`, avec les secrets `DATABASE_URL` et `DIRECT_URL` propres à chaque
-environnement. Configurer ces secrets pour pointer vers les bonnes bases Neon.
-Ajouter au moins un réviseur obligatoire à **Settings → Environments → production** :
-le job de production attendra son approbation avant d'accéder aux secrets et d'appliquer
-les migrations.
-
-Le garde-fou `scripts/check-additive-migrations.mjs` n'autorise que la création de
-tables/index, l'ajout de colonnes/contraintes et le relâchement d'une contrainte
-`NOT NULL`. Il bloque notamment `UPDATE`, `DELETE`, `INSERT`, les backfills, les seeds
-et les suppressions de schéma. Les valeurs par défaut des nouvelles colonnes restent
-autorisées : elles initialisent donc ces nouvelles colonnes pour les lignes existantes,
-mais aucune colonne métier préexistante n'est réécrite.
-
-Dans Vercel, ajouter le check GitHub **CI / Apply Prisma migrations** aux Deployment
-Checks de production pour empêcher la mise en ligne d'un déploiement avant la réussite
-de la migration. Pour le Preview `preprod`, attendre également la réussite du job avant
-de tester le domaine stable : son déploiement Preview peut être construit en parallèle
-du workflow GitHub.
+Les migrations ne sont pas exécutées par GitHub Actions : aucun secret de base de données
+n'est nécessaire dans GitHub. Le contrôle statique
+`scripts/check-additive-migrations.mjs` peut être lancé localement avant une migration ;
+il rejette les instructions de modification de données et les changements de schéma
+destructifs. Il n'est pas un substitut à la revue du SQL et à la vérification de la base
+cible avant exécution.
 
 ## 7. Déploiement sur un autre hébergeur (Node.js générique)
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm run build
-pnpm exec prisma migrate deploy   # à faire une fois avant/pendant le déploiement d'un nouveau schéma
+# appliquer manuellement les migrations après sauvegarde et vérification de la base cible
+pnpm exec prisma migrate status
+pnpm exec prisma migrate deploy
 pnpm run start                     # démarre next start (par défaut sur le port 3000)
 ```
 
@@ -161,7 +155,8 @@ et exposer le port via un reverse proxy (nginx/Caddy) en HTTPS.
 
 - [ ] `NEXTAUTH_SECRET` généré et défini (valeur différente de dev/preview/prod).
 - [ ] `DATABASE_URL` / `DIRECT_URL` pointent vers la base de production (pas la base de dev).
-- [ ] Migrations Prisma appliquées (`prisma migrate deploy`) sur la base cible.
+- [ ] Migrations Prisma vérifiées et appliquées manuellement (`prisma migrate deploy`)
+      sur la base cible, après sauvegarde.
 - [ ] `pnpm run build` passe sans erreur en local avec les mêmes variables d'environnement.
 - [ ] `npx vitest run` passe (non-régression) avant de merger sur la branche de déploiement.
 - [ ] Au moins un compte administrateur existe (seed ou `scripts/create-admin.ts`).

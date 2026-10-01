@@ -13,6 +13,8 @@ encaissement, dashboard de performance).
   d'architecture (DDD léger), tests.
 - [`deploiement.md`](./deploiement.md) — Variables d'environnement, installation locale,
   migrations Prisma, build/démarrage, déploiement (Vercel), scripts d'administration.
+- [`migrations-manuelles.md`](./migrations-manuelles.md) — Procédure de vérification et
+  d'application manuelle des migrations Prisma sur Neon, sans secrets GitHub Actions.
 - [`api-routes.md`](./api-routes.md) — Détail de chaque route API (`src/app/api/`) : méthode,
   entrées/sorties, règles de sécurité, codes d'erreur.
 - [`composants-cles.md`](./composants-cles.md) — Détail des composants React les plus
