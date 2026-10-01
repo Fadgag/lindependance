@@ -62,12 +62,27 @@ Ce fichier sert à noter les améliorations à traiter au fur et à mesure qu'el
 
 - **Statut :** À préciser
 - **Priorité :** À définir
-- **Constat :** Le portail du salon utilise une adresse en `vercel.app`.
-- **Amélioration souhaitée :** Proposer une option payante permettant d'utiliser un nom de domaine personnalisé pour le salon à la place de l'adresse en `vercel.app`.
+- **Constat :** Le portail du salon utilise une adresse en `vercel.app`, et sa configuration sur Vercel et dans le DNS peut nécessiter l'intervention du support.
+- **Amélioration souhaitée :** Permettre à chaque organisation de demander l'activation de son domaine personnalisé depuis Configuration → Portail. La demande crée un ticket au support ; le support accompagne ou effectue la configuration Vercel et DNS selon les accès disponibles. Prévoir une solution générique pour plusieurs salons, sans dépendre d'un domaine codé en dur.
 - **Critères d'acceptation :**
-  - Le portail du salon peut être consulté via son nom de domaine personnalisé.
-  - Les étapes de configuration DNS et d'activation du domaine sont définies.
-  - Le prix et les modalités de facturation de l'option sont définis.
+  - Un membre autorisé peut saisir le domaine souhaité et soumettre une demande depuis Configuration → Portail.
+  - Le ticket contient l'organisation concernée, le domaine demandé et les coordonnées utiles au suivi, sans exposer de secrets.
+  - Le support peut suivre la demande et communiquer les enregistrements DNS à ajouter lorsque la gestion DNS n'est pas déléguée.
+  - Le domaine est vérifié et associé à une seule organisation avant activation.
+  - Le lien actuel avec slug reste utilisable jusqu'à l'activation du domaine personnalisé.
+  - Le portail peut être résolu à partir du domaine personnalisé de chaque organisation, sans logique spécifique à un salon.
+  - Le prix et les modalités de facturation éventuels sont définis.
+
+### Personnaliser les messages envoyés par e-mail
+
+- **Statut :** À préciser
+- **Priorité :** À définir
+- **Constat :** Les e-mails du portail client (code de connexion et confirmation de rendez-vous) utilisent des messages prédéfinis.
+- **Amélioration souhaitée :** Permettre à chaque organisation de personnaliser depuis la configuration le contenu des e-mails envoyés à ses clients.
+- **Critères d'acceptation :**
+  - Le contenu des e-mails de code de connexion et de confirmation de rendez-vous peut être personnalisé dans la configuration.
+  - Les valeurs par défaut restent disponibles si aucun texte personnalisé n'est défini.
+  - Les informations dynamiques nécessaires (code, prestation, date et horaire du rendez-vous) restent correctement insérées dans le message.
 
 ### Permettre à l'utilisateur de signaler un problème ou un bug
 
