@@ -11,6 +11,7 @@ const { transaction, prismaMock } = vi.hoisted(() => {
       create: vi.fn(),
       updateMany: vi.fn(),
     },
+    appointmentChangeRequest: { updateMany: vi.fn() },
     unavailability: { findMany: vi.fn() },
     customerPackage: { updateMany: vi.fn() },
   }
@@ -43,6 +44,7 @@ beforeEach(() => {
   transaction.unavailability.findMany.mockResolvedValue([])
   transaction.appointment.create.mockResolvedValue({ id: 'appointment-created' })
   transaction.appointment.updateMany.mockResolvedValue({ count: 1 })
+  transaction.appointmentChangeRequest.updateMany.mockResolvedValue({ count: 1 })
   transaction.customerPackage.updateMany.mockResolvedValue({ count: 1 })
 })
 
@@ -143,6 +145,14 @@ describe('staff appointment scheduling service', () => {
     expect(result).toEqual(updated)
     expect(transaction.appointment.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'appointment-1', organizationId: 'org-1' },
+    }))
+    expect(transaction.appointmentChangeRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        appointmentId: 'appointment-1',
+        organizationId: 'org-1',
+        status: 'PENDING',
+      },
+      data: expect.objectContaining({ status: 'REJECTED' }),
     }))
   })
 

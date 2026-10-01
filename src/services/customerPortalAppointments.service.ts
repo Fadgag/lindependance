@@ -6,6 +6,7 @@ import {
   CustomerPortalHttpError,
   withSerializableRetry,
 } from '@/services/customerPortal.service'
+import { rejectPendingRequestsForAppointment } from '@/services/appointmentChangeRequests.service'
 
 interface CustomerPortalAppointmentIdentity {
   organizationId: string
@@ -17,6 +18,8 @@ export interface CustomerPortalAppointmentSummary {
   startTime: Date
   endTime: Date
   status: string
+  serviceId: string
+  staffId: string | null
   customer: {
     firstName: string
     lastName: string
@@ -27,6 +30,11 @@ export interface CustomerPortalAppointmentSummary {
     lastName: string
   } | null
   canCancel: boolean
+  changeRequest: {
+    id: string
+    status: string
+    reviewReason: string | null
+  } | null
 }
 
 export async function getCustomerPortalAppointments(input: CustomerPortalAppointmentIdentity & {
@@ -57,17 +65,34 @@ export async function getCustomerPortalAppointments(input: CustomerPortalAppoint
       startTime: true,
       endTime: true,
       status: true,
+      serviceId: true,
+      staffId: true,
       customer: { select: { firstName: true, lastName: true } },
       service: { select: { name: true } },
       staff: { select: { firstName: true, lastName: true } },
+      changeRequests: {
+        where: { organizationId: organization.id },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { id: true, status: true, reviewReason: true },
+      },
     },
   })
 
   return {
     timezone: organization.timezone,
     appointments: appointments.map((appointment) => ({
-      ...appointment,
+      id: appointment.id,
+      startTime: appointment.startTime,
+      endTime: appointment.endTime,
+      status: appointment.status,
+      serviceId: appointment.serviceId,
+      staffId: appointment.staffId,
+      customer: appointment.customer,
+      service: appointment.service,
+      staff: appointment.staff,
       canCancel: canCancelPortalAppointment(appointment.startTime, now),
+      changeRequest: appointment.changeRequests[0] ?? null,
     })),
   }
 }
@@ -131,6 +156,13 @@ export async function cancelCustomerPortalAppointment(input: CustomerPortalAppoi
     if (cancelled.count !== 1) {
       throw new CustomerPortalHttpError(409, 'Ce rendez-vous ne peut plus être annulé en ligne.')
     }
+
+    await rejectPendingRequestsForAppointment(transaction, {
+      appointmentId: appointment.id,
+      organizationId: organization.id,
+      now,
+      reviewReason: 'Rendez-vous annulé par le client',
+    })
 
     if (appointment.customerPackageId) {
       const refunded = await transaction.customerPackage.updateMany({

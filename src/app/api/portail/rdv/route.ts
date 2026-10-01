@@ -32,10 +32,13 @@ export async function GET(request: Request) {
         startTime: appointment.startTime.toISOString(),
         endTime: appointment.endTime.toISOString(),
         status: appointment.status,
+        serviceId: appointment.serviceId,
+        staffId: appointment.staffId,
         customer: appointment.customer,
         service: appointment.service,
         staff: appointment.staff,
         canCancel: appointment.canCancel,
+        changeRequest: appointment.changeRequest,
       })),
     })
     return NextResponse.json(payload)

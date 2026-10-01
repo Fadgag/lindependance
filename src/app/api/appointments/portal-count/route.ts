@@ -9,6 +9,9 @@ export async function GET() {
     const session = await auth()
     const organizationId = session?.user?.organizationId
     if (!organizationId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user.accountType !== 'STAFF') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const organization = await prisma.organization.findUnique({
       where: { id: organizationId },
@@ -21,15 +24,20 @@ export async function GET() {
     const range = getUtcRangeForLocalDay(date, organization.timezone)
     if (!range) return NextResponse.json({ error: 'Invalid organization timezone' }, { status: 500 })
 
-    const count = await prisma.appointment.count({
-      where: {
-        organizationId,
-        bookingSource: 'PORTAL',
-        status: { not: 'CANCELLED' },
-        createdAt: { gte: range.start, lt: range.end },
-      },
-    })
-    return NextResponse.json({ count })
+    const [count, pendingChangeRequests] = await Promise.all([
+      prisma.appointment.count({
+        where: {
+          organizationId,
+          bookingSource: 'PORTAL',
+          status: { not: 'CANCELLED' },
+          createdAt: { gte: range.start, lt: range.end },
+        },
+      }),
+      prisma.appointmentChangeRequest.count({
+        where: { organizationId, status: 'PENDING', appointment: { is: { organizationId } } },
+      }),
+    ])
+    return NextResponse.json({ count, pendingChangeRequests })
   } catch (error: unknown) {
     return apiErrorResponse(error)
   }

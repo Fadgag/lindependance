@@ -4,11 +4,24 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import {
+  CustomerPortalAvailableSlotsSchema,
   CustomerPortalAppointmentsSchema,
   CustomerPortalAppointmentSummarySchema,
+  CustomerPortalChangeRequestResultSchema,
 } from '@/schemas/customerPortal'
 
 type PortalAppointment = z.infer<typeof CustomerPortalAppointmentSummarySchema>
+type PortalSlot = { start: string; end: string }
+
+function localDateToday(timezone: string): string {
+  const parts = new Map(new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date()).map((part) => [part.type, part.value]))
+  return `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`
+}
 
 async function readError(response: Response, fallback: string): Promise<string> {
   const body: unknown = await response.json().catch(() => null)
@@ -30,6 +43,7 @@ export default function PortalAppointments({
   const [loading, setLoading] = useState(true)
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [changingAppointmentId, setChangingAppointmentId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -105,6 +119,15 @@ export default function PortalAppointments({
     }
   }
 
+  const changeRequestStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING': return 'En attente de validation'
+      case 'APPROVED': return 'Demande acceptée'
+      case 'REJECTED': return 'Demande refusée'
+      default: return status
+    }
+  }
+
   const reservationUrl = `/portail/${encodeURIComponent(organizationSlug)}/reserver`
 
   return (
@@ -158,6 +181,14 @@ export default function PortalAppointments({
                 ? `${appointment.staff.firstName} ${appointment.staff.lastName}`
                 : 'Non renseigné'}
             </p>
+            {appointment.changeRequest && (
+              <p role="status" className="text-sm text-indigo-800">
+                {changeRequestStatusLabel(appointment.changeRequest.status)}
+                {appointment.changeRequest.reviewReason
+                  ? ` — ${appointment.changeRequest.reviewReason}`
+                  : ''}
+              </p>
+            )}
             {appointment.canCancel ? (
               <button
                 type="button"
@@ -173,9 +204,193 @@ export default function PortalAppointments({
                 Contactez votre établissement pour modifier ou annuler ce rendez-vous.
               </p>
             )}
+            {appointment.staffId && appointment.changeRequest?.status !== 'PENDING' && (
+              changingAppointmentId === appointment.id ? (
+                <PortalChangeRequestForm
+                  appointment={appointment}
+                  organizationSlug={organizationSlug}
+                  timezone={timezone}
+                  onCancel={() => setChangingAppointmentId(null)}
+                  onCreated={(changeRequest) => {
+                    setAppointments((current) => current.map((item) => item.id === appointment.id
+                      ? { ...item, changeRequest }
+                      : item))
+                    setChangingAppointmentId(null)
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  data-testid="request-appointment-change"
+                  onClick={() => setChangingAppointmentId(appointment.id)}
+                  className="rounded-lg border border-indigo-200 px-4 py-2 text-sm font-medium text-indigo-700"
+                >
+                  Demander un changement
+                </button>
+              )
+            )}
           </article>
         ))}
       </section>
     </main>
+  )
+}
+
+function PortalChangeRequestForm({
+  appointment,
+  organizationSlug,
+  timezone,
+  onCancel,
+  onCreated,
+}: {
+  appointment: PortalAppointment
+  organizationSlug: string
+  timezone: string
+  onCancel: () => void
+  onCreated: (changeRequest: NonNullable<PortalAppointment['changeRequest']>) => void
+}) {
+  const [date, setDate] = useState(() => localDateToday(timezone))
+  const [slots, setSlots] = useState<PortalSlot[]>([])
+  const [selectedSlot, setSelectedSlot] = useState('')
+  const [reason, setReason] = useState('')
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const query = new URLSearchParams({
+      serviceId: appointment.serviceId,
+      staffId: appointment.staffId ?? '',
+      date,
+    })
+    setLoadingSlots(true)
+    setError('')
+    void fetch(
+      `/api/portail/${encodeURIComponent(organizationSlug)}/creneaux?${query.toString()}`,
+      { signal: controller.signal },
+    ).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(await readError(response, 'Impossible de charger les créneaux.'))
+      }
+      const body: unknown = await response.json()
+      const parsed = CustomerPortalAvailableSlotsSchema.safeParse(body)
+      if (!parsed.success) throw new Error('Les créneaux reçus sont invalides.')
+      setSlots(parsed.data.slots)
+      setSelectedSlot('')
+    }).catch((loadError: unknown) => {
+      if (!controller.signal.aborted) {
+        setSlots([])
+        setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les créneaux.')
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoadingSlots(false)
+    })
+    return () => controller.abort()
+  }, [appointment.serviceId, appointment.staffId, date, organizationSlug])
+
+  async function submitRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!selectedSlot) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const response = await fetch(
+        `/api/portail/rdv/${encodeURIComponent(appointment.id)}/demande-modification`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requestedStart: selectedSlot,
+            ...(reason.trim() ? { reason: reason.trim() } : {}),
+          }),
+        },
+      )
+      if (!response.ok) {
+        throw new Error(await readError(response, 'Impossible d’envoyer la demande.'))
+      }
+      const body: unknown = await response.json()
+      const parsed = CustomerPortalChangeRequestResultSchema.safeParse(body)
+      if (!parsed.success) throw new Error('La demande reçue est invalide.')
+      onCreated({ ...parsed.data, reviewReason: null })
+    } catch (submitError: unknown) {
+      setError(submitError instanceof Error ? submitError.message : 'Impossible d’envoyer la demande.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const formatTime = (instant: string) => new Intl.DateTimeFormat('fr-FR', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(instant))
+
+  return (
+    <form
+      data-testid="appointment-change-form"
+      onSubmit={(event) => void submitRequest(event)}
+      className="space-y-3 rounded-lg bg-indigo-50 p-4"
+    >
+      <label className="block text-sm font-medium text-gray-800">
+        Nouvelle date souhaitée
+        <input
+          type="date"
+          min={localDateToday(timezone)}
+          value={date}
+          onChange={(event) => setDate(event.target.value)}
+          className="mt-1 block w-full rounded-lg border border-gray-300 p-3"
+        />
+      </label>
+      <div>
+        <p className="text-sm font-medium text-gray-800">Créneaux disponibles</p>
+        {loadingSlots ? <p className="mt-2 text-sm text-gray-500">Recherche des créneaux…</p> : (
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {slots.map((slot) => (
+              <button
+                key={slot.start}
+                type="button"
+                aria-pressed={selectedSlot === slot.start}
+                onClick={() => setSelectedSlot(slot.start)}
+                className={`rounded-lg border p-2 text-sm ${selectedSlot === slot.start ? 'border-indigo-600 bg-white font-semibold text-indigo-700' : 'border-gray-200 bg-white'}`}
+              >
+                {formatTime(slot.start)}
+              </button>
+            ))}
+            {!loadingSlots && slots.length === 0 && (
+              <p className="col-span-full text-sm text-gray-600">Aucun créneau libre pour cette date.</p>
+            )}
+          </div>
+        )}
+      </div>
+      <label className="block text-sm font-medium text-gray-800">
+        Motif (facultatif)
+        <textarea
+          value={reason}
+          maxLength={500}
+          onChange={(event) => setReason(event.target.value)}
+          className="mt-1 block w-full rounded-lg border border-gray-300 p-3"
+          rows={2}
+        />
+      </label>
+      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="submit"
+          disabled={!selectedSlot || submitting}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {submitting ? 'Envoi…' : 'Envoyer la demande'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm"
+        >
+          Fermer
+        </button>
+      </div>
+    </form>
   )
 }

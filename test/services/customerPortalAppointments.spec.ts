@@ -36,6 +36,7 @@ function transactionFixture(appointment: {
 }) {
   return {
     organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
+    appointmentChangeRequest: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     appointment: {
       findFirst: vi.fn().mockResolvedValue(appointment),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -59,9 +60,12 @@ describe('getCustomerPortalAppointments', () => {
       startTime: new Date('2026-10-03T10:00:00.000Z'),
       endTime: new Date('2026-10-03T11:00:00.000Z'),
       status: 'CONFIRMED',
+      serviceId: 'service-1',
+      staffId: 'staff-1',
       customer: { firstName: 'Camille', lastName: 'Martin' },
       service: { name: 'Coupe' },
       staff: { firstName: 'Alex', lastName: 'Durand' },
+      changeRequests: [],
     }] as never)
 
     const result = await getCustomerPortalAppointments({ ...input, now })
@@ -82,10 +86,13 @@ describe('getCustomerPortalAppointments', () => {
         startTime: new Date('2026-10-03T10:00:00.000Z'),
         endTime: new Date('2026-10-03T11:00:00.000Z'),
         status: 'CONFIRMED',
+        serviceId: 'service-1',
+        staffId: 'staff-1',
         customer: { firstName: 'Camille', lastName: 'Martin' },
         service: { name: 'Coupe' },
         staff: { firstName: 'Alex', lastName: 'Durand' },
         canCancel: true,
+        changeRequest: null,
       }],
     })
   })
@@ -130,6 +137,17 @@ describe('cancelCustomerPortalAppointment', () => {
         package: { is: { organizationId: 'org-1' } },
       },
       data: { sessionsRemaining: { increment: 1 } },
+    }))
+    expect(transaction.appointmentChangeRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        appointmentId: 'appointment-1',
+        organizationId: 'org-1',
+        status: 'PENDING',
+      },
+      data: expect.objectContaining({
+        status: 'REJECTED',
+        reviewReason: 'Rendez-vous annulé par le client',
+      }),
     }))
   })
 

@@ -142,33 +142,52 @@ export interface RateLimitCheck {
   windowMilliseconds: number
 }
 
+export async function recordPortalRateLimits(
+  transaction: PrismaTypes.TransactionClient,
+  checks: RateLimitCheck[],
+  now: Date,
+): Promise<boolean> {
+  const scopes = new Map<string, number>()
+  for (const check of checks) {
+    scopes.set(check.scope, Math.max(scopes.get(check.scope) ?? 0, check.windowMilliseconds))
+  }
+  for (const [scope, retentionWindow] of scopes) {
+    await transaction.customerPortalRateLimitEvent.deleteMany({
+      where: {
+        scope,
+        createdAt: { lt: new Date(now.getTime() - retentionWindow) },
+      },
+    })
+  }
+
+  for (const check of checks) {
+    const events = await transaction.customerPortalRateLimitEvent.findMany({
+      where: {
+        scope: check.scope,
+        keyHash: check.keyHash,
+        createdAt: { gte: new Date(now.getTime() - check.windowMilliseconds) },
+      },
+      select: { createdAt: true },
+    })
+    if (isRateLimitExceeded(events.map((event) => event.createdAt), now, check.windowMilliseconds, check.limit)) {
+      return false
+    }
+  }
+
+  if (checks.length > 0) {
+    await transaction.customerPortalRateLimitEvent.createMany({
+      data: checks.map(({ scope, keyHash }) => ({ scope, keyHash, createdAt: now })),
+    })
+  }
+  return true
+}
+
 export async function consumePortalRateLimits(
   checks: RateLimitCheck[],
   now = new Date(),
 ): Promise<boolean> {
   return withSerializableRetry(async (transaction: PrismaTypes.TransactionClient) => {
-    await transaction.customerPortalRateLimitEvent.deleteMany({
-      where: { createdAt: { lt: new Date(now.getTime() - 60 * 60 * 1000) } },
-    })
-
-    for (const check of checks) {
-      const events = await transaction.customerPortalRateLimitEvent.findMany({
-        where: {
-          scope: check.scope,
-          keyHash: check.keyHash,
-          createdAt: { gte: new Date(now.getTime() - check.windowMilliseconds) },
-        },
-        select: { createdAt: true },
-      })
-      if (isRateLimitExceeded(events.map((event) => event.createdAt), now, check.windowMilliseconds, check.limit)) {
-        return false
-      }
-    }
-
-    await transaction.customerPortalRateLimitEvent.createMany({
-      data: checks.map(({ scope, keyHash }) => ({ scope, keyHash, createdAt: now })),
-    })
-    return true
+    return recordPortalRateLimits(transaction, checks, now)
   })
 }
 

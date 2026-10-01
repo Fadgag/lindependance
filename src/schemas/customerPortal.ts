@@ -46,6 +46,32 @@ export const CustomerPortalBookingSchema = z.object({
   start: z.string().datetime({ offset: true }),
 }).strict()
 
+export const CustomerPortalChangeRequestSchema = z.object({
+  requestedStart: z.string().datetime({ offset: true }),
+  reason: z.string().trim().max(500).optional(),
+}).strict()
+
+export const AppointmentChangeRequestIdSchema = z.string().min(1).max(128)
+
+export const CustomerPortalChangeRequestResultSchema = z.object({
+  id: z.string().min(1),
+  status: z.literal('PENDING'),
+}).strict()
+
+export const CustomerPortalAvailableSlotsSchema = z.object({
+  timezone: timezoneSchema,
+  slots: z.array(z.object({
+    start: z.string().datetime(),
+    end: z.string().datetime(),
+  }).strict()),
+}).strict()
+
+export const AppointmentChangeRequestSummarySchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
+  reviewReason: z.string().nullable(),
+}).strict()
+
 export const CustomerPortalAppointmentIdSchema = z.string().min(1).max(128)
 
 export const CustomerPortalAppointmentSummarySchema = z.object({
@@ -53,6 +79,8 @@ export const CustomerPortalAppointmentSummarySchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
   status: z.string().min(1),
+  serviceId: z.string().min(1),
+  staffId: z.string().min(1).nullable(),
   customer: z.object({
     firstName: z.string(),
     lastName: z.string(),
@@ -63,9 +91,31 @@ export const CustomerPortalAppointmentSummarySchema = z.object({
     lastName: z.string(),
   }).strict().nullable(),
   canCancel: z.boolean(),
+  changeRequest: AppointmentChangeRequestSummarySchema.nullable(),
 }).strict()
 
 export const CustomerPortalAppointmentsSchema = z.object({
   timezone: timezoneSchema,
   appointments: z.array(CustomerPortalAppointmentSummarySchema),
+}).strict()
+
+export const StaffAppointmentChangeRequestSchema = z.object({
+  id: z.string().min(1),
+  requestedStart: z.string().datetime(),
+  requestedEnd: z.string().datetime(),
+  reason: z.string().nullable(),
+  createdAt: z.string().datetime(),
+  appointment: z.object({
+    id: z.string().min(1),
+    startTime: z.string().datetime(),
+    endTime: z.string().datetime(),
+    customer: z.object({ firstName: z.string(), lastName: z.string() }).strict(),
+    service: z.object({ name: z.string() }).strict(),
+    staff: z.object({ firstName: z.string(), lastName: z.string() }).strict().nullable(),
+  }).strict(),
+}).strict()
+
+export const StaffAppointmentChangeRequestsSchema = z.object({
+  timezone: timezoneSchema,
+  requests: z.array(StaffAppointmentChangeRequestSchema),
 }).strict()

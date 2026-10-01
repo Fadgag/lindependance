@@ -78,6 +78,12 @@ Le résultat attendu est une colonne booléenne `active`, non nullable, avec le 
 `CustomerPortalRateLimitEvent` ; si cette migration est déjà appliquée, ces tables doivent
 être présentes.
 
+La Phase 3 du portail client ajoute `AppointmentChangeRequest`. Avant l'application,
+vérifier le SQL de `prisma/migrations/20261001120000_customer_portal_phase_3/migration.sql`.
+Cette migration conserve les demandes historiques en détachant leur rendez-vous supprimé,
+et crée un index unique partiel empêchant plusieurs demandes `PENDING` pour le même
+rendez-vous.
+
 ## À ne pas faire
 
 - Ne jamais lancer `prisma migrate reset`, `prisma db push`, `prisma migrate dev` ou un seed
