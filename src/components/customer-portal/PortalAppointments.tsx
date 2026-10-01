@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
+import { isAppointmentChangeRequestable } from '@/domain/appointment/changeRequests'
 import {
   CustomerPortalAvailableSlotsSchema,
   CustomerPortalAppointmentsSchema,
@@ -204,7 +205,12 @@ export default function PortalAppointments({
                 Contactez votre établissement pour modifier ou annuler ce rendez-vous.
               </p>
             )}
-            {appointment.staffId && appointment.changeRequest?.status !== 'PENDING' && (
+            {isAppointmentChangeRequestable({
+              startTime: new Date(appointment.startTime),
+              status: appointment.status,
+              staffId: appointment.staffId,
+              now: new Date(),
+            }) && appointment.changeRequest?.status !== 'PENDING' && (
               changingAppointmentId === appointment.id ? (
                 <PortalChangeRequestForm
                   appointment={appointment}

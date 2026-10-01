@@ -85,6 +85,21 @@ describe('PortalAppointments', () => {
     expect(await screen.findByText('Identifiez-vous pour consulter vos rendez-vous.')).toBeInTheDocument()
   })
 
+  it('does not offer a change request for a paid appointment', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(response({
+      ...appointments,
+      appointments: [
+        { ...appointments.appointments[0], status: 'PAID' },
+        appointments.appointments[1],
+      ],
+    }))
+
+    render(<PortalAppointments organizationSlug="atelier" organizationTimezone="Europe/Paris" />)
+
+    expect(await screen.findByText('Payé')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Demander un changement' })).not.toBeInTheDocument()
+  })
+
   it('lets a customer open a timezone-aware request form for an appointment with a practitioner', async () => {
     const fetchMock = vi.mocked(fetch)
     fetchMock.mockResolvedValueOnce(response(appointments))

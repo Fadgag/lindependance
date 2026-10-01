@@ -49,6 +49,16 @@ export async function findEnabledPortalOrganization(slug: string): Promise<Porta
   })
 }
 
+export async function findDefaultEnabledPortalOrganization(): Promise<{ slug: string } | null> {
+  const organizations = await prisma.organization.findMany({
+    where: { portalEnabled: true, slug: { not: null } },
+    select: { slug: true },
+    take: 2,
+  })
+  if (organizations.length !== 1 || !organizations[0].slug) return null
+  return { slug: organizations[0].slug }
+}
+
 export async function findEnabledPortalOrganizationForSession(
   session: CustomerPortalSession,
 ): Promise<PortalOrganization | null> {
