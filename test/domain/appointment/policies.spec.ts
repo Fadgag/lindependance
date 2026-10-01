@@ -32,15 +32,22 @@ describe('canCancelPortalAppointment', () => {
   const now = new Date('2026-10-01T10:00:00.000Z')
 
   it('allows cancellation strictly more than 24 hours before the appointment', () => {
-    expect(canCancelPortalAppointment(new Date('2026-10-02T10:00:00.001Z'), now)).toBe(true)
+    expect(canCancelPortalAppointment(new Date('2026-10-02T10:00:00.001Z'), now, 'CONFIRMED')).toBe(true)
   })
 
   it('refuses cancellation exactly 24 hours before the appointment', () => {
-    expect(canCancelPortalAppointment(new Date('2026-10-02T10:00:00.000Z'), now)).toBe(false)
+    expect(canCancelPortalAppointment(new Date('2026-10-02T10:00:00.000Z'), now, 'CONFIRMED')).toBe(false)
   })
 
   it('refuses cancellation less than 24 hours before the appointment', () => {
-    expect(canCancelPortalAppointment(new Date('2026-10-02T09:59:59.999Z'), now)).toBe(false)
+    expect(canCancelPortalAppointment(new Date('2026-10-02T09:59:59.999Z'), now, 'CONFIRMED')).toBe(false)
+  })
+
+  it('refuses online cancellation for paid and legacy-paid appointments', () => {
+    const appointmentStart = new Date('2026-10-03T10:00:00.000Z')
+
+    expect(canCancelPortalAppointment(appointmentStart, now, 'PAID')).toBe(false)
+    expect(canCancelPortalAppointment(appointmentStart, now, 'PAYED')).toBe(false)
   })
 })
 

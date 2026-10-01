@@ -12,8 +12,10 @@ export interface AppointmentPaymentInfo {
 
 const CUSTOMER_CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000
 
-export function canCancelPortalAppointment(startTime: Date, now: Date): boolean {
-  return startTime.getTime() > now.getTime() + CUSTOMER_CANCELLATION_WINDOW_MS
+export function canCancelPortalAppointment(startTime: Date, now: Date, status: string): boolean {
+  return status !== 'PAID'
+    && status !== 'PAYED'
+    && startTime.getTime() > now.getTime() + CUSTOMER_CANCELLATION_WINDOW_MS
 }
 
 /**
