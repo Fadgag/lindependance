@@ -7,12 +7,9 @@ import type { NextAuthRequest } from 'next-auth'
 // On utilise NextAuthRequest plutôt qu'un cast ou une augmentation de module pour avoir
 // un typage correct sans double cast unsafe.
 async function middlewareFn(req: NextAuthRequest) {
-  const pathname = String(req.nextUrl?.pathname ?? '')
-  if (pathname === '/portail' || pathname.startsWith('/portail/')) return
-
   const authClaim = req.auth ?? null
   const isLoggedIn = !!authClaim
-  const isAuthPage = pathname.startsWith("/auth")
+  const isAuthPage = String(req.nextUrl?.pathname ?? '').startsWith("/auth")
 
   if (!isLoggedIn && !isAuthPage) {
     return Response.redirect(new URL("/auth/signin", req.nextUrl))

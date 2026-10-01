@@ -17,7 +17,6 @@ import UnavailabilityModal from './calendar/UnavailabilityModal';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/shift-away.css';
 import { BanIcon } from 'lucide-react';
-import PortalBookingCounter from '@/components/customer-portal/PortalBookingCounter'
 
 export default function AppointmentScheduler() {
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -45,8 +44,7 @@ export default function AppointmentScheduler() {
     return (
         <div className="flex-1 flex flex-col h-full w-full p-6 min-h-0">
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-3">
-                <PortalBookingCounter />
+            <div className="flex justify-end mb-3">
                 <button
                     onClick={() => {
                         // If possible, prefill modal with currently visible calendar range.

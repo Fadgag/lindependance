@@ -1,6 +1,6 @@
 ---
 name: quality-playbook
-description: "Explore a codebase and help create a project-specific quality playbook: a quality constitution, spec-traced functional tests, review and integration protocols, an optional spec-audit protocol, and AI bootstrap guidance. Works with any language. Use when the user asks to establish or improve a quality system, generate functional tests from specifications, create a quality constitution, or audit code against specs."
+description: "Explore any codebase from scratch and generate six quality artifacts: a quality constitution (QUALITY.md), spec-traced functional tests, a code review protocol with regression test generation, an integration testing protocol, a multi-model spec audit (Council of Three), and an AI bootstrap file (AGENTS.md). Works with any language (Python, Java, Scala, TypeScript, Go, Rust, etc.). Use this skill whenever the user asks to set up a quality playbook, generate functional tests from specifications, create a quality constitution, build testing protocols, audit code against specs, or establish a repeatable quality system for a project. Also trigger when the user mentions 'quality playbook', 'spec audit', 'Council of Three', 'fitness-to-purpose', 'coverage theater', or wants to go beyond basic test generation to build a full quality system grounded in their actual codebase."
 license: Complete terms in LICENSE.txt
 metadata:
   version: 1.1.0
@@ -27,22 +27,20 @@ Without a quality playbook, every new contributor (and every new AI session) sta
 
 ## What This Skill Produces
 
-Six coordinated artifacts that together form a repeatable quality system:
+Six files that together form a repeatable quality system:
 
 | File | Purpose | Why It Matters | Executes Code? |
 |------|---------|----------------|----------------|
 | `quality/QUALITY.md` | Quality constitution — coverage targets, fitness-to-purpose scenarios, theater prevention | Every AI session reads this first. It tells them what "good enough" means so they don't guess. | No |
-| Existing test suite | Functional tests derived from specifications | Tests tied to what the spec says should happen, using the project's language, runner, and test-file conventions. | **Yes** |
+| `quality/test_functional.*` | Automated functional tests derived from specifications | The safety net. Tests tied to what the spec says should happen, not just what the code does. Use the project's language: `test_functional.py` (Python), `FunctionalSpec.scala` (Scala), `functional.test.ts` (TypeScript), `FunctionalTest.java` (Java), etc. | **Yes** |
 | `quality/RUN_CODE_REVIEW.md` | Code review protocol with guardrails that prevent hallucinated findings | AI code reviews without guardrails produce confident but wrong findings. The guardrails (line numbers, grep before claiming, read bodies) often improve accuracy. | No |
-| `quality/RUN_INTEGRATION_TESTS.md` | Integration test protocol — end-to-end behavior across relevant variants | Unit tests pass, but do the components work together in a safe test environment? | **Yes** |
-| `quality/RUN_SPEC_AUDIT.md` | Optional spec-audit protocol | A repeatable comparison of code with specifications; additional models are optional and require availability and user approval. | No |
+| `quality/RUN_INTEGRATION_TESTS.md` | Integration test protocol — end-to-end pipeline across all variants | Unit tests pass, but does the system actually work end-to-end with real external services? | **Yes** |
+| `quality/RUN_SPEC_AUDIT.md` | Council of Three multi-model spec audit protocol | No single AI model catches everything. Three independent models with different blind spots catch defects that any one alone would miss. | No |
 | `AGENTS.md` | Bootstrap context for any AI session working on this project | The "read this first" file. Without it, AI sessions waste their first hour figuring out what's going on. | No |
 
 Plus output directories: `quality/code_reviews/`, `quality/spec_audits/`, `quality/results/`.
 
-The critical deliverable is useful, discoverable verification grounded in the
-project's specifications. The Markdown protocols are documentation for humans
-and AI agents; tests must remain within the project's configured test structure.
+The critical deliverable is the functional test file (named for the project's language and test framework conventions). The Markdown protocols are documentation for humans and AI agents. The functional tests are the automated safety net.
 
 ## How to Use
 
@@ -60,9 +58,7 @@ Update the functional tests — the quality playbook already exists.
 Run the spec audit protocol.
 ```
 
-If a quality playbook already exists (`quality/QUALITY.md`, test documentation,
-etc.), read the existing files first, then evaluate them against the self-check
-benchmarks. Don't assume existing files are complete.
+If a quality playbook already exists (`quality/QUALITY.md`, functional tests, etc.), read the existing files first, then evaluate them against the self-check benchmarks in the verification phase. Don't assume existing files are complete — treat them as a starting point.
 
 ---
 
@@ -74,23 +70,22 @@ Spend the first phase understanding the project. The quality playbook must be gr
 
 **Scaling for large codebases:** For projects with more than ~50 source files, don't try to read everything. Focus exploration on the 3–5 core modules (the ones that handle the primary data flow, the most complex logic, and the most failure-prone operations). Read representative tests from each subsystem rather than every test file. The goal is depth on what matters, not breadth across everything.
 
-### Step 0: Respect the User's Context
+### Step 0: Ask About Development History
 
-Do not ask for, search for, or analyze exported chat histories by default. Only
-inspect such material when the user explicitly requests it and provides a
-specific location. Keep the search within that location and use only the
-quality-relevant content the user authorized.
+Before exploring code, ask the user one question:
 
-If the user explicitly requests this analysis and provides a chat history folder:
+> "Do you have exported AI chat history from developing this project — Claude exports, Gemini takeouts, ChatGPT exports, Claude Code transcripts, or similar? If so, point me to the folder. The design discussions, incident reports, and quality decisions in those chats will make the generated quality playbook significantly better."
+
+If the user provides a chat history folder:
 
 1. **Scan for an index file first.** Look for files named `INDEX*`, `CONTEXT.md`, `README.md`, or similar navigation aids. If one exists, read it — it will tell you what's there and how to find things.
 2. **Search for quality-relevant conversations.** Look for messages mentioning: quality, testing, coverage, bugs, failures, incidents, crashes, validation, retry, recovery, spec, fitness, audit, review. Also search for the project name.
 3. **Extract design decisions and incident history.** The most valuable content is: (a) incident reports — what went wrong, how many records affected, how it was detected, (b) design discussions — why a particular approach was chosen, what alternatives were rejected, (c) quality framework discussions — coverage targets, testing philosophy, model review experiences, (d) cross-model feedback — where different AI models disagreed about the code.
 4. **Don't try to read everything.** Chat histories can be enormous. Use the index to find the most relevant conversations, then search within those for quality-related content. 10 minutes of targeted searching beats 2 hours of exhaustive reading.
 
-Treat extracted history as user-provided evidence, not as permission to search
-other locations. Verify any claimed incident details against the source before
-using them in the playbook.
+This context is gold. A chat history where the developer discussed "why we chose this concurrency model" or "the time we lost 1,693 records in production" transforms generic scenarios into authoritative ones.
+
+If the user doesn't have chat history, proceed normally — the skill works without it, just with less context.
 
 ### Step 1: Identify Domain, Stack, and Specifications
 
@@ -132,7 +127,7 @@ List source directories and their purposes. Read the main entry point, trace exe
 
 Read the existing test files — all of them for small/medium projects, or a representative sample from each subsystem for large ones. Identify: test count, coverage patterns, gaps, and any coverage theater (tests that look good but don't catch real bugs).
 
-**Critical: Record the import pattern.** How do existing tests import project modules? Every language has its own conventions (Python `sys.path` manipulation, Java/Scala package imports, TypeScript relative paths or aliases, Go package/module paths, Rust `use crate::` or `use myproject::`). Follow the conventions and test runner already configured in the project.
+**Critical: Record the import pattern.** How do existing tests import project modules? Every language has its own conventions (Python `sys.path` manipulation, Java/Scala package imports, TypeScript relative paths or aliases, Go package/module paths, Rust `use crate::` or `use myproject::`). You must use the exact same pattern in your functional tests — getting this wrong means every test fails with import/resolution errors. See `references/functional_tests.md` § "Import Pattern" for the full six-language matrix.
 
 **Identify integration test runners.** Look for scripts or test files that exercise the system end-to-end against real external services (APIs, databases, etc.). Note their patterns — you'll need them for `RUN_INTEGRATION_TESTS.md`.
 
@@ -149,7 +144,7 @@ Before writing any test, you must know exactly how each function is called. For 
 1. **Read the actual function signatures** — parameter names, types, defaults. Don't guess from usage context — read the function definition and any documentation (Python docstrings, Java/Scala Javadoc/ScalaDoc, TypeScript type annotations, Go godoc comments, Rust doc comments and type signatures).
 2. **Read real data files** — If the project has items files, fixture files, config files, or sample data (in `pipelines/`, `fixtures/`, `test_data/`, `examples/`), read them. Your test fixtures must match the real data shape exactly.
 3. **Read existing test fixtures** — How do existing tests create test data? Copy their patterns. If they build config dicts with specific keys, use those exact keys.
-4. **Check library versions** — Check the project's dependency manifest (`requirements.txt`, `build.sbt`, `package.json`, `pom.xml`/`build.gradle`, `go.mod`, `Cargo.toml`) to see what's actually available. Don't write tests that depend on library features that aren't installed.
+4. **Check library versions** — Check the project's dependency manifest (`requirements.txt`, `build.sbt`, `package.json`, `pom.xml`/`build.gradle`, `go.mod`, `Cargo.toml`) to see what's actually available. Don't write tests that depend on library features that aren't installed. If a dependency might be missing, use the test framework's skip mechanism — see `references/functional_tests.md` § "Library version awareness" for framework-specific examples.
 
 Record a **function call map**: for each function you plan to test, write down its name, module, parameters, and what it returns. This map prevents the most common test failure: calling functions with wrong arguments.
 
@@ -159,15 +154,15 @@ This is the most important step. Search for defensive code patterns — each one
 
 **Why this matters:** Developers don't write `try/except` blocks, null checks, or retry logic for fun. Every piece of defensive code exists because someone got burned. A `try/except` around a JSON parse means malformed JSON happened in production. A null check on a field means that field was missing when it shouldn't have been. These patterns are the codebase whispering its history of failures. Each one becomes a fitness-to-purpose scenario and a boundary test.
 
-Search for relevant defensive patterns and read the surrounding code. Record only
-patterns supported by evidence; there is no minimum count per file.
+**Read `references/defensive_patterns.md`** for the systematic search approach, grep patterns, and how to convert findings into fitness-to-purpose scenarios and boundary tests.
+
+Minimum bar: at least 2–3 defensive patterns per core source file. If you find fewer, you're skimming — read function bodies, not just signatures.
 
 ### Step 5b: Map Schema Types
 
 If the project has a validation layer (Pydantic models in Python, JSON Schema, TypeScript interfaces/Zod schemas, Java Bean Validation annotations, Scala case class codecs), read the schema definitions now. For every field you found a defensive pattern for, record what the schema accepts vs. rejects.
 
-Use the project's actual schemas to determine which input values are valid before
-designing boundary tests.
+**Read `references/schema_mapping.md`** for the mapping format and why this matters for writing valid boundary tests.
 
 ### Step 6: Identify Quality Risks (Code + Domain Knowledge)
 
@@ -185,63 +180,55 @@ Every project has a different failure profile. This step uses **two sources** �
 - "What happens at 10x scale that doesn't happen at 1x?" — Chunk boundaries, rate limits, timeout cascading, memory pressure.
 - "What happens when this process is killed at the worst possible moment?" — Mid-write, mid-transaction, mid-batch-submission.
 
-Generate plausible failure scenarios from this knowledge, but label them as
-hypotheses unless supported by project evidence. Ground code claims in actual
-files and functions. Use numerical impact only when verified from project data;
-otherwise describe the impact qualitatively and state the assumptions.
+Generate realistic failure scenarios from this knowledge. You don't need to have observed these failures — you know from training that they happen to systems of this type. Write them as **architectural vulnerability analyses** with specific quantities and consequences. Frame each as "this architecture permits the following failure mode" — not as a fabricated incident report. Use concrete numbers to make the severity non-negotiable: "If the process crashes mid-write during a 10,000-record batch, `save_state()` without an atomic rename pattern will leave a corrupted state file — the next run gets JSONDecodeError and cannot resume without manual intervention." Then ground them in the actual code you explored: "Read persistence.py line ~340 (save_state): verify temp file + rename pattern."
 
 ---
 
 ## Phase 2: Generate the Quality Playbook
 
-Produce the six artifacts. For each one, follow the structure below and ground it in the repository and its configured tooling.
+Now write the six files. For each one, follow the structure below and consult the relevant reference file for detailed guidance.
 
-**Why a playbook instead of just tests?** Tests catch regressions but do not
-prevent every category of bug. The quality constitution (`QUALITY.md`) records
-project-specific expectations. The protocols (`RUN_*.md`) provide repeatable
-review, integration-test, and spec-audit processes. Map scenarios to suitable
-verification without requiring a one-to-one test count or a multi-model audit.
+**Why six files instead of just tests?** Tests catch regressions but don't prevent new categories of bugs. The quality constitution (`QUALITY.md`) tells future sessions what "correct" means before they start writing code. The protocols (`RUN_*.md`) provide structured processes for review, integration testing, and spec auditing that produce repeatable results — instead of leaving quality to whatever the AI feels like checking. Together, these files create a quality system where each piece reinforces the others: scenarios in QUALITY.md map to tests in the functional test file, which are verified by the integration protocol, which is audited by the Council of Three.
 
 ### File 1: `quality/QUALITY.md` — Quality Constitution
+
+**Read `references/constitution.md`** for the full template and examples.
 
 The constitution has six sections:
 
 1. **Purpose** — What quality means for this project, grounded in Deming (built in, not inspected), Juran (fitness for use), Crosby (quality is free). Apply these specifically: what does "fitness for use" mean for *this system*? Not "tests pass" but the actual operational requirement.
 2. **Coverage Targets** — Table mapping each subsystem to a target with rationale referencing real risks. Every target must have a "why" grounded in a specific scenario — without it, a future AI session will argue the target down.
 3. **Coverage Theater Prevention** — Project-specific examples of fake tests, derived from what you saw during exploration. (Why: AI-generated tests often pad coverage numbers without catching real bugs — asserting that imports worked, that dicts have keys, or that mocks return what they were configured to return. Calling this out explicitly stops the pattern.)
-4. **Fitness-to-Purpose Scenarios** — Each scenario documents a plausible failure mode with code references and a verification method. Add only scenarios relevant to the project; do not target a fixed count.
+4. **Fitness-to-Purpose Scenarios** — The heart of it. Each scenario documents a realistic failure mode with code references and verification method. Aim for 2+ scenarios per core module — typically 8–10 total for a medium project, fewer for small projects, more for complex ones. Quality matters more than count: a scenario that precisely captures a real architectural vulnerability is worth more than three generic ones. (Why: Coverage percentages tell you how much code ran, not whether it ran correctly. A system can have 95% coverage and still lose records silently. Fitness scenarios define what "working correctly" actually means in concrete terms that no one can argue down.)
 5. **AI Session Quality Discipline** — Rules every AI session must follow
 6. **The Human Gate** — Things requiring human judgment
 
-Scenarios must distinguish observed facts from hypotheses. Ground code claims in
-the repository and numerical impact in verified project data. If an impact is
-hypothetical, label it as an assumption and do not present it as an incident or a
-measured quantity.
+**Scenario voice is critical.** Write "What happened" as architectural vulnerability analyses with specific quantities, cascade consequences, and detection difficulty — not as abstract specifications. "Because `save_state()` lacks an atomic rename pattern, a mid-write crash during a 10,000-record batch will leave a corrupted state file — the next run gets JSONDecodeError and cannot resume. At scale, this risks silent loss of 1,693+ records with no detection mechanism." An AI session reading that will not argue the standard down. Use your knowledge of similar systems to generate realistic failure scenarios, then ground them in the actual code you explored. Scenarios come from both code exploration AND domain knowledge about what goes wrong in systems like this.
 
-Every scenario must have an appropriate verification method. Prefer an automated
-test when the behavior can be tested reliably and the project has a suitable runner.
+Every scenario's "How to verify" must map to at least one test in the functional test file.
 
 ### File 2: Functional Tests
 
-**This is the most important deliverable.** Keep tests tied to actual requirements
-and runnable through the project's existing test setup.
+**This is the most important deliverable.** Read `references/functional_tests.md` for the complete guide.
 
-Organize the verification into logical groups using the project's test framework:
+Organize the tests into three logical groups (classes, describe blocks, modules, or whatever the test framework uses):
 
-- **Spec requirements** — Cover testable requirements with meaningful tests and cite the requirement each test verifies.
-- **Fitness scenarios** — Map each scenario to an appropriate test or other verification method.
-- **Boundaries and edge cases** — Add cases for relevant defensive patterns where the behavior is testable.
+- **Spec requirements** — One test per testable spec section. Each test's documentation cites the spec requirement it verifies.
+- **Fitness scenarios** — One test per QUALITY.md scenario. 1:1 mapping, named to match.
+- **Boundaries and edge cases** — One test per defensive pattern from Step 5.
 
 Key rules:
 - **Match the existing import pattern exactly.** Read how existing tests import project modules and do the same thing. Getting this wrong means every test fails.
 - **Read every function's signature before calling it.** Read the actual `def` line — parameter names, types, defaults. Read real data files from the project to understand data shapes. Do not guess at function parameters or fixture structures.
 - **No placeholder tests.** Every test must import and call actual project code. If the body is `pass` or the assertion is trivial (`assert isinstance(x, list)`), delete it. A test that doesn't exercise project code inflates the count and creates false confidence.
-- **No test quotas.** Choose test cases from requirements, risks, and meaningful edge cases. Do not add tests to hit a count or percentage.
-- **Cross-variant coverage.** When behavior is shared across variants, test relevant variants; choose coverage based on risk rather than a fixed percentage.
+- **Test count heuristic** = (testable spec sections) + (QUALITY.md scenarios) + (defensive patterns). For a medium project (5–15 source files), this typically yields 35–50 tests. Significantly fewer suggests missed requirements or shallow exploration. Significantly more is fine if every test is meaningful — don't pad to hit a number.
+- **Cross-variant heuristic: ~30%** — If the project handles multiple input types, aim for roughly 30% of tests parametrized across all variants. The exact percentage matters less than ensuring every cross-cutting property is tested across all variants.
 - **Test outcomes, not mechanisms** — Assert what the spec says should happen, not how the code implements it.
 - **Use schema-valid mutations** — Boundary tests must use values the schema accepts (from Step 5b), not values it rejects.
 
 ### File 3: `quality/RUN_CODE_REVIEW.md`
+
+**Read `references/review_protocols.md`** for the template.
 
 Key sections: bootstrap files, focus areas mapped to architecture, and these mandatory guardrails:
 
@@ -251,51 +238,39 @@ Key sections: bootstrap files, focus areas mapped to architecture, and these man
 - Grep before claiming missing
 - Do NOT suggest style changes — only flag things that are incorrect
 
-**Phase 2: Regression tests.** After the review produces confirmed BUG findings,
-add regression tests in the project's existing test structure. Each test should
-reproduce the bug before the fix. Report results as a confirmation table
-(BUG CONFIRMED / FALSE POSITIVE / NEEDS INVESTIGATION).
+**Phase 2: Regression tests.** After the review produces BUG findings, write regression tests in `quality/test_regression.*` that reproduce each bug. Each test should fail on the current implementation, confirming the bug is real. Report results as a confirmation table (BUG CONFIRMED / FALSE POSITIVE / NEEDS INVESTIGATION). See `references/review_protocols.md` for the full regression test protocol.
 
 ### File 4: `quality/RUN_INTEGRATION_TESTS.md`
+
+**Read `references/review_protocols.md`** for the template.
 
 Must include: safety constraints, pre-flight checks, test matrix with specific pass criteria, an execution UX section, and a structured reporting format. Cover happy path, cross-variant consistency, output correctness, and component boundaries.
 
 **All commands must use relative paths.** The generated protocol should include a "Working Directory" section at the top stating that all commands run from the project root using relative paths. Never generate commands that `cd` to an absolute path — this breaks when the protocol is run from a different machine or directory. Use `./scripts/`, `./pipelines/`, `./quality/`, etc.
 
-**Include an Execution UX section.** Specify how to present the plan, concise
-progress updates when useful, and a final summary of pass/fail counts and limitations.
+**Include an Execution UX section.** When someone tells an AI agent to "run the integration tests," the agent needs to know how to present its work. The protocol should specify three phases: (1) show the plan as a numbered table before running anything, (2) report one-line progress updates as each test runs (`✓`/`✗`/`⧗`), (3) show a summary table with pass/fail counts and a recommendation. See `references/review_protocols.md` section "Execution UX" for the template and examples. Without this, the agent dumps raw output or stays silent — neither is useful.
 
-**Use safe integration targets.** Exercise real external dependencies only in
-approved test environments with disposable data and no production credentials. If
-a live integration is unsafe, unavailable, costly, or has external side effects,
-use a contract test, a controlled test double, or request human approval before
-running it.
+**This protocol must exercise real external dependencies.** If the project talks to APIs, databases, or external services, the integration test protocol runs real end-to-end executions against those services — not just local validation checks. Design the test matrix around the project's actual execution modes and external dependencies. Look for API keys, provider abstractions, and existing integration test scripts during exploration and build on them.
 
 **Derive quality gates from the code, not generic checks.** Read validation rules, schema enums, and generation logic during exploration. Turn them into per-pipeline quality checks with specific fields and acceptable value ranges. "All units validated" is not enough — the protocol must verify domain-specific correctness.
 
-**Use parallelism only when safe.** Parallelize independent test runs when the
-test environment, data isolation, and service rate limits allow it.
+**Script parallelism, don't just describe it.** Group runs so independent executions (different providers) run concurrently. Include actual bash commands with `&` and `wait`. One run per provider at a time to avoid rate limits.
 
-**Calibrate test size to the project.** Use representative cases and the smallest
-dataset that can validate the required behavior and relevant boundaries.
+**Calibrate unit counts to the project.** Read `chunk_size` or equivalent config. Use enough units to span at least 2 chunks and enough to verify distribution checks. Typically 10–30 for integration testing.
 
 **Deep post-run verification.** Don't stop at "process completed." Verify log files, manifest state, output data existence, sample record content, and any existing quality check scripts — for every run.
 
 **Find and use existing verification tools.** Search for existing scripts that verify output quality (e.g., `integration_checks.py`, validation scripts, quality gate functions). If they exist, call them from the protocol. If the project has a TUI or dashboard, include TUI verification commands (e.g., `--dump` flags) in the post-run checklist.
 
-For schema-driven quality gates, optionally build a field reference table from the
-actual schema. Copy names and constraints exactly, and include only fields
-relevant to the checks.
+**Build a Field Reference Table before writing quality gates.** This is the most important step for protocol accuracy. AI models confidently write wrong field names even after reading schemas — `document_id` becomes `doc_id`, `sentiment_score` becomes `sentiment`, `float 0-1` becomes `int 0-100`. The fix is procedural: **re-read each schema file IMMEDIATELY before writing each table row.** Do not rely on what you read earlier in the conversation — your memory of field names drifts over thousands of tokens. Copy field names character-for-character from the file contents. Include ALL fields from each schema (if the schema has 8 fields, the table has 8 rows). See `references/review_protocols.md` section "The Field Reference Table" for the full process and format. Do not skip this step — it prevents the single most common protocol inaccuracy.
 
-### File 5: `quality/RUN_SPEC_AUDIT.md` — Optional Spec Audit
+### File 5: `quality/RUN_SPEC_AUDIT.md` — Council of Three
 
-When requested and available, independent AI models can audit the code against
-specifications. Do not assume access to particular models or incur external
-costs without approval.
+**Read `references/spec_audit.md`** for the full protocol.
 
-The protocol should define a copy-pasteable audit prompt with guardrails,
-project-specific scrutiny areas, triage by evidence and confidence, and fix
-execution rules.
+Three independent AI models audit the code against specifications. Why three? Because each model has different blind spots — in practice, different auditors catch different issues. Cross-referencing catches what any single model misses.
+
+The protocol defines: a copy-pasteable audit prompt with guardrails, project-specific scrutiny areas, a triage process (merge findings by confidence level), and fix execution rules (small batches by subsystem, not mega-prompts).
 
 ### File 6: `AGENTS.md`
 
@@ -311,19 +286,20 @@ If creating from scratch: project description, setup commands, build & test comm
 
 ### Self-Check Benchmarks
 
-Before declaring done, verify the generated artifacts against the project
-configuration and the user's requirements.
+Before declaring done, check every benchmark. **Read `references/verification.md`** for the complete checklist.
 
 The critical checks:
 
-1. **Scenario coverage** — Each documented scenario has an appropriate verification method; add tests where justified.
-2. **Assertion depth** — Assertions check meaningful outcomes rather than only presence.
-3. **Layer correctness** — Tests assert outcomes, not incidental implementation details.
-4. **Mutation validity** — Test data follows the actual schemas and project fixtures.
-5. **Test discovery** — New tests are in a location discovered by the existing test runner.
-6. **Existing tests unbroken** — Confirm that the generated artifacts do not disrupt the existing suite.
-7. **Test results** — Run the smallest relevant configured test command; report failures, errors, skipped tests, and unavailable dependencies accurately.
-8. **Evidence quality** — Claims, field names, and numeric impact are traceable to project sources or clearly labeled as hypotheses.
+1. **Test count** near heuristic target (spec sections + scenarios + defensive patterns)
+2. **Scenario coverage** — scenario test count matches QUALITY.md scenario count
+3. **Cross-variant coverage** — ~30% of tests parametrize across all input variants
+4. **Boundary test count** ≈ defensive pattern count from Step 5
+5. **Assertion depth** — Majority of assertions check values, not just presence
+6. **Layer correctness** — Tests assert outcomes (what spec says), not mechanisms (how code implements)
+7. **Mutation validity** — Every fixture mutation uses a schema-valid value from Step 5b
+8. **All tests pass — zero failures AND zero errors.** Run the test suite using the project's test runner (Python: `pytest -v`, Scala: `sbt testOnly`, Java: `mvn test`/`gradle test`, TypeScript: `npx jest`, Go: `go test -v`, Rust: `cargo test`) and check the summary. Errors from missing fixtures, failed imports, or unresolved dependencies count as broken tests. If you see setup errors, you forgot to create the fixture/setup file or referenced undefined test helpers.
+9. **Existing tests unbroken** — The new files didn't break anything.
+10. **Integration test quality gates were written from a Field Reference Table.** Verify that you built a Field Reference Table by re-reading each schema file before writing quality gates, and that every field name in the quality gates is copied from that table — not from memory. If you skipped the table, go back and build it now.
 
 If any benchmark fails, go back and fix it before proceeding.
 
@@ -344,11 +320,11 @@ Here's what I generated:
 
 | File | What It Does | Key Metric | Confidence |
 |------|-------------|------------|------------|
-| QUALITY.md | Quality constitution | `[N]` evidence-linked scenarios | Confidence derived from source quality |
-| Functional tests | Automated tests | `[N]` relevant tests | Report actual results and skipped tests |
-| RUN_CODE_REVIEW.md | Code review protocol | Project-specific focus areas | Grounded in inspected architecture |
-| RUN_INTEGRATION_TESTS.md | Integration test protocol | Safe, relevant test cases | Note external dependencies and limitations |
-| RUN_SPEC_AUDIT.md | Optional spec-audit protocol | Areas tied to the specification | Use additional models only when requested and available |
+| QUALITY.md | Quality constitution | 10 scenarios | ██████░░ High — grounded in code, but scenarios are inferred, not from real incidents |
+| Functional tests | Automated tests | 47 passing | ████████ High — all tests pass, 35% cross-variant |
+| RUN_CODE_REVIEW.md | Code review protocol | 8 focus areas | ████████ High — derived from architecture |
+| RUN_INTEGRATION_TESTS.md | Integration test protocol | 9 runs × 3 providers | ██████░░ Medium — quality gates need threshold tuning |
+| RUN_SPEC_AUDIT.md | Council of Three audit | 10 scrutiny areas | ████████ High — guardrails included |
 | AGENTS.md | AI session bootstrap | Updated | ████████ High — factual |
 ```
 
@@ -368,13 +344,13 @@ To use these artifacts, start a new AI session and try one of these prompts:
   "Read quality/RUN_CODE_REVIEW.md and follow its instructions to review [module or file]."
 
 • Run the functional tests:
-  "[the relevant test command from the project's configured test runner]"
+  "[test runner command, e.g. pytest quality/ -v, mvn test -Dtest=FunctionalTest, etc.]"
 
 • Run the integration tests:
   "Read quality/RUN_INTEGRATION_TESTS.md and follow its instructions."
 
-• Start a spec audit:
-  "Read quality/RUN_SPEC_AUDIT.md and follow its instructions. Use additional models only if I request them."
+• Start a spec audit (Council of Three):
+  "Read quality/RUN_SPEC_AUDIT.md and follow its instructions using [model name]."
 ```
 
 Adapt the test runner command and module names to the actual project. The point is to give the user copy-pasteable prompts — not descriptions of what they could do, but the actual text they'd type.
@@ -397,11 +373,13 @@ The user may go through several drill-downs before they're ready to improve anyt
 
 After the user has seen the summary (and optionally drilled into details), present the improvement options:
 
-> "Two ways to make this better:"
+> "Three ways to make this better:"
 >
 > **1. Review and harden individual items** — Pick any scenario, test, or protocol section and I'll walk through it with you. Good for: tightening specific quality gates, fixing inferred scenarios, adding missing edge cases.
 >
 > **2. Guided Q&A** — I'll ask you 3-5 targeted questions about things I couldn't infer from the code: incident history, expected distributions, cost tolerance, model preferences. Good for: filling knowledge gaps that make scenarios more authoritative.
+>
+> **3. Review development history** — Point me to exported AI chat history (Claude, Gemini, ChatGPT exports, Claude Code transcripts) and I'll mine it for design decisions, incident reports, and quality discussions that should be in QUALITY.md. Good for: grounding scenarios in real project history instead of inference.
 >
 > "You can do any combination of these, in any order. Which would you like to start with?"
 
@@ -411,13 +389,22 @@ After the user has seen the summary (and optionally drilled into details), prese
 
 **Path 2: Guided Q&A.** Ask 3-5 questions derived from what you actually found during exploration. These categories cover the most common high-leverage gaps:
 
-- **Incident history for scenarios.** "I found [specific defensive code]. Is there a confirmed incident or known impact? If not, I'll keep the scenario labeled as a hypothesis."
+- **Incident history for scenarios.** "I found [specific defensive code]. What failure caused this? How many records were affected?"
 - **Quality gate thresholds.** "I'm checking that [field] contains [values]. What distribution is normal? What signals a problem?"
 - **Integration test scale and cost.** "The protocol runs [N] tests costing roughly $[X]. Should I increase or decrease coverage?"
 - **Test scope.** "I generated [N] functional tests. Your existing suite covers [other areas]. Are there gaps?"
 - **Model preferences for spec audit.** "Which AI models do you use? Have you noticed specific strengths?"
 
 After the user answers, revise the generated files and re-run tests.
+
+**Path 3: Review development history.** If the user provides a chat history folder:
+
+1. Scan for index files and navigate to quality-relevant conversations (same approach as Step 0, but now with specific targets — you know which scenarios need grounding, which quality gates need thresholds, which design decisions need rationale).
+2. Extract: incident stories with specific numbers, design rationale for defensive patterns, quality framework discussions, cross-model audit results.
+3. Revise QUALITY.md scenarios with real incident details. Update integration test thresholds with real-world values. Add Council of Three empirical data if audit results exist.
+4. Re-run tests after revisions.
+
+If the user already provided chat history in Step 0, you've already mined it — but they may want to point you to specific conversations or ask you to dig deeper into a particular topic.
 
 ### Iteration
 
@@ -427,9 +414,7 @@ The user can cycle through these paths as many times as they want. Each pass mak
 
 ## Fixture Strategy
 
-Use the existing test directory and runner. Only create a separate `quality/`
-test setup when the repository configuration discovers it and the user wants it.
-Use the project's established fixture strategy:
+The `quality/` folder is separate from the project's unit test folder. Create the appropriate test setup for the project's language:
 
 - **Python:** `quality/conftest.py` for pytest fixtures. If fixtures are defined inline (common with pytest's `tmp_path` pattern), prefer that over shared fixtures.
 - **Java:** A test class with `@BeforeEach`/`@BeforeAll` setup methods, or a shared test utility class.
@@ -438,15 +423,14 @@ Use the project's established fixture strategy:
 - **Go:** Helper functions in the same `_test.go` file or a shared `testutil_test.go`. Use `t.Helper()` for test helpers. Go convention prefers inline test setup over shared fixtures.
 - **Rust:** Helper functions in a `#[cfg(test)] mod tests` block, or a shared `test_utils.rs` module. Use builder patterns for test data.
 
-Examine existing test files to understand how they set up test data. Reuse the
-project's established patterns and fixtures for realistic data shapes.
+Examine existing test files to understand how they set up test data. Whatever pattern the existing tests use, copy it. Study existing fixture patterns for realistic data shapes.
 
 ---
 
 ## Terminology
 
 - **Functional testing** — Does the code produce the output specs say it should? Distinct from unit testing (individual functions in isolation).
-- **Integration testing** — Do components work together end-to-end in a safe test environment?
+- **Integration testing** — Do components work together end-to-end, including real external services?
 - **Spec audit** — AI models read code and compare against specs. No code executed. Catches where code doesn't match documentation.
 - **Coverage theater** — Tests that produce high coverage numbers but don't catch real bugs. Example: asserting a function didn't throw without checking its output.
 - **Fitness-to-purpose** — Does the code do what it's supposed to do under real-world conditions? A system can have 95% coverage and still lose records silently.
@@ -456,15 +440,23 @@ project's established patterns and fixtures for realistic data shapes.
 ## Principles
 
 1. Fitness-to-purpose over coverage percentages
-2. Scenarios come from code exploration and, when useful, clearly labeled hypotheses
-3. Evidence-backed failure modes make standards actionable
+2. Scenarios come from code exploration AND domain knowledge
+3. Concrete failure modes make standards non-negotiable — abstract requirements invite rationalization
 4. Guardrails transform AI review quality (line numbers, read bodies, grep before claiming)
 5. Triage before fixing — many "defects" are spec bugs or design decisions
 
 ---
 
-## Self-Contained Guidance
+## Reference Files
 
-This skill contains its own workflow and checklists. Do not assume companion
-`references/` files exist; use project documentation and configuration as the
-source of truth.
+Read these as you work through each phase:
+
+| File | When to Read | Contains |
+|------|-------------|----------|
+| `references/defensive_patterns.md` | Step 5 (finding skeletons) | Grep patterns, how to convert findings to scenarios |
+| `references/schema_mapping.md` | Step 5b (schema types) | Field mapping format, mutation validity rules |
+| `references/constitution.md` | File 1 (QUALITY.md) | Full template with section-by-section guidance |
+| `references/functional_tests.md` | File 2 (functional tests) | Test structure, anti-patterns, cross-variant strategy |
+| `references/review_protocols.md` | Files 3–4 (code review, integration) | Templates for both protocols |
+| `references/spec_audit.md` | File 5 (Council of Three) | Full audit protocol, triage process, fix execution |
+| `references/verification.md` | Phase 3 (verify) | Complete self-check checklist with all 13 benchmarks |

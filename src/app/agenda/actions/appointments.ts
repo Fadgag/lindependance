@@ -35,18 +35,11 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
 
   // Determine assigned staff: prefer provided staffId, else fallback to first staff in the org
   let assignedStaffId = staffId
-  const assignedStaff = await prisma.staff.findFirst({
-    where: {
-      organizationId: orgId,
-      active: true,
-      ...(assignedStaffId ? { id: assignedStaffId } : {}),
-    },
-    select: { id: true },
-  })
-  if (!assignedStaff) {
-    return { error: assignedStaffId ? 'Praticien introuvable' : 'No staff available to assign' }
+  if (!assignedStaffId) {
+    const fallback = await prisma.staff.findFirst({ where: { organizationId: orgId } })
+    assignedStaffId = fallback?.id
   }
-  assignedStaffId = assignedStaff.id
+  if (!assignedStaffId) return { error: 'No staff available to assign' }
 
   // Anti-overlap : verifier si le staff a un rendez-vous qui chevauche [startDate, endDate)
   // NOTE: use assignedStaffId (never undefined) to avoid Prisma ignoring the filter when staffId is undefined
@@ -86,3 +79,4 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
 
   return appointment
 }
+

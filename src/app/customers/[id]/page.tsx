@@ -15,9 +15,6 @@ export default function ClientDetail() {
   const [loading, setLoading] = useState(true)
   const [editingNotes, setEditingNotes] = useState('')
   const [saving, setSaving] = useState(false)
-  const [editingEmail, setEditingEmail] = useState('')
-  const [savingEmail, setSavingEmail] = useState(false)
-  const [emailMessage, setEmailMessage] = useState('')
 
   // État pour gérer l'ouverture de la modal de détail/paiement
   const [selectedApt, setSelectedApt] = useState<CheckoutAppointment | null>(null)
@@ -31,7 +28,6 @@ export default function ClientDetail() {
         const data = await res.json()
         setClient(data)
         setEditingNotes(data.Note || '')
-        setEditingEmail(data.email || '')
       }
     } catch (err: unknown) {
       clientError('Erreur chargement client', err)
@@ -57,32 +53,6 @@ export default function ClientDetail() {
     }
   }
 
-  const saveEmail = async () => {
-    if (!client) return
-    setSavingEmail(true)
-    setEmailMessage('')
-    try {
-      const res = await fetch('/api/customers', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: client.id, email: editingEmail.trim() || null })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setEmailMessage(data.error || 'Impossible d’enregistrer cet email.')
-        return
-      }
-      setClient((current) => current ? { ...current, email: data.email } : current)
-      setEditingEmail(data.email || '')
-      setEmailMessage('Email de contact enregistré.')
-    } catch (err: unknown) {
-      clientError('Erreur enregistrement email client', err)
-      setEmailMessage('Impossible d’enregistrer cet email.')
-    } finally {
-      setSavingEmail(false)
-    }
-  }
-
   if (loading) return <div className="p-8 animate-pulse text-studio-muted">Chargement de la fiche client...</div>
   if (!client) return <div className="p-8 text-center">Client non trouvé</div>
 
@@ -104,30 +74,6 @@ export default function ClientDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Colonne gauche : Notes */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-100">
-              <h3 className="font-serif text-lg mb-2 text-studio-text">Email du portail client</h3>
-              <p className="text-sm text-studio-muted mb-4">
-                Cette adresse permet au client de recevoir un code de connexion et ses confirmations.
-              </p>
-              <label htmlFor="customer-portal-email" className="sr-only">Email de contact</label>
-              <input
-                id="customer-portal-email"
-                type="email"
-                autoComplete="email"
-                value={editingEmail}
-                onChange={(event) => setEditingEmail(event.target.value)}
-                className="w-full p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-studio-primary/20"
-                placeholder="client@exemple.fr"
-              />
-              {emailMessage && <p role="status" className="mt-3 text-sm text-studio-muted">{emailMessage}</p>}
-              <button
-                disabled={savingEmail}
-                onClick={saveEmail}
-                className="w-full mt-4 py-3 bg-studio-primary text-white rounded-xl font-bold disabled:opacity-50"
-              >
-                {savingEmail ? 'Enregistrement...' : 'Enregistrer l’email'}
-              </button>
-            </div>
             <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-100">
               <h3 className="font-serif text-lg mb-4 flex items-center gap-2">
                 <Receipt size={18} className="text-studio-primary" />

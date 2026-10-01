@@ -1,90 +1,55 @@
-/** Bootstrap a one-time admin account on a specifically verified Neon preprod branch. */
+/**
+ * Script de création d'un utilisateur admin.
+ * Usage : DATABASE_URL="..." DIRECT_URL="..." npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/create-admin.ts
+ * Ou avec les variables d'env dans .env.local : pnpm exec ts-node --compiler-options '{"module":"CommonJS"}' scripts/create-admin.ts
+ */
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
-function requiredEnv(name: string): string {
-  const value = process.env[name]?.trim()
-  if (!value) throw new Error(`Required environment variable ${name} is missing`)
-  return value
-}
+const prisma = new PrismaClient()
 
-function parseDatabaseUrl(name: string): URL {
-  const value = requiredEnv(name)
-  const url = new URL(value)
-  if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') {
-    throw new Error(`${name} must be a PostgreSQL connection URL`)
-  }
-  return url
-}
-
-function normalizeNeonHost(host: string): string {
-  return host.toLowerCase().replace(/-pooler(?=\.)/, '')
-}
-
-function verifyPreprodDatabaseTarget(): void {
-  const databaseUrl = parseDatabaseUrl('DATABASE_URL')
-  const directUrl = parseDatabaseUrl('DIRECT_URL')
-  const expectedHost = normalizeNeonHost(requiredEnv('PREPROD_NEON_HOST'))
-
-  if (!expectedHost.endsWith('.neon.tech')) {
-    throw new Error('PREPROD_NEON_HOST must be the Neon hostname shown for the preprod branch')
-  }
-  if (
-    normalizeNeonHost(databaseUrl.hostname) !== expectedHost
-    || normalizeNeonHost(directUrl.hostname) !== expectedHost
-    || databaseUrl.pathname !== directUrl.pathname
-  ) {
-    throw new Error('Database URLs do not match the confirmed Neon preprod host and database')
-  }
+// ✏️ Modifie ces valeurs avant d'exécuter le script
+const CONFIG = {
+  orgName:  'Mon Studio',
+  email:    'admin@monstudio.com',
+  name:     'Admin',
+  password: 'ChangeMe123!',  // ← à changer après la 1ère connexion
+  role:     'ADMIN',
 }
 
 async function main() {
-  verifyPreprodDatabaseTarget()
+  console.log('🔧 Création de l\'organisation et de l\'admin...')
 
-  const email = requiredEnv('PREPROD_ADMIN_EMAIL').toLowerCase()
-  const name = requiredEnv('PREPROD_ADMIN_NAME')
-  const password = requiredEnv('PREPROD_ADMIN_PASSWORD')
-  const orgId = process.env.PREPROD_ORG_ID?.trim() || 'org_main'
-  const orgName = process.env.PREPROD_ORG_NAME?.trim() || "L'Indépendance (préprod)"
-  if (password.length < 16) {
-    throw new Error('PREPROD_ADMIN_PASSWORD must be at least 16 characters long')
-  }
-
-  const prisma = new PrismaClient()
-  try {
-    console.log(`Creating a preprod admin for Neon host ${normalizeNeonHost(requiredEnv('PREPROD_NEON_HOST'))}`)
-
+  // 1. Créer ou récupérer l'organisation
   const org = await prisma.organization.upsert({
-    where: { id: orgId },
+    where:  { id: 'org_main' },
     update: {},
-    create: { id: orgId, name: orgName },
+    create: { id: 'org_main', name: CONFIG.orgName },
+  })
+  console.log(`✅ Organisation : ${org.name} (${org.id})`)
+
+  // 2. Créer ou mettre à jour l'utilisateur admin
+  const hashedPassword = await bcrypt.hash(CONFIG.password, 12)
+  const user = await prisma.user.upsert({
+    where:  { email: CONFIG.email },
+    update: { hashedPassword, name: CONFIG.name, role: CONFIG.role, organizationId: org.id },
+    create: {
+      email:          CONFIG.email,
+      name:           CONFIG.name,
+      hashedPassword,
+      role:           CONFIG.role,
+      organizationId: org.id,
+    },
   })
 
-    const existingUser = await prisma.user.findUnique({ where: { email } })
-    if (existingUser) {
-      throw new Error('That email already has an account; choose a unique preprod admin email')
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12)
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        hashedPassword,
-        role: 'ADMIN',
-        organizationId: org.id,
-      },
-      select: { id: true, email: true, role: true },
-    })
-
-    console.log(`Created organization ${org.name} (${org.id}) and admin ${user.email} (${user.role}).`)
-    console.log('Sign in to the preprod Preview and change the temporary password after login.')
-  } finally {
-    await prisma.$disconnect()
-  }
+  console.log(`✅ Utilisateur créé : ${user.email} (role: ${user.role})`)
+  console.log(`\n🔑 Identifiants de connexion :`)
+  console.log(`   Email    : ${CONFIG.email}`)
+  console.log(`   Mot de passe : ${CONFIG.password}`)
+  console.log(`\n⚠️  Pensez à changer le mot de passe après la 1ère connexion via /settings/account`)
 }
 
-main().catch((error: unknown) => {
-  console.error('Preprod admin bootstrap failed:', error instanceof Error ? error.message : 'Unknown error')
-  process.exitCode = 1
-})
+main()
+  .catch((err) => { console.error('❌ Erreur :', err); process.exitCode = 1 })
+  .finally(() => prisma.$disconnect())
+

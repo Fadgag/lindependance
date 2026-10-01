@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { auth } from "@/auth"
 import { logger } from '@/lib/logger'
 import { CheckoutInputSchema } from '@/schemas/appointments'
-import { rejectPendingRequestsForAppointment } from '@/services/appointmentChangeRequests.service'
 
 export async function POST(
     request: Request,
@@ -61,13 +60,6 @@ export async function POST(
             if (updateResult.count === 0) {
                 throw new Error('NOT_FOUND')
             }
-
-            await rejectPendingRequestsForAppointment(tx, {
-                appointmentId: id,
-                organizationId,
-                now: new Date(),
-                reviewReason: 'Le rendez-vous a été clôturé après le paiement.',
-            })
         })
 
         return NextResponse.json({ success: true })
