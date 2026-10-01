@@ -19,6 +19,8 @@ export default function Sidebar() {
     const pathname = usePathname()
     const { data: session } = useSession()
 
+    if (pathname.startsWith('/portail/')) return null
+
     return (
         /* hidden md:flex = display:none on mobile → removed from a11y tree. MobileHeader/MobileSheet handle nav on small devices. */
         <aside className="hidden md:flex w-72 bg-(--studio-bg) border-r border-(--studio-border) flex-col h-screen sticky top-0 px-6 py-8">

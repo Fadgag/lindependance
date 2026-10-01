@@ -14,6 +14,13 @@ async function middlewareFn(req: NextAuthRequest) {
   const isLoggedIn = !!authClaim
   const isAuthPage = pathname.startsWith("/auth")
 
+  if (pathname === '/') {
+    if (authClaim?.user?.accountType === 'STAFF') {
+      return Response.redirect(new URL('/dashboard', req.nextUrl))
+    }
+    return
+  }
+
   if (!isLoggedIn && !isAuthPage) {
     return Response.redirect(new URL("/auth/signin", req.nextUrl))
   }

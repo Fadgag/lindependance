@@ -132,9 +132,14 @@ export default function CustomerPortalSettingsPage() {
         </label>
 
         {settings.portalEnabled && settings.slug && (
-          <p className="text-sm text-indigo-700">
-            Lien public : <a className="underline" href={`/portail/${settings.slug}/reserver`}>{`/portail/${settings.slug}/reserver`}</a>
-          </p>
+          <div className="space-y-1 text-sm text-indigo-700">
+            <p>
+              Lien public : <a className="underline" href={`/portail/${settings.slug}/reserver`}>{`/portail/${settings.slug}/reserver`}</a>
+            </p>
+            <p className="text-xs text-gray-500">
+              La page d’accueil ouvre directement cette réservation si c’est le seul portail activé.
+            </p>
+          </div>
         )}
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         {message && <p role="status" className="text-sm text-green-700">{message}</p>}

@@ -342,6 +342,9 @@ export default function PortalBooking({
           </button>
         </>
       )}
+      <footer className="pt-3 text-right text-xs text-gray-400">
+        <Link href="/auth/signin" className="hover:text-gray-600">Accès équipe</Link>
+      </footer>
     </main>
   )
 }
