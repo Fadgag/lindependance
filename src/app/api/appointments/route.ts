@@ -6,9 +6,9 @@ import { CreateAppointmentSchema, UpdateAppointmentSchema } from '@/schemas/appo
 import { auth } from "@/auth"
 import { parseJsonField } from '@/lib/parseAppointmentJson'
 import type { Extra, SoldProduct } from '@/types/models'
-import { canDeleteAppointment } from '@/domain/appointment/policies'
 import {
     createStaffAppointment,
+    deleteStaffAppointment,
     updateStaffAppointment,
 } from '@/services/appointmentScheduling.service'
 import { CustomerPortalHttpError, SerializableConflictError } from '@/services/customerPortal.service'
@@ -232,26 +232,21 @@ export async function DELETE(request: Request) {
         if (!idValidation.success) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
         id = idValidation.data
 
-        const existing = await prisma.appointment.findFirst({
-            where: { id, organizationId: session.user.organizationId }
-        })
-        if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-        // Défense en profondeur (inconditionnelle) : interdire la suppression d'un RDV payé
-        // quelle que soit l'origine de la requête (agenda, encaissement, API directe).
-        // RAISON: règle centralisée dans src/domain/appointment/policies.ts
-        if (!canDeleteAppointment(existing)) {
-            return NextResponse.json({ error: 'Cannot delete a paid appointment' }, { status: 403 })
-        }
-
         // Si la suppression vient de l'encaissement, exiger une confirmation explicite
         if (from === 'checkout' && !confirm) {
             return NextResponse.json({ error: 'Confirmation requise pour suppression depuis la page encaissement' }, { status: 400 })
         }
 
-        const del = await prisma.appointment.deleteMany({ where: { id, organizationId: session.user.organizationId } })
-        if (del.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-        return NextResponse.json({ ok: true })
+        try {
+            const deleted = await deleteStaffAppointment({
+                id,
+                organizationId: session.user.organizationId,
+            })
+            if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+            return NextResponse.json({ ok: true })
+        } catch (error: unknown) {
+            return schedulingErrorResponse(error)
+        }
     } catch (err) {
         return apiErrorResponse(err)
     }

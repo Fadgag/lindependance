@@ -22,6 +22,7 @@ model Organization {
   staff             Staff[]
   users             User[]
   appointments      Appointment[]
+  changeRequests    AppointmentChangeRequest[]
   Package           Package[]
   products          Product[]
   unavailabilities  Unavailability[]
@@ -84,6 +85,7 @@ model Customer {
   organization    Organization      @relation(fields: [organizationId], references: [id])
   appointments    Appointment[]
   CustomerPackage CustomerPackage[]
+  changeRequests  AppointmentChangeRequest[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @default(now()) @updatedAt
 }
@@ -118,6 +120,7 @@ model Appointment {
   productsTotal     Float? // Aggregated total price of products for quick queries
   customerPackageId String?
   customerPackage   CustomerPackage? @relation(fields: [customerPackageId], references: [id])
+  changeRequests    AppointmentChangeRequest[]
   serviceId         String
   service           Service          @relation(fields: [serviceId], references: [id])
   customerId        String
@@ -130,6 +133,29 @@ model Appointment {
   updatedAt         DateTime         @updatedAt
 
   @@index([organizationId, startTime])
+}
+
+model AppointmentChangeRequest {
+  id               String       @id @default(cuid())
+  appointmentId    String?
+  appointment      Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  customerId       String
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedStart   DateTime
+  requestedEnd     DateTime
+  reason           String?
+  reviewReason     String?
+  status           String       @default("PENDING")
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, status, createdAt])
+  @@index([appointmentId, status])
+  @@index([customerId, createdAt])
 }
 
 model CustomerEmailOtp {

@@ -220,6 +220,9 @@ export default function PortalBooking({
         <Link href={`/portail/${encodeURIComponent(organizationSlug)}/mes-rdv`} className="ml-4 mt-2 inline-block text-sm text-indigo-700 underline">
           Mes rendez-vous
         </Link>
+        <Link href={`/portail/${encodeURIComponent(organizationSlug)}/mes-rdv`} className="ml-4 mt-2 inline-block text-sm text-indigo-700 underline">
+          Mes rendez-vous
+        </Link>
       </header>
 
       {emailSent !== null ? (

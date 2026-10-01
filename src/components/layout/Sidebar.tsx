@@ -9,6 +9,7 @@ import { useSession, signOut } from 'next-auth/react'
 const menuItems = [
     { name: 'Accueil', icon: CalendarDays, href: '/', adminOnly: false },
     { name: 'Agenda', icon: CalendarDays, href: '/agenda', adminOnly: false },
+    { name: 'Demandes de changement', icon: CalendarDays, href: '/change-requests', adminOnly: false },
     { name: 'Clients', icon: Users, href: '/customers', adminOnly: false },
     { name: 'Statistiques', icon: BarChart2, href: '/dashboard', adminOnly: true },
     { name: 'Configuration', icon: Settings, href: '/settings', adminOnly: true },

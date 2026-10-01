@@ -1,9 +1,10 @@
 import type { Prisma } from '@prisma/client'
-import { findFirstSchedulingConflict } from '@/domain/appointment/policies'
+import { canDeleteAppointment, findFirstSchedulingConflict } from '@/domain/appointment/policies'
 import {
   CustomerPortalHttpError,
   withSerializableRetry,
 } from '@/services/customerPortal.service'
+import { rejectPendingRequestsForAppointment } from '@/services/appointmentChangeRequests.service'
 
 export type StaffAppointmentInput = {
   organizationId: string
@@ -211,6 +212,12 @@ export async function updateStaffAppointment(input: {
     })
     if (updated.count === 0) return null
 
+    await rejectPendingRequestsForAppointment(transaction, {
+      appointmentId: input.id,
+      organizationId: input.organizationId,
+      now: new Date(),
+    })
+
     return transaction.appointment.findFirst({
       where: { id: input.id, organizationId: input.organizationId },
       select: {
@@ -223,5 +230,31 @@ export async function updateStaffAppointment(input: {
         note: true,
       },
     })
+  })
+}
+
+export async function deleteStaffAppointment(input: {
+  organizationId: string
+  id: string
+}): Promise<boolean> {
+  return withSerializableRetry(async (transaction) => {
+    const existing = await transaction.appointment.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { id: true, status: true, finalPrice: true },
+    })
+    if (!existing) return false
+    if (!canDeleteAppointment(existing)) {
+      throw new CustomerPortalHttpError(403, 'Cannot delete a paid appointment')
+    }
+
+    await rejectPendingRequestsForAppointment(transaction, {
+      appointmentId: input.id,
+      organizationId: input.organizationId,
+      now: new Date(),
+    })
+    const deleted = await transaction.appointment.deleteMany({
+      where: { id: input.id, organizationId: input.organizationId },
+    })
+    return deleted.count === 1
   })
 }

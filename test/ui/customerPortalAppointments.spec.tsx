@@ -9,19 +9,25 @@ const appointments = {
     startTime: '2026-10-03T10:00:00.000Z',
     endTime: '2026-10-03T11:00:00.000Z',
     status: 'CONFIRMED',
+    serviceId: 'service-1',
+    staffId: 'staff-1',
     customer: { firstName: 'Camille', lastName: 'Martin' },
     service: { name: 'Coupe' },
     staff: { firstName: 'Alex', lastName: 'Durand' },
     canCancel: true,
+    changeRequest: null,
   }, {
     id: 'appointment-2',
     startTime: '2026-10-02T09:00:00.000Z',
     endTime: '2026-10-02T10:00:00.000Z',
     status: 'CONFIRMED',
+    serviceId: 'service-2',
+    staffId: null,
     customer: { firstName: 'Noé', lastName: 'Martin' },
     service: { name: 'Coloration' },
     staff: null,
     canCancel: false,
+    changeRequest: null,
   }],
 }
 
@@ -77,5 +83,46 @@ describe('PortalAppointments', () => {
     render(<PortalAppointments organizationSlug="atelier" organizationTimezone="Europe/Paris" />)
 
     expect(await screen.findByText('Identifiez-vous pour consulter vos rendez-vous.')).toBeInTheDocument()
+  })
+
+  it('lets a customer open a timezone-aware request form for an appointment with a practitioner', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockResolvedValueOnce(response(appointments))
+    fetchMock.mockResolvedValueOnce(response({
+      timezone: 'Europe/Paris',
+      slots: [{ start: '2026-10-04T08:30:00.000Z', end: '2026-10-04T09:30:00.000Z' }],
+    }))
+    fetchMock.mockResolvedValueOnce(response({ id: 'change-request-1', status: 'PENDING' }, 201))
+
+    render(<PortalAppointments organizationSlug="atelier" organizationTimezone="Europe/Paris" />)
+
+    expect(await screen.findByText('Camille Martin')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Demander un changement' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Demander un changement' })).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Demander un changement' }))
+    expect(await screen.findByTestId('appointment-change-form')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nouvelle date souhaitée')).toBeInTheDocument()
+    expect(screen.getByLabelText('Motif (facultatif)')).toBeInTheDocument()
+
+    fireEvent.click(await screen.findByRole('button', { name: '10:30' }))
+    fireEvent.change(screen.getByLabelText('Motif (facultatif)'), {
+      target: { value: 'Un imprévu' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Envoyer la demande' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/portail/rdv/appointment-1/demande-modification',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            requestedStart: '2026-10-04T08:30:00.000Z',
+            reason: 'Un imprévu',
+          }),
+        }),
+      )
+    })
+    expect(await screen.findByText('En attente de validation')).toBeInTheDocument()
   })
 })

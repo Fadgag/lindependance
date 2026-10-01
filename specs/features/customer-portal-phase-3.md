@@ -1,5 +1,5 @@
 # 🏗️ Feature Blueprint — Portail client, Phase 3
-**Statut :** PLANNED
+**Statut :** IMPLEMENTED — migration à appliquer manuellement avant déploiement
 **Feature :** Demandes de changement validées par le staff
 
 > Dépend des [Phases 1 et 2](customer-portal.md#-phasage-proposé-pour-livrer-progressivement)

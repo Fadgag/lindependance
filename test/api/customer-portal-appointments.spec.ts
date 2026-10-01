@@ -40,10 +40,13 @@ beforeEach(() => {
       startTime: new Date('2026-10-03T10:00:00.000Z'),
       endTime: new Date('2026-10-03T11:00:00.000Z'),
       status: 'CONFIRMED',
+      serviceId: 'service-1',
+      staffId: 'staff-1',
       customer: { firstName: 'Camille', lastName: 'Martin' },
       service: { name: 'Coupe' },
       staff: { firstName: 'Alex', lastName: 'Durand' },
       canCancel: true,
+      changeRequest: null,
     }],
   })
 })
@@ -60,10 +63,13 @@ describe('GET /api/portail/rdv', () => {
         startTime: '2026-10-03T10:00:00.000Z',
         endTime: '2026-10-03T11:00:00.000Z',
         status: 'CONFIRMED',
+        serviceId: 'service-1',
+        staffId: 'staff-1',
         customer: { firstName: 'Camille', lastName: 'Martin' },
         service: { name: 'Coupe' },
         staff: { firstName: 'Alex', lastName: 'Durand' },
         canCancel: true,
+        changeRequest: null,
       }],
     })
     expect(getCustomerPortalAppointments).toHaveBeenCalledWith({
