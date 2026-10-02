@@ -13,10 +13,15 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   écran de l'application ne permet de s'attribuer ce rôle.
 - Le `TECH_ADMIN` ouvre `/test-campaigns`, crée une campagne avec son nom,
   l'organisation cible, les profils de test inclus (`ADMIN`, `USER`, ou les
-  deux) et un ou plusieurs groupes de scénarios. Il peut sélectionner jusqu'à
-  50 comptes existants rattachés à cette organisation pour leur envoyer le
-  lien public par e-mail. Cette sélection sert uniquement à l'envoi et n'est
-  pas enregistrée dans la campagne. Il peut personnaliser l'objet et le
+  deux) et un ou plusieurs groupes de scénarios. La création ne démarre que
+  lorsque le `TECH_ADMIN` clique explicitement sur « Créer la campagne » ;
+  saisir le nom ou appuyer sur Entrée ne soumet pas le formulaire. Le bouton
+  reste visible pendant le parcours du formulaire. Il peut sélectionner jusqu'à
+  50 destinataires ayant une adresse e-mail valide parmi les comptes
+  `ADMIN`/`USER` et les fiches client de cette organisation. Une seule
+  invitation est envoyée par adresse e-mail, même si elle figure sur plusieurs
+  fiches. Cette sélection sert uniquement à l'envoi et n'est pas enregistrée
+  dans la campagne. Il peut personnaliser l'objet et le
   message texte de l'invitation ; le gabarit HTML, le prénom, le résumé de la
   campagne et le bouton vers les scénarios restent gérés par l'application.
   La campagne est active à sa création ; aucun hash de commit n'est requis.
@@ -86,7 +91,7 @@ cartes lisibles.
 |                                                                       |
 | Nouvelle campagne                                                       |
 | Nom [____________________] Organisation [Choisir... v]                |
-| Destinataires (facultatif) [x] Camille [x] Fanny [ ] ...              |
+| Destinataires (facultatif) [x] Camille [x] Cliente Léa [ ] ...        |
 | Profils [x] Admin [x] Utilisateur                                    |
 | Parcours [x] Réservation en ligne [x] Mes RDV [ ] Admin staff ...    |
 |                                                   [Créer la campagne]   |
@@ -181,12 +186,14 @@ cartes lisibles.
 - Ne pas associer le feedback à un compte utilisateur ni à un testeur identifié.
 - Ne pas stocker nom, email, adresse IP ni autre identifiant personnel du
   testeur. Le profil est librement choisi par le visiteur.
-- La liste des comptes sélectionnés pour l'invitation n'est pas persistée et
+- La liste des contacts sélectionnés pour l'invitation n'est pas persistée et
   n'est jamais associée aux feedbacks. Les retours restent anonymes même si un
   destinataire ouvre le lien depuis son compte.
-- Les destinataires sont les comptes `ADMIN`/`USER` avec une adresse e-mail
-  appartenant à l'organisation choisie. L'API vérifie côté serveur l'ensemble
-  des IDs avant de créer la campagne ; la sélection est limitée à 50 comptes.
+- Les destinataires sont les comptes `ADMIN`/`USER` et les fiches `Customer`
+  ayant une adresse e-mail valide et appartenant à l'organisation choisie.
+  L'API vérifie côté serveur la source et l'ID de chaque entrée ; la sélection
+  est limitée à 50 contacts et dédupliquée par adresse e-mail sans distinction
+  de casse.
 - Chaque invitation est envoyée individuellement par e-mail avec le lien public.
   Les envois réussis et les destinataires en échec sont signalés au créateur ;
   une campagne créée n'est pas annulée en cas d'échec partiel d'envoi.
@@ -209,11 +216,12 @@ cartes lisibles.
 ## API
 - `GET/POST /api/test-campaigns` : `TECH_ADMIN` uniquement ; lister et créer
   des campagnes, avec organisation et destinataires résolus et vérifiés côté
-  serveur. `recipientIds` est facultatif et limité à 50 comptes ; l'objet et le
-  message d'invitation sont validés côté serveur.
+  serveur. `recipientIds` est facultatif et limité à 50 références de compte
+  ou de fiche client ; l'objet et le message d'invitation sont validés côté
+  serveur.
 - `GET /api/test-campaigns/recipients?organizationId=...` : `TECH_ADMIN`
-  uniquement ; lister les comptes invitables d'une organisation sans exposer
-  d'autres organisations.
+  uniquement ; lister les comptes et clients invitables d'une organisation
+  sans exposer d'autres organisations.
 - `GET /api/test-campaigns/[id]` : `TECH_ADMIN` uniquement ; détail, avancement
   et historique de la campagne.
 - `PATCH /api/test-campaigns/[id]` : `TECH_ADMIN` uniquement ; fermer une
@@ -229,8 +237,8 @@ cartes lisibles.
   Markdown existants restent la source des scénarios disponibles.
 - Collecte de coordonnées dans le formulaire public, pièces jointes,
   captures d'écran ou réponse depuis l'application. Les invitations aux
-  comptes existants utilisent leurs adresses déjà enregistrées sans les
-  conserver dans la campagne.
+  comptes et clients existants utilisent leurs adresses déjà enregistrées sans
+  les conserver dans la campagne.
 - Suppression ou classement manuel des retours après soumission.
 - Réouverture d'une campagne fermée.
 
@@ -243,9 +251,11 @@ cartes lisibles.
    scénarios compatibles avec ses profils ; le lien public dédié ne révèle ni
    ID d'organisation ni ID interne de campagne.
 3. Le `TECH_ADMIN` peut envoyer le lien à un maximum de 50 comptes `ADMIN` ou
-   `USER` de l'organisation sélectionnée ; les IDs d'une autre organisation
-   sont refusés, l'objet et le message sont personnalisables et les envois
-   partiels sont rapportés sans perdre le gabarit stylé.
+   `USER` et de fiches client ayant une adresse e-mail valide dans
+   l'organisation sélectionnée ; les IDs d'une autre organisation ou d'une
+   autre source sont refusés, chaque adresse ne reçoit qu'une invitation,
+   l'objet et le message sont personnalisables et les envois partiels sont
+   rapportés sans perdre le gabarit stylé.
 4. Un testeur non connecté voit en français le checklist correspondant au
    profil choisi parmi les profils autorisés et peut envoyer plusieurs
    résultats en une fois.

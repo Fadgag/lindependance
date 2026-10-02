@@ -22,6 +22,7 @@ import {
 type CampaignDashboard = z.infer<typeof TestCampaignListResponseSchema>
 type CampaignDraft = z.infer<typeof CreateTestCampaignSchema>
 type CampaignRecipient = z.infer<typeof TestCampaignRecipientListResponseSchema>[number]
+type CampaignRecipientRef = CampaignDraft['recipientIds'][number]
 const testProfiles: Array<'ADMIN' | 'USER'> = ['ADMIN', 'USER']
 
 async function responseError(response: Response): Promise<string> {
@@ -42,6 +43,14 @@ function formatDate(value: string): string {
 
 function profileLabel(profile: 'ADMIN' | 'USER'): string {
   return profile === 'ADMIN' ? 'Administration' : 'Utilisateur'
+}
+
+function recipientKey(recipient: Pick<CampaignRecipient, 'id' | 'source'>): string {
+  return `${recipient.source}:${recipient.id}`
+}
+
+function recipientSourceLabel(recipient: CampaignRecipient): string {
+  return recipient.source === 'CUSTOMER' ? 'Client' : profileLabel(recipient.role)
 }
 
 function scenarioGroupLabel(id: TestScenarioGroupId): string {
@@ -136,7 +145,9 @@ export default function TestCampaignDashboard() {
       organizationId,
       profiles,
       scenarioGroups: selectedScenarioGroups,
-      recipientIds: selectedRecipientIds,
+      recipientIds: recipients
+        .filter((recipient) => selectedRecipientIds.includes(recipientKey(recipient)))
+        .map(({ id, source }): CampaignRecipientRef => ({ id, source })),
       emailSubject,
       emailMessage,
     }
@@ -215,10 +226,11 @@ export default function TestCampaignDashboard() {
     })
   }
 
-  function updateRecipient(recipientId: string, checked: boolean) {
+  function updateRecipient(recipient: CampaignRecipient, checked: boolean) {
+    const key = recipientKey(recipient)
     setSelectedRecipientIds((current) => checked
-      ? current.includes(recipientId) ? current : [...current, recipientId]
-      : current.filter((currentId) => currentId !== recipientId))
+      ? current.includes(key) ? current : [...current, key]
+      : current.filter((currentKey) => currentKey !== key))
   }
 
   async function closeCampaign(id: string) {
@@ -348,7 +360,17 @@ export default function TestCampaignDashboard() {
 
       <section id="nouvelle-campagne" aria-labelledby="new-campaign-title" className="rounded-2xl border border-(--studio-border) bg-white p-5 shadow-sm md:p-7">
         <h2 id="new-campaign-title" className="font-serif text-2xl text-(--studio-text)">Nouvelle campagne</h2>
-        <form onSubmit={(event) => void createCampaign(event)} className="mt-5 grid gap-4 md:grid-cols-2">
+        <form
+          onSubmit={(event) => void createCampaign(event)}
+          onKeyDown={(event) => {
+            if (
+              event.key === 'Enter'
+              && event.target instanceof HTMLInputElement
+              && event.target.type !== 'checkbox'
+            ) event.preventDefault()
+          }}
+          className="mt-5 grid gap-4 md:grid-cols-2"
+        >
           <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
             Nom de la campagne
             <input required maxLength={100} value={campaignName} onChange={(event) => setCampaignName(event.target.value)} className="rounded-lg border border-(--studio-border) px-3 py-2" />
@@ -362,27 +384,32 @@ export default function TestCampaignDashboard() {
               ))}
             </select>
           </label>
+          <div className="sticky bottom-0 z-10 flex justify-end bg-white/95 py-2 backdrop-blur md:col-span-2">
+            <button type="submit" disabled={saving || loadingRecipients || !data?.organizations.length} className="rounded-xl bg-(--studio-text) px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
+              {saving ? 'Création…' : 'Créer la campagne'}
+            </button>
+          </div>
           <fieldset className="grid gap-2 md:col-span-2">
-            <legend className="text-sm font-medium text-(--studio-text)">Envoyer le lien à des comptes existants (facultatif)</legend>
+            <legend className="text-sm font-medium text-(--studio-text)">Envoyer le lien à des comptes ou clients existants (facultatif)</legend>
             <p className="text-xs text-(--studio-muted)">
-              Sélectionnez jusqu’à 50 comptes. Ils recevront le lien par e-mail ; les retours resteront anonymes et ne seront pas associés à leur compte.
+              Sélectionnez jusqu’à 50 adresses e-mail de comptes staff/admin ou de fiches client. Une seule invitation est envoyée par adresse ; les retours restent anonymes.
             </p>
             {loadingRecipients && <p role="status" className="text-xs text-(--studio-muted)">Chargement des comptes…</p>}
             {recipientsError && <p role="alert" className="text-xs text-red-700">{recipientsError}</p>}
             {!loadingRecipients && !recipientsError && recipients.length === 0 && (
-              <p className="text-xs text-(--studio-muted)">Aucun compte avec une adresse e-mail pour cette organisation.</p>
+              <p className="text-xs text-(--studio-muted)">Aucun compte ou client avec une adresse e-mail valide pour cette organisation.</p>
             )}
             {recipients.map((recipient) => (
-              <label key={recipient.id} className="flex items-center gap-2 text-sm text-(--studio-muted)">
+              <label key={recipientKey(recipient)} className="flex items-center gap-2 text-sm text-(--studio-muted)">
                 <input
                   type="checkbox"
-                  checked={selectedRecipientIds.includes(recipient.id)}
-                  onChange={(event) => updateRecipient(recipient.id, event.target.checked)}
+                  checked={selectedRecipientIds.includes(recipientKey(recipient))}
+                  onChange={(event) => updateRecipient(recipient, event.target.checked)}
                   disabled={saving || (
-                    !selectedRecipientIds.includes(recipient.id) && selectedRecipientIds.length >= 50
+                    !selectedRecipientIds.includes(recipientKey(recipient)) && selectedRecipientIds.length >= 50
                   )}
                 />
-                {recipient.name ? `${recipient.name} (${recipient.email})` : recipient.email} · {profileLabel(recipient.role)}
+                {recipient.name ? `${recipient.name} (${recipient.email})` : recipient.email} · {recipientSourceLabel(recipient)}
               </label>
             ))}
           </fieldset>
@@ -443,9 +470,6 @@ export default function TestCampaignDashboard() {
                 </label>
               ))}
             </fieldset>
-            <button type="submit" disabled={saving || loadingRecipients || !data?.organizations.length} className="rounded-xl bg-(--studio-text) px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
-              {saving ? 'Création…' : 'Créer la campagne'}
-            </button>
           </div>
         </form>
       </section>

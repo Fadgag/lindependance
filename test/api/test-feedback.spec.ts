@@ -103,7 +103,13 @@ describe('test campaign management API', () => {
       id: 'user-1',
       name: 'Camille',
       email: 'camille@example.test',
+      source: 'USER',
       role: 'USER',
+    }, {
+      id: 'customer-1',
+      name: 'Léa Martin',
+      email: 'lea@example.test',
+      source: 'CUSTOMER',
     }])
 
     const response = await getCampaignRecipients(new Request(
@@ -116,7 +122,13 @@ describe('test campaign management API', () => {
       id: 'user-1',
       name: 'Camille',
       email: 'camille@example.test',
+      source: 'USER',
       role: 'USER',
+    }, {
+      id: 'customer-1',
+      name: 'Léa Martin',
+      email: 'lea@example.test',
+      source: 'CUSTOMER',
     }])
   })
 
@@ -173,7 +185,7 @@ describe('test campaign management API', () => {
     })
   })
 
-  it('sends the public campaign link to selected organization accounts without storing recipient IDs', async () => {
+  it('sends the public campaign link to a selected customer without storing recipient IDs', async () => {
     vi.mocked(createTestCampaign).mockResolvedValue({
       id: 'campaign-id',
       name: 'Recette bêta',
@@ -181,10 +193,10 @@ describe('test campaign management API', () => {
       organizationName: 'Osez le T’re',
     } as never)
     vi.mocked(listTestCampaignRecipients).mockResolvedValue([{
-      id: 'user-1',
-      name: 'Camille',
-      email: 'camille@example.test',
-      role: 'USER',
+      id: 'customer-1',
+      name: 'Léa Martin',
+      email: 'lea@example.test',
+      source: 'CUSTOMER',
     }])
 
     const response = await postCampaign(new Request('https://example.test/api/test-campaigns', {
@@ -195,7 +207,7 @@ describe('test campaign management API', () => {
         organizationId: 'org-id',
         profiles: ['USER'],
         scenarioGroups: ['ONLINE_BOOKING'],
-        recipientIds: ['user-1'],
+        recipientIds: [{ source: 'CUSTOMER', id: 'customer-1' }],
         emailSubject: 'Testez la réservation',
         emailMessage: 'Merci de vérifier le parcours de réservation.',
       }),
@@ -208,9 +220,11 @@ describe('test campaign management API', () => {
       profiles: ['USER'],
       scenarioGroups: ['ONLINE_BOOKING'],
     })
-    expect(listTestCampaignRecipients).toHaveBeenCalledWith('org-id', ['user-1'])
+    expect(listTestCampaignRecipients).toHaveBeenCalledWith('org-id', [
+      { source: 'CUSTOMER', id: 'customer-1' },
+    ])
     expect(sendTestCampaignInvitationEmails).toHaveBeenCalledWith({
-      recipients: [{ to: 'camille@example.test', recipientName: 'Camille' }],
+      recipients: [{ to: 'lea@example.test', recipientName: 'Léa Martin' }],
       campaignName: 'Recette bêta',
       organizationName: expect.any(String),
       campaignUrl: `https://example.test/retour-test/${campaignToken}`,
@@ -234,7 +248,7 @@ describe('test campaign management API', () => {
         organizationId: 'org-id',
         profiles: ['USER'],
         scenarioGroups: ['ONLINE_BOOKING'],
-        recipientIds: ['foreign-user'],
+        recipientIds: [{ source: 'CUSTOMER', id: 'foreign-customer' }],
       }),
     }))
 
@@ -252,7 +266,10 @@ describe('test campaign management API', () => {
         organizationId: 'org-id',
         profiles: ['USER'],
         scenarioGroups: ['ONLINE_BOOKING'],
-        recipientIds: Array.from({ length: 51 }, (_, index) => `user-${index}`),
+        recipientIds: Array.from({ length: 51 }, (_, index) => ({
+          source: 'CUSTOMER',
+          id: `customer-${index}`,
+        })),
       }),
     }))
 
@@ -289,6 +306,7 @@ describe('test campaign management API', () => {
       id: 'user-1',
       name: 'Camille',
       email: 'camille@example.test',
+      source: 'USER',
       role: 'USER',
     }])
     vi.mocked(sendTestCampaignInvitationEmails).mockResolvedValue({
@@ -304,7 +322,7 @@ describe('test campaign management API', () => {
         organizationId: 'org-id',
         profiles: ['USER'],
         scenarioGroups: ['ONLINE_BOOKING'],
-        recipientIds: ['user-1'],
+        recipientIds: [{ source: 'USER', id: 'user-1' }],
       }),
     }))
 

@@ -8,6 +8,11 @@ export const TestProfileSchema = z.enum(['ADMIN', 'USER'])
 export const FeedbackStatusSchema = z.enum(['PASS', 'FAIL', 'BLOCKED'])
 export const DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT = 'Invitation à la campagne de recette'
 export const DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE = 'Vous êtes invité(e) à participer à cette campagne de recette.'
+export const TestCampaignRecipientSourceSchema = z.enum(['USER', 'CUSTOMER'])
+export const TestCampaignRecipientRefSchema = z.object({
+  id: z.string().min(1).max(64),
+  source: TestCampaignRecipientSourceSchema,
+}).strict()
 
 export const CreateTestCampaignSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -16,8 +21,8 @@ export const CreateTestCampaignSchema = z.object({
     .refine((profiles) => new Set(profiles).size === profiles.length),
   scenarioGroups: z.array(TestScenarioGroupSchema).min(1).max(4)
     .refine((groups) => new Set(groups).size === groups.length),
-  recipientIds: z.array(z.string().min(1).max(64)).max(50).default([])
-    .refine((recipientIds) => new Set(recipientIds).size === recipientIds.length),
+  recipientIds: z.array(TestCampaignRecipientRefSchema).max(50).default([])
+    .refine((recipientIds) => new Set(recipientIds.map(({ source, id }) => `${source}:${id}`)).size === recipientIds.length),
   emailSubject: z.string().trim().min(1).max(120)
     .refine((subject) => !/[\r\n]/.test(subject), 'L’objet de l’e-mail ne peut pas contenir de retour à la ligne.')
     .default(DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT),
