@@ -6,6 +6,8 @@ import {
 
 export const TestProfileSchema = z.enum(['ADMIN', 'USER'])
 export const FeedbackStatusSchema = z.enum(['PASS', 'FAIL', 'BLOCKED'])
+export const DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT = 'Invitation à la campagne de recette'
+export const DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE = 'Vous êtes invité(e) à participer à cette campagne de recette.'
 
 export const CreateTestCampaignSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -14,6 +16,12 @@ export const CreateTestCampaignSchema = z.object({
     .refine((profiles) => new Set(profiles).size === profiles.length),
   scenarioGroups: z.array(TestScenarioGroupSchema).min(1).max(4)
     .refine((groups) => new Set(groups).size === groups.length),
+  recipientIds: z.array(z.string().min(1).max(64)).max(50).default([])
+    .refine((recipientIds) => new Set(recipientIds).size === recipientIds.length),
+  emailSubject: z.string().trim().min(1).max(120)
+    .refine((subject) => !/[\r\n]/.test(subject), 'L’objet de l’e-mail ne peut pas contenir de retour à la ligne.')
+    .default(DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT),
+  emailMessage: z.string().trim().max(2000).default(DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE),
 }).strict().superRefine(({ profiles, scenarioGroups }, context) => {
   if (!isValidTestCampaignScope(profiles, scenarioGroups)) {
     context.addIssue({

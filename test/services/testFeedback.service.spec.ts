@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => {
   }
   return {
     organizationFindUnique: vi.fn(),
+    userFindMany: vi.fn(),
     campaignCreate: vi.fn(),
     campaignFindUnique: vi.fn(),
     campaignUpdateMany: vi.fn(),
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => {
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     organization: { findUnique: mocks.organizationFindUnique },
+    user: { findMany: mocks.userFindMany },
     testCampaign: {
       create: mocks.campaignCreate,
       findUnique: mocks.campaignFindUnique,
@@ -29,11 +31,17 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { createTestCampaign, createTestFeedback, closeTestCampaign } from '@/services/testFeedback.service'
+import {
+  createTestCampaign,
+  createTestFeedback,
+  closeTestCampaign,
+  listTestCampaignRecipients,
+} from '@/services/testFeedback.service'
 
 beforeEach(() => {
   vi.resetAllMocks()
-  mocks.organizationFindUnique.mockResolvedValue({ id: 'org-1' })
+  mocks.organizationFindUnique.mockResolvedValue({ id: 'org-1', name: 'Osez le T’re' })
+  mocks.userFindMany.mockResolvedValue([])
   mocks.campaignCreate.mockResolvedValue({ id: 'campaign-1' })
   mocks.transactionClient.testCampaign.findUnique.mockResolvedValue({
     id: 'campaign-1',
@@ -47,6 +55,45 @@ beforeEach(() => {
 })
 
 describe('test feedback service', () => {
+  it('lists only email-enabled accounts for the selected organization', async () => {
+    mocks.userFindMany.mockResolvedValue([{
+      id: 'user-1',
+      name: 'Camille',
+      email: 'camille@example.test',
+      role: 'USER',
+    }])
+
+    const recipients = await listTestCampaignRecipients('org-1')
+
+    expect(recipients).toEqual([{
+      id: 'user-1',
+      name: 'Camille',
+      email: 'camille@example.test',
+      role: 'USER',
+    }])
+    expect(mocks.userFindMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        email: { not: null },
+        role: { in: ['ADMIN', 'USER'] },
+      },
+      orderBy: [{ name: 'asc' }, { email: 'asc' }],
+      select: { id: true, name: true, email: true, role: true },
+    })
+
+    await listTestCampaignRecipients('org-1', ['user-1'])
+    expect(mocks.userFindMany).toHaveBeenLastCalledWith({
+      where: {
+        organizationId: 'org-1',
+        email: { not: null },
+        role: { in: ['ADMIN', 'USER'] },
+        id: { in: ['user-1'] },
+      },
+      orderBy: [{ name: 'asc' }, { email: 'asc' }],
+      select: { id: true, name: true, email: true, role: true },
+    })
+  })
+
   it('creates campaigns only for existing organizations with an opaque random token', async () => {
     await createTestCampaign({
       name: 'Recette bêta',
@@ -66,7 +113,7 @@ describe('test feedback service', () => {
     expect(createInput.data.publicToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
     expect(mocks.organizationFindUnique).toHaveBeenCalledWith({
       where: { id: 'org-1' },
-      select: { id: true },
+      select: { id: true, name: true },
     })
   })
 
