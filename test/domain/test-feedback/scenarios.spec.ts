@@ -9,6 +9,11 @@ import {
   resolveFeedbackScenarios,
   type FeedbackResult,
 } from '@/domain/test-feedback/scenarios'
+import {
+  filterScenariosByGroups,
+  isValidTestCampaignScope,
+  testScenarioGroups,
+} from '@/domain/test-feedback/scenarioGroups'
 
 describe('parseScenarioGuide', () => {
   it('parses scenario details from the quality guides', () => {
@@ -54,6 +59,55 @@ describe('parseScenarioGuide', () => {
 
     expect(parseScenarioGuide(adminGuide, 'ADMIN')).toHaveLength(12)
     expect(parseScenarioGuide(userGuide, 'USER')).toHaveLength(17)
+  })
+})
+
+describe('test scenario groups', () => {
+  it('defines selectable end-to-end groups that map to the expected guide ranges', () => {
+    const userScenarios = parseScenarioGuide(
+      readFileSync(join(process.cwd(), 'quality/recette-beta-customer.md'), 'utf8'),
+      'USER',
+    )
+    const adminScenarios = parseScenarioGuide(
+      readFileSync(join(process.cwd(), 'quality/recette-beta-admin.md'), 'utf8'),
+      'ADMIN',
+    )
+
+    expect(testScenarioGroups.map(({ id }) => id)).toEqual([
+      'ONLINE_BOOKING',
+      'APPOINTMENTS_AND_CHANGES',
+      'SECURITY_AND_MOBILE',
+      'STAFF_ADMINISTRATION',
+    ])
+    expect(filterScenariosByGroups(userScenarios, ['ONLINE_BOOKING']).map(({ id }) => id)).toEqual(
+      userScenarios.slice(0, 10).map(({ id }) => id),
+    )
+    expect(filterScenariosByGroups(adminScenarios, ['STAFF_ADMINISTRATION'])).toEqual(adminScenarios)
+  })
+
+  it('requires every enabled profile to have selected scenarios and rejects unrelated groups', () => {
+    expect(isValidTestCampaignScope(['USER'], ['ONLINE_BOOKING'])).toBe(true)
+    expect(isValidTestCampaignScope(['ADMIN', 'USER'], ['ONLINE_BOOKING', 'STAFF_ADMINISTRATION'])).toBe(true)
+    expect(isValidTestCampaignScope(['ADMIN', 'USER'], ['ONLINE_BOOKING'])).toBe(false)
+    expect(isValidTestCampaignScope(['ADMIN'], ['ONLINE_BOOKING'])).toBe(false)
+    expect(isValidTestCampaignScope(['USER'], [])).toBe(false)
+  })
+
+  it('assigns every guide scenario to exactly one selectable group', () => {
+    const profiles: Array<'ADMIN' | 'USER'> = ['ADMIN', 'USER']
+    const scenarios = profiles.flatMap((profile) => parseScenarioGuide(
+      readFileSync(join(
+        process.cwd(),
+        profile === 'ADMIN' ? 'quality/recette-beta-admin.md' : 'quality/recette-beta-customer.md',
+      ), 'utf8'),
+      profile,
+    ))
+    const groupedScenarios = testScenarioGroups.flatMap((group) => (
+      filterScenariosByGroups(scenarios.filter(({ profile }) => profile === group.profile), [group.id])
+    ))
+
+    expect(groupedScenarios).toHaveLength(scenarios.length)
+    expect(new Set(groupedScenarios.map(({ id }) => id)).size).toBe(scenarios.length)
   })
 })
 

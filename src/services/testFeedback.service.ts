@@ -11,6 +11,13 @@ import {
   type TestProfile,
   type TestScenario,
 } from '@/domain/test-feedback/scenarios'
+import {
+  filterScenariosByGroups,
+  getDefaultScenarioGroupsForProfiles,
+  isScenarioInGroups,
+  TestScenarioGroupSchema,
+  type TestScenarioGroupId,
+} from '@/domain/test-feedback/scenarioGroups'
 import { FeedbackStatusSchema, TestProfileSchema } from '@/schemas/testFeedback'
 
 export function loadScenarioCatalog(): Record<TestProfile, TestScenario[]> {
@@ -30,6 +37,11 @@ function parseProfiles(profiles: string[]): TestProfile[] {
   return zProfileArray.parse(profiles)
 }
 
+function parseScenarioGroups(groups: string[], profiles: TestProfile[]): TestScenarioGroupId[] {
+  if (groups.length === 0) return getDefaultScenarioGroupsForProfiles(profiles)
+  return TestScenarioGroupSchema.array().min(1).max(4).parse(groups)
+}
+
 const zProfileArray = TestProfileSchema.array().min(1).max(2)
 
 function mapFeedbackRows(
@@ -43,10 +55,13 @@ function mapFeedbackRows(
   }))
 }
 
-function getScenarioCounts(catalog: Record<TestProfile, TestScenario[]>) {
+function getScenarioCounts(
+  catalog: Record<TestProfile, TestScenario[]>,
+  scenarioGroups: TestScenarioGroupId[],
+) {
   return {
-    ADMIN: catalog.ADMIN.length,
-    USER: catalog.USER.length,
+    ADMIN: filterScenariosByGroups(catalog.ADMIN, scenarioGroups).length,
+    USER: filterScenariosByGroups(catalog.USER, scenarioGroups).length,
   }
 }
 
@@ -68,23 +83,27 @@ export async function listTestCampaigns() {
     }),
   ])
   const catalog = loadScenarioCatalog()
-  const scenarioCounts = getScenarioCounts(catalog)
 
   return {
     organizations,
     campaigns: campaigns.map((campaign) => {
       const profiles = parseProfiles(campaign.profiles)
+      const scenarioGroups = parseScenarioGroups(campaign.scenarioGroups, profiles)
       return {
         id: campaign.id,
         name: campaign.name,
-        build: campaign.build,
+        scenarioGroups,
         profiles,
         status: campaign.status,
         publicToken: campaign.publicToken,
         createdAt: campaign.createdAt,
         closedAt: campaign.closedAt,
         organizationName: campaign.organization.name,
-        progress: getScenarioProgress(profiles, scenarioCounts, mapFeedbackRows(campaign.feedback)),
+        progress: getScenarioProgress(
+          profiles,
+          getScenarioCounts(catalog, scenarioGroups),
+          mapFeedbackRows(campaign.feedback),
+        ),
       }
     }),
   }
@@ -92,9 +111,9 @@ export async function listTestCampaigns() {
 
 export async function createTestCampaign(input: {
   name: string
-  build: string
   organizationId: string
   profiles: TestProfile[]
+  scenarioGroups: TestScenarioGroupId[]
 }) {
   const organization = await prisma.organization.findUnique({
     where: { id: input.organizationId },
@@ -104,13 +123,16 @@ export async function createTestCampaign(input: {
 
   return prisma.testCampaign.create({
     data: {
-      ...input,
+      name: input.name,
+      build: null,
+      organizationId: input.organizationId,
+      profiles: input.profiles,
+      scenarioGroups: input.scenarioGroups,
       publicToken: randomBytes(32).toString('base64url'),
     },
     select: {
       id: true,
       name: true,
-      build: true,
       status: true,
       publicToken: true,
       createdAt: true,
@@ -129,9 +151,14 @@ export async function getTestCampaignDetail(id: string) {
   if (!campaign) return null
 
   const profiles = parseProfiles(campaign.profiles)
+  const scenarioGroups = parseScenarioGroups(campaign.scenarioGroups, profiles)
   const catalog = loadScenarioCatalog()
   const feedback = mapFeedbackRows(campaign.feedback)
-  const progress = getScenarioProgress(profiles, getScenarioCounts(catalog), feedback)
+  const progress = getScenarioProgress(
+    profiles,
+    getScenarioCounts(catalog, scenarioGroups),
+    feedback,
+  )
   const latestFeedback = new Map<string, (typeof campaign.feedback)[number]>()
   for (const result of campaign.feedback) {
     const key = `${result.profile}:${result.scenarioId}`
@@ -142,7 +169,7 @@ export async function getTestCampaignDetail(id: string) {
     campaign: {
       id: campaign.id,
       name: campaign.name,
-      build: campaign.build,
+      scenarioGroups,
       profiles,
       status: campaign.status,
       publicToken: campaign.publicToken,
@@ -151,10 +178,12 @@ export async function getTestCampaignDetail(id: string) {
       organizationName: campaign.organization.name,
     },
     progress,
-    scenarios: profiles.flatMap((profile) => catalog[profile].map((scenario) => ({
-      ...scenario,
-      result: latestFeedback.get(`${profile}:${scenario.id}`) ?? null,
-    }))),
+    scenarios: profiles.flatMap((profile) => (
+      filterScenariosByGroups(catalog[profile], scenarioGroups).map((scenario) => ({
+        ...scenario,
+        result: latestFeedback.get(`${profile}:${scenario.id}`) ?? null,
+      }))
+    )),
     history: campaign.feedback.map((entry) => ({
       id: entry.id,
       profile: TestProfileSchema.parse(entry.profile),
@@ -184,9 +213,9 @@ export async function getPublicTestCampaign(publicToken: string) {
     where: { publicToken },
     select: {
       name: true,
-      build: true,
       status: true,
       profiles: true,
+      scenarioGroups: true,
       organization: { select: { name: true } },
     },
   })
@@ -207,13 +236,25 @@ export async function createTestFeedback(input: {
   return prisma.$transaction(async (transaction) => {
     const campaign = await transaction.testCampaign.findUnique({
       where: { publicToken: input.publicToken },
-      select: { id: true, organizationId: true, status: true, profiles: true },
+      select: {
+        id: true,
+        organizationId: true,
+        status: true,
+        profiles: true,
+        scenarioGroups: true,
+      },
     })
+    const profiles = campaign ? parseProfiles(campaign.profiles) : []
+    const scenarioGroups = campaign
+      ? parseScenarioGroups(campaign.scenarioGroups, profiles)
+      : []
     if (!campaign || getCampaignSubmissionAvailability({
       campaignStatus: campaign.status,
-      enabledProfiles: parseProfiles(campaign.profiles),
+      enabledProfiles: profiles,
       submittedProfile: input.profile,
-    }) !== 'available') {
+    }) !== 'available' || !input.results.every((result) => (
+      isScenarioInGroups(input.profile, result.scenarioId, scenarioGroups)
+    ))) {
       return false
     }
 

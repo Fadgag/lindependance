@@ -4,6 +4,10 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 import { TestCampaignDetailResponseSchema } from '@/schemas/testFeedbackResponses'
+import {
+  testScenarioGroups as scenarioGroupCatalog,
+  type TestScenarioGroupId,
+} from '@/domain/test-feedback/scenarioGroups'
 
 type CampaignDetail = z.infer<typeof TestCampaignDetailResponseSchema>
 type ResultFilter = 'ALL' | 'PASS' | 'FAIL' | 'BLOCKED' | 'UNTESTED'
@@ -46,6 +50,10 @@ function statusClass(status: string | null): string {
   if (status === 'FAIL') return 'bg-red-50 text-red-800'
   if (status === 'BLOCKED') return 'bg-amber-50 text-amber-900'
   return 'bg-gray-100 text-gray-700'
+}
+
+function scenarioGroupLabel(id: TestScenarioGroupId): string {
+  return scenarioGroupCatalog.find((group) => group.id === id)?.label ?? id
 }
 
 export default function TestCampaignDetail({ campaignId }: { campaignId: string }) {
@@ -139,7 +147,10 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
               {campaign.status === 'ACTIVE' ? 'Active' : 'Clôturée'}
             </span>
           </div>
-          <p className="mt-2 text-sm text-(--studio-muted)">{campaign.organizationName} · Build {campaign.build}</p>
+          <p className="mt-2 text-sm text-(--studio-muted)">{campaign.organizationName}</p>
+          <p className="mt-1 text-sm text-(--studio-muted)">
+            Parcours : {campaign.scenarioGroups.map(scenarioGroupLabel).join(' · ')}
+          </p>
           <p className="mt-1 text-xs text-(--studio-muted)">Créée le {formatDate(campaign.createdAt)}</p>
         </div>
         <div className="flex flex-wrap gap-2">

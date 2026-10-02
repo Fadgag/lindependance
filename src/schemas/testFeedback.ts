@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import {
+  isValidTestCampaignScope,
+  TestScenarioGroupSchema,
+} from '@/domain/test-feedback/scenarioGroups'
 
 export const TestProfileSchema = z.enum(['ADMIN', 'USER'])
 export const FeedbackStatusSchema = z.enum(['PASS', 'FAIL', 'BLOCKED'])
@@ -6,10 +10,19 @@ export const FeedbackStatusSchema = z.enum(['PASS', 'FAIL', 'BLOCKED'])
 export const CreateTestCampaignSchema = z.object({
   name: z.string().trim().min(1).max(100),
   organizationId: z.string().min(1).max(64),
-  build: z.string().trim().min(1).max(128),
   profiles: z.array(TestProfileSchema).min(1).max(2)
     .refine((profiles) => new Set(profiles).size === profiles.length),
-}).strict()
+  scenarioGroups: z.array(TestScenarioGroupSchema).min(1).max(4)
+    .refine((groups) => new Set(groups).size === groups.length),
+}).strict().superRefine(({ profiles, scenarioGroups }, context) => {
+  if (!isValidTestCampaignScope(profiles, scenarioGroups)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Chaque profil doit avoir au moins un groupe de scénarios correspondant.',
+      path: ['scenarioGroups'],
+    })
+  }
+})
 
 export const CampaignIdSchema = z.string().cuid()
 export const CampaignTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{40,60}$/)

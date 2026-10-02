@@ -56,6 +56,13 @@ const scenarioCatalog = {
     priority: 'P1' as const,
     steps: 'Choisir une prestation.',
     expected: 'La réservation est enregistrée.',
+  }, {
+    id: 'CUS-11',
+    profile: 'USER' as const,
+    title: 'Mes rendez-vous',
+    priority: 'P1' as const,
+    steps: 'Ouvrir les rendez-vous.',
+    expected: 'Les prochains rendez-vous apparaissent.',
   }],
 }
 
@@ -67,9 +74,9 @@ beforeEach(() => {
   } as never)
   vi.mocked(getPublicTestCampaign).mockResolvedValue({
     name: 'Recette bêta',
-    build: 'abc123',
     status: 'ACTIVE',
     profiles: ['USER'],
+    scenarioGroups: ['ONLINE_BOOKING'],
     organization: { name: 'Osez le T’re' },
   } as never)
   vi.mocked(loadScenarioCatalog).mockReturnValue(scenarioCatalog)
@@ -98,8 +105,8 @@ describe('test campaign management API', () => {
       body: JSON.stringify({
         name: 'Recette bêta',
         organizationId: 'org-id',
-        build: 'abc123',
         profiles: ['USER'],
+        scenarioGroups: ['ONLINE_BOOKING'],
       }),
     }))
 
@@ -107,9 +114,25 @@ describe('test campaign management API', () => {
     expect(createTestCampaign).toHaveBeenCalledWith({
       name: 'Recette bêta',
       organizationId: 'org-id',
-      build: 'abc123',
       profiles: ['USER'],
+      scenarioGroups: ['ONLINE_BOOKING'],
     })
+  })
+
+  it('rejects a campaign when a selected profile has no matching scenario group', async () => {
+    const response = await postCampaign(new Request('https://example.test/api/test-campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Campagne incohérente',
+        organizationId: 'org-id',
+        profiles: ['USER'],
+        scenarioGroups: ['STAFF_ADMINISTRATION'],
+      }),
+    }))
+
+    expect(response.status).toBe(400)
+    expect(createTestCampaign).not.toHaveBeenCalled()
   })
 })
 
@@ -126,11 +149,11 @@ describe('public test feedback API', () => {
     expect(response.status).toBe(200)
     expect(body).toEqual({
       name: 'Recette bêta',
-      build: 'abc123',
       status: 'ACTIVE',
       organizationName: 'Osez le T’re',
       profiles: ['USER'],
-      scenarios: scenarioCatalog.USER,
+      scenarioGroups: ['ONLINE_BOOKING'],
+      scenarios: [scenarioCatalog.USER[0]],
     })
   })
 
@@ -142,7 +165,7 @@ describe('public test feedback API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profile: 'USER',
-          results: [{ scenarioId: 'ADM-01', status: 'PASS' }],
+          results: [{ scenarioId: 'CUS-11', status: 'PASS' }],
         }),
       },
     ), context)
@@ -197,9 +220,9 @@ describe('public test feedback API', () => {
 
     vi.mocked(getPublicTestCampaign).mockResolvedValueOnce({
       name: 'Recette bêta',
-      build: 'abc123',
       status: 'CLOSED',
       profiles: ['USER'],
+      scenarioGroups: ['ONLINE_BOOKING'],
       organization: { name: 'Osez le T’re' },
     } as never)
     const closed = await postPublicFeedback(new Request(

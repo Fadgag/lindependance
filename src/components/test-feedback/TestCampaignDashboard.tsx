@@ -6,6 +6,10 @@ import type { FormEvent } from 'react'
 import { z } from 'zod'
 import { TestCampaignListResponseSchema } from '@/schemas/testFeedbackResponses'
 import { CreateTestCampaignSchema } from '@/schemas/testFeedback'
+import {
+  testScenarioGroups as scenarioGroupCatalog,
+  type TestScenarioGroupId,
+} from '@/domain/test-feedback/scenarioGroups'
 
 type CampaignDashboard = z.infer<typeof TestCampaignListResponseSchema>
 type CampaignDraft = z.infer<typeof CreateTestCampaignSchema>
@@ -31,12 +35,18 @@ function profileLabel(profile: 'ADMIN' | 'USER'): string {
   return profile === 'ADMIN' ? 'Administration' : 'Utilisateur'
 }
 
+function scenarioGroupLabel(id: TestScenarioGroupId): string {
+  return scenarioGroupCatalog.find((group) => group.id === id)?.label ?? id
+}
+
 export default function TestCampaignDashboard() {
   const [data, setData] = useState<CampaignDashboard | null>(null)
   const [campaignName, setCampaignName] = useState('')
-  const [build, setBuild] = useState('')
   const [organizationId, setOrganizationId] = useState('')
   const [profiles, setProfiles] = useState<Array<'ADMIN' | 'USER'>>(['ADMIN', 'USER'])
+  const [selectedScenarioGroups, setSelectedScenarioGroups] = useState<TestScenarioGroupId[]>(
+    scenarioGroupCatalog.map(({ id }) => id),
+  )
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -68,10 +78,15 @@ export default function TestCampaignDashboard() {
     event.preventDefault()
     setError('')
     setNotice('')
-    const draft: CampaignDraft = { name: campaignName, build, organizationId, profiles }
+    const draft: CampaignDraft = {
+      name: campaignName,
+      organizationId,
+      profiles,
+      scenarioGroups: selectedScenarioGroups,
+    }
     const validDraft = CreateTestCampaignSchema.safeParse(draft)
     if (!validDraft.success) {
-      setError('Renseignez le nom, l’organisation, le build et au moins un profil.')
+      setError('Renseignez le nom, l’organisation, au moins un profil et un groupe de scénarios correspondant.')
       return
     }
 
@@ -84,7 +99,6 @@ export default function TestCampaignDashboard() {
       })
       if (!response.ok) throw new Error(await responseError(response))
       setCampaignName('')
-      setBuild('')
       setNotice('La campagne a été créée.')
       await loadCampaigns()
     } catch (cause: unknown) {
@@ -92,6 +106,40 @@ export default function TestCampaignDashboard() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function updateProfile(profile: 'ADMIN' | 'USER', checked: boolean) {
+    const profileGroupIds = scenarioGroupCatalog
+      .filter((group) => group.profile === profile)
+      .map(({ id }) => id)
+    setProfiles((current) => {
+      if (!checked) return current.filter((currentProfile) => currentProfile !== profile)
+      return current.includes(profile) ? current : [...current, profile]
+    })
+    setSelectedScenarioGroups((current) => checked
+      ? [...new Set([...current, ...profileGroupIds])]
+      : current.filter((groupId) => !profileGroupIds.includes(groupId)))
+  }
+
+  function updateScenarioGroup(groupId: TestScenarioGroupId, checked: boolean) {
+    const group = scenarioGroupCatalog.find((candidate) => candidate.id === groupId)
+    if (!group) return
+
+    const nextGroups = checked
+      ? selectedScenarioGroups.includes(groupId)
+        ? selectedScenarioGroups
+        : [...selectedScenarioGroups, groupId]
+      : selectedScenarioGroups.filter((currentGroup) => currentGroup !== groupId)
+    setSelectedScenarioGroups(nextGroups)
+    setProfiles((current) => {
+      const groupStillSelectedForProfile = nextGroups.some((selectedGroupId) => (
+        scenarioGroupCatalog.find((candidate) => candidate.id === selectedGroupId)?.profile === group.profile
+      ))
+      if (checked) return current.includes(group.profile) ? current : [...current, group.profile]
+      return groupStillSelectedForProfile
+        ? current
+        : current.filter((profile) => profile !== group.profile)
+    })
   }
 
   async function closeCampaign(id: string) {
@@ -183,10 +231,13 @@ export default function TestCampaignDashboard() {
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-(--studio-muted)">
-                      {campaign.organizationName} · Build {campaign.build} · {formatDate(campaign.createdAt)}
+                      {campaign.organizationName} · {formatDate(campaign.createdAt)}
                     </p>
                     <p className="mt-1 text-xs text-(--studio-muted)">
                       Profils : {campaign.profiles.map(profileLabel).join(' et ')}
+                    </p>
+                    <p className="mt-1 text-xs text-(--studio-muted)">
+                      Parcours : {campaign.scenarioGroups.map(scenarioGroupLabel).join(' · ')}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -232,10 +283,6 @@ export default function TestCampaignDashboard() {
               ))}
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
-            Build ou commit testé
-            <input required maxLength={128} value={build} onChange={(event) => setBuild(event.target.value)} className="rounded-lg border border-(--studio-border) px-3 py-2" />
-          </label>
           <fieldset className="grid gap-2">
             <legend className="text-sm font-medium text-(--studio-text)">Profils de test</legend>
             {testProfiles.map((profile) => (
@@ -243,13 +290,25 @@ export default function TestCampaignDashboard() {
                 <input
                   type="checkbox"
                   checked={profiles.includes(profile)}
-                  onChange={(event) => setProfiles((current) => (
-                    event.target.checked
-                      ? [...current, profile]
-                      : current.filter((value) => value !== profile)
-                  ))}
+                  onChange={(event) => updateProfile(profile, event.target.checked)}
                 />
                 {profileLabel(profile)}
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-medium text-(--studio-text)">Parcours à tester</legend>
+            <p className="text-xs text-(--studio-muted)">
+              Tous les parcours sont sélectionnés par défaut. Décochez ceux à exclure ; les profils suivent les parcours retenus.
+            </p>
+            {scenarioGroupCatalog.map((group) => (
+              <label key={group.id} className="flex items-start gap-2 text-sm text-(--studio-muted)">
+                <input
+                  type="checkbox"
+                  checked={selectedScenarioGroups.includes(group.id)}
+                  onChange={(event) => updateScenarioGroup(group.id, event.target.checked)}
+                />
+                <span>{group.label} ({group.range})</span>
               </label>
             ))}
           </fieldset>

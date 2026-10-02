@@ -188,7 +188,8 @@ model CustomerPortalRateLimitEvent {
 model TestCampaign {
   id             String       @id @default(cuid())
   name           String
-  build          String
+  build          String?
+  scenarioGroups String[]     @default([])
   profiles       String[]
   status         String       @default("ACTIVE")
   publicToken    String       @unique
