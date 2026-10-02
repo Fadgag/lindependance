@@ -32,12 +32,16 @@ Si la liste des migrations en attente est inattendue, si la base affichée n'est
 bonne, ou si Prisma signale une migration en échec, arrêter ici et diagnostiquer avant
 toute autre commande.
 
-Pour la préproduction actuelle, si
-`20260930000000_customer_portal_phase_1` a déjà été appliquée, la migration attendue est
-`20260930232000_staff_archiving`. Vérifier le contenu avant de l'exécuter :
+Pour la préproduction, si
+`20260930000000_customer_portal_phase_1` a été appliquée mais pas l'archivage staff, la
+migration attendue est `20260930232000_staff_archiving`. Si la Phase 3 du portail client
+est déjà appliquée, la migration de campagnes de recette attendue est
+`20261002120000_test_feedback_campaigns`. Vérifier le contenu de chaque migration en
+attente avant de l'exécuter :
 
 ```bash
 cat prisma/migrations/20260930232000_staff_archiving/migration.sql
+cat prisma/migrations/20261002120000_test_feedback_campaigns/migration.sql
 ```
 
 Cette migration ajoute uniquement `Staff.active BOOLEAN NOT NULL DEFAULT true`. La nouvelle
@@ -83,6 +87,19 @@ vérifier le SQL de `prisma/migrations/20261001120000_customer_portal_phase_3/mi
 Cette migration conserve les demandes historiques en détachant leur rendez-vous supprimé,
 et crée un index unique partiel empêchant plusieurs demandes `PENDING` pour le même
 rendez-vous.
+
+La fonctionnalité de campagnes de recette ajoute `TestCampaign` et `TestFeedback` par la
+migration `prisma/migrations/20261002120000_test_feedback_campaigns/migration.sql`. Elle
+ajoute les tables, index et clés étrangères sans modifier les rendez-vous ni les données
+existantes. Après application, vérifier la présence des deux tables dans la base cible :
+
+```sql
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name IN ('TestCampaign', 'TestFeedback')
+ORDER BY table_name;
+```
 
 ## À ne pas faire
 

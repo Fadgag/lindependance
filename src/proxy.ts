@@ -9,6 +9,7 @@ import type { NextAuthRequest } from 'next-auth'
 async function middlewareFn(req: NextAuthRequest) {
   const pathname = String(req.nextUrl?.pathname ?? '')
   if (pathname === '/portail' || pathname.startsWith('/portail/')) return
+  if (pathname === '/retour-test' || pathname.startsWith('/retour-test/')) return
 
   const authClaim = req.auth ?? null
   const isLoggedIn = !!authClaim
@@ -16,7 +17,8 @@ async function middlewareFn(req: NextAuthRequest) {
 
   if (pathname === '/') {
     if (authClaim?.user?.accountType === 'STAFF') {
-      return Response.redirect(new URL('/dashboard', req.nextUrl))
+      const destination = authClaim.user.role === 'TECH_ADMIN' ? '/test-campaigns' : '/dashboard'
+      return Response.redirect(new URL(destination, req.nextUrl))
     }
     return
   }

@@ -10,10 +10,10 @@ const CreateUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).optional(),
   password: z.string().min(8),
-  role: z.string().optional(),
+  role: z.enum(['USER', 'ADMIN']).optional(),
 })
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -45,4 +45,3 @@ export async function POST(req: Request) {
     return apiErrorResponse(err)
   }
 }
-

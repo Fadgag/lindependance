@@ -23,6 +23,8 @@ model Organization {
   users             User[]
   appointments      Appointment[]
   changeRequests    AppointmentChangeRequest[]
+  testCampaigns     TestCampaign[]
+  testFeedback      TestFeedback[]
   Package           Package[]
   products          Product[]
   unavailabilities  Unavailability[]
@@ -181,6 +183,41 @@ model CustomerPortalRateLimitEvent {
 
   @@index([scope, keyHash, createdAt])
   @@index([createdAt])
+}
+
+model TestCampaign {
+  id             String       @id @default(cuid())
+  name           String
+  build          String
+  profiles       String[]
+  status         String       @default("ACTIVE")
+  publicToken    String       @unique
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  feedback       TestFeedback[]
+  createdAt      DateTime     @default(now())
+  closedAt       DateTime?
+
+  @@index([organizationId, status, createdAt])
+}
+
+model TestFeedback {
+  id               String       @id @default(cuid())
+  campaignId       String
+  campaign         TestCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile          String
+  scenarioId       String
+  scenarioTitle    String
+  scenarioPriority String
+  status           String
+  environment      String?
+  comment          String?
+  createdAt        DateTime     @default(now())
+
+  @@index([campaignId, profile, scenarioId, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 model Package {

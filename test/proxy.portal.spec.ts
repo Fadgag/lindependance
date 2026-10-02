@@ -31,10 +31,34 @@ describe('public customer portal pages', () => {
     expect(response?.headers.get('location')).toBe('https://example.test/dashboard')
   })
 
+  it('redirects the technical administrator to campaign tracking', async () => {
+    const request = {
+      nextUrl: new URL('https://example.test/'),
+      url: 'https://example.test/',
+      auth: { user: { accountType: 'STAFF', role: 'TECH_ADMIN' } },
+    }
+
+    const response = await middleware(request as never)
+
+    expect(response?.headers.get('location')).toBe('https://example.test/test-campaigns')
+  })
+
   it('does not redirect unauthenticated visitors to the staff sign-in page', async () => {
     const request = {
       nextUrl: new URL('https://example.test/portail/atelier/reserver'),
       url: 'https://example.test/portail/atelier/reserver',
+      auth: null,
+    }
+
+    const response = await middleware(request as never)
+
+    expect(response).toBeUndefined()
+  })
+
+  it('lets unauthenticated visitors open a campaign feedback link', async () => {
+    const request = {
+      nextUrl: new URL(`https://example.test/retour-test/${'a'.repeat(43)}`),
+      url: `https://example.test/retour-test/${'a'.repeat(43)}`,
       auth: null,
     }
 
