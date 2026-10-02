@@ -19,7 +19,13 @@ describe('TestCampaignDashboard', () => {
         id: 'user-1',
         name: 'Camille',
         email: 'camille@example.test',
+        source: 'USER',
         role: 'USER',
+      }, {
+        id: 'customer-1',
+        name: 'Léa Martin',
+        email: 'lea@example.test',
+        source: 'CUSTOMER',
       }]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({
         id: 'campaign-1',
@@ -32,11 +38,20 @@ describe('TestCampaignDashboard', () => {
 
     render(<TestCampaignDashboard />)
     await screen.findByText(/Aucune campagne/)
-    fireEvent.click(await screen.findByRole('checkbox', { name: /Camille \(camille@example\.test\)/ }))
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Léa Martin \(lea@example\.test\)/ }))
 
-    fireEvent.change(screen.getByLabelText('Nom de la campagne'), {
+    const campaignNameInput = screen.getByLabelText('Nom de la campagne')
+    fireEvent.change(campaignNameInput, {
       target: { value: 'Recette réservation complète' },
     })
+    const enterEvent = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true,
+    })
+    campaignNameInput.dispatchEvent(enterEvent)
+    expect(enterEvent.defaultPrevented).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     fireEvent.change(screen.getByLabelText('Organisation'), {
       target: { value: 'org-1' },
     })
@@ -48,7 +63,9 @@ describe('TestCampaignDashboard', () => {
     })
     const scenarioGroup = screen.getByRole('group', { name: 'Parcours à tester' })
     const createButton = screen.getByRole('button', { name: 'Créer la campagne' })
-    expect(createButton.parentElement).toContainElement(scenarioGroup)
+    expect(createButton).toBeVisible()
+    expect(createButton.parentElement).toHaveClass('sticky')
+    expect(createButton.closest('form')).toContainElement(scenarioGroup)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Administration' }))
     fireEvent.click(createButton)
 
@@ -59,7 +76,7 @@ describe('TestCampaignDashboard', () => {
       organizationId: 'org-1',
       profiles: ['USER'],
       scenarioGroups: ['ONLINE_BOOKING', 'APPOINTMENTS_AND_CHANGES', 'SECURITY_AND_MOBILE'],
-      recipientIds: ['user-1'],
+      recipientIds: [{ source: 'CUSTOMER', id: 'customer-1' }],
       emailSubject: 'Testez la réservation',
       emailMessage: 'Merci de vérifier le parcours de réservation.',
     })

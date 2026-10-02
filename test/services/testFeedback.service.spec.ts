@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
   return {
     organizationFindUnique: vi.fn(),
     userFindMany: vi.fn(),
+    customerFindMany: vi.fn(),
     campaignCreate: vi.fn(),
     campaignFindUnique: vi.fn(),
     campaignUpdateMany: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     organization: { findUnique: mocks.organizationFindUnique },
     user: { findMany: mocks.userFindMany },
+    customer: { findMany: mocks.customerFindMany },
     testCampaign: {
       create: mocks.campaignCreate,
       findUnique: mocks.campaignFindUnique,
@@ -42,6 +44,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   mocks.organizationFindUnique.mockResolvedValue({ id: 'org-1', name: 'Osez le T’re' })
   mocks.userFindMany.mockResolvedValue([])
+  mocks.customerFindMany.mockResolvedValue([])
   mocks.campaignCreate.mockResolvedValue({ id: 'campaign-1' })
   mocks.transactionClient.testCampaign.findUnique.mockResolvedValue({
     id: 'campaign-1',
@@ -55,13 +58,39 @@ beforeEach(() => {
 })
 
 describe('test feedback service', () => {
-  it('lists only email-enabled accounts for the selected organization', async () => {
+  it('lists email-enabled accounts and clients for the selected organization and deduplicates addresses', async () => {
     mocks.userFindMany.mockResolvedValue([{
       id: 'user-1',
       name: 'Camille',
       email: 'camille@example.test',
       role: 'USER',
     }])
+    mocks.customerFindMany.mockResolvedValue([
+      {
+        id: 'customer-duplicate',
+        firstName: 'Camille',
+        lastName: 'Martin',
+        email: 'CAMILLE@example.test',
+      },
+      {
+        id: 'customer-1',
+        firstName: 'Léa',
+        lastName: 'Durand',
+        email: 'lea@example.test',
+      },
+      {
+        id: 'customer-no-email',
+        firstName: 'No',
+        lastName: 'Email',
+        email: ' ',
+      },
+      {
+        id: 'customer-invalid-email',
+        firstName: 'Invalid',
+        lastName: 'Email',
+        email: 'not-an-email',
+      },
+    ])
 
     const recipients = await listTestCampaignRecipients('org-1')
 
@@ -69,7 +98,13 @@ describe('test feedback service', () => {
       id: 'user-1',
       name: 'Camille',
       email: 'camille@example.test',
+      source: 'USER',
       role: 'USER',
+    }, {
+      id: 'customer-1',
+      name: 'Léa Durand',
+      email: 'lea@example.test',
+      source: 'CUSTOMER',
     }])
     expect(mocks.userFindMany).toHaveBeenCalledWith({
       where: {
@@ -80,8 +115,19 @@ describe('test feedback service', () => {
       orderBy: [{ name: 'asc' }, { email: 'asc' }],
       select: { id: true, name: true, email: true, role: true },
     })
+    expect(mocks.customerFindMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        email: { not: null },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { email: 'asc' }],
+      select: { id: true, firstName: true, lastName: true, email: true },
+    })
 
-    await listTestCampaignRecipients('org-1', ['user-1'])
+    await listTestCampaignRecipients('org-1', [
+      { source: 'USER', id: 'user-1' },
+      { source: 'CUSTOMER', id: 'customer-1' },
+    ])
     expect(mocks.userFindMany).toHaveBeenLastCalledWith({
       where: {
         organizationId: 'org-1',
@@ -91,6 +137,15 @@ describe('test feedback service', () => {
       },
       orderBy: [{ name: 'asc' }, { email: 'asc' }],
       select: { id: true, name: true, email: true, role: true },
+    })
+    expect(mocks.customerFindMany).toHaveBeenLastCalledWith({
+      where: {
+        organizationId: 'org-1',
+        email: { not: null },
+        id: { in: ['customer-1'] },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { email: 'asc' }],
+      select: { id: true, firstName: true, lastName: true, email: true },
     })
   })
 

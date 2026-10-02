@@ -44,12 +44,21 @@ export const TestCampaignListResponseSchema = z.object({
   })),
 })
 
-export const TestCampaignRecipientListResponseSchema = z.array(z.object({
-  id: z.string(),
-  name: z.string().nullable(),
-  email: z.string().email(),
-  role: z.enum(['ADMIN', 'USER']),
-}))
+export const TestCampaignRecipientListResponseSchema = z.array(z.discriminatedUnion('source', [
+  z.object({
+    id: z.string(),
+    name: z.string().nullable(),
+    email: z.string().email(),
+    source: z.literal('USER'),
+    role: z.enum(['ADMIN', 'USER']),
+  }),
+  z.object({
+    id: z.string(),
+    name: z.string().nullable(),
+    email: z.string().email(),
+    source: z.literal('CUSTOMER'),
+  }),
+]))
 
 export const TestCampaignCreationResponseSchema = z.object({
   invitations: z.object({

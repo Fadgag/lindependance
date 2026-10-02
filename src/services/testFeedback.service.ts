@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Prisma } from '@prisma/client'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import {
   getScenarioProgress,
@@ -109,20 +110,77 @@ export async function listTestCampaigns() {
   }
 }
 
-export async function listTestCampaignRecipients(organizationId: string, recipientIds?: string[]) {
-  const recipients = await prisma.user.findMany({
-    where: {
-      organizationId,
-      email: { not: null },
-      role: { in: ['ADMIN', 'USER'] },
-      ...(recipientIds ? { id: { in: recipientIds } } : {}),
-    },
-    orderBy: [{ name: 'asc' }, { email: 'asc' }],
-    select: { id: true, name: true, email: true, role: true },
+type TestCampaignRecipientRef = { source: 'USER' | 'CUSTOMER'; id: string }
+type TestCampaignRecipient =
+  | { id: string; name: string | null; email: string; source: 'USER'; role: 'ADMIN' | 'USER' }
+  | { id: string; name: string | null; email: string; source: 'CUSTOMER' }
+
+function normalizedRecipientEmail(value: string | null): string | null {
+  const parsed = z.string().trim().email().safeParse(value)
+  return parsed.success ? parsed.data : null
+}
+
+export async function listTestCampaignRecipients(
+  organizationId: string,
+  recipientIds?: TestCampaignRecipientRef[],
+) {
+  const userIds = recipientIds
+    ?.filter(({ source }) => source === 'USER')
+    .map(({ id }) => id)
+  const customerIds = recipientIds
+    ?.filter(({ source }) => source === 'CUSTOMER')
+    .map(({ id }) => id)
+  const [users, customers] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        organizationId,
+        email: { not: null },
+        role: { in: ['ADMIN', 'USER'] },
+        ...(recipientIds ? { id: { in: userIds } } : {}),
+      },
+      orderBy: [{ name: 'asc' }, { email: 'asc' }],
+      select: { id: true, name: true, email: true, role: true },
+    }),
+    prisma.customer.findMany({
+      where: {
+        organizationId,
+        email: { not: null },
+        ...(recipientIds ? { id: { in: customerIds } } : {}),
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { email: 'asc' }],
+      select: { id: true, firstName: true, lastName: true, email: true },
+    }),
+  ])
+
+  const eligibleUsers: TestCampaignRecipient[] = users.flatMap((recipient) => {
+    const email = normalizedRecipientEmail(recipient.email)
+    if (!email || (recipient.role !== 'ADMIN' && recipient.role !== 'USER')) return []
+    return [{
+      id: recipient.id,
+      name: recipient.name?.trim() || null,
+      email,
+      source: 'USER',
+      role: recipient.role,
+    }]
   })
-  return recipients.flatMap((recipient) => recipient.email
-    ? [{ ...recipient, email: recipient.email }]
-    : [])
+  const eligibleCustomers: TestCampaignRecipient[] = customers.flatMap((recipient) => {
+    const email = normalizedRecipientEmail(recipient.email)
+    if (!email) return []
+    const name = `${recipient.firstName.trim()} ${recipient.lastName.trim()}`.trim() || null
+    return [{
+      id: recipient.id,
+      name,
+      email,
+      source: 'CUSTOMER',
+    }]
+  })
+
+  const uniqueRecipients = new Map<string, TestCampaignRecipient>()
+  for (const recipient of [...eligibleUsers, ...eligibleCustomers]) {
+    const normalizedEmail = recipient.email.toLowerCase()
+    if (!uniqueRecipients.has(normalizedEmail)) uniqueRecipients.set(normalizedEmail, recipient)
+  }
+  return [...uniqueRecipients.values()]
 }
 
 export async function createTestCampaign(input: {
