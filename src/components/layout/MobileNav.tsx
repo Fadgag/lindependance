@@ -9,11 +9,14 @@ import { useSession } from 'next-auth/react'
 export default function MobileNav() {
     const pathname = usePathname()
     const { data: session } = useSession()
+    const isTechAdmin = session?.user?.role === 'TECH_ADMIN'
 
     return (
         <nav data-testid="mobile-nav" className="space-y-2 px-4 py-4">
             {menuItems.map((item) => {
                 const isActive = pathname === item.href
+                if (item.techAdminOnly && !isTechAdmin) return null
+                if (isTechAdmin && !item.techAdminOnly) return null
                 if (item.adminOnly) {
                     if (!session?.user || session.user.role !== 'ADMIN') return null
                 }
@@ -33,5 +36,4 @@ export default function MobileNav() {
         </nav>
     )
 }
-
 

@@ -3,23 +3,16 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, Users, LogOut, BarChart2, Settings } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
-
-const menuItems = [
-    { name: 'Accueil', icon: CalendarDays, href: '/', adminOnly: false },
-    { name: 'Agenda', icon: CalendarDays, href: '/agenda', adminOnly: false },
-    { name: 'Demandes de changement', icon: CalendarDays, href: '/change-requests', adminOnly: false },
-    { name: 'Clients', icon: Users, href: '/customers', adminOnly: false },
-    { name: 'Statistiques', icon: BarChart2, href: '/dashboard', adminOnly: true },
-    { name: 'Configuration', icon: Settings, href: '/settings', adminOnly: true },
-]
+import { menuItems } from './menuItems'
 
 export default function Sidebar() {
     const pathname = usePathname()
     const { data: session } = useSession()
+    const isTechAdmin = session?.user?.role === 'TECH_ADMIN'
 
-    if (pathname.startsWith('/portail/')) return null
+    if (pathname.startsWith('/portail/') || pathname.startsWith('/retour-test/')) return null
 
     return (
         /* hidden md:flex = display:none on mobile → removed from a11y tree. MobileHeader/MobileSheet handle nav on small devices. */
@@ -45,13 +38,10 @@ export default function Sidebar() {
             {/* NAVIGATION MODULES */}
             <nav className="space-y-2 flex-1">
                 {menuItems.map((item) => {
-                    const isActive = pathname === item.href
-                    // if adminOnly and user is not admin, skip
-                    if (item.adminOnly) {
-                        // RAISON: next-auth v5 ne type pas `role` sur ClientSession — workaround jusqu'à mise à jour next-auth.d.ts
-                    const user = session?.user as Record<string, unknown> | undefined
-                        if (!user || typeof user.role !== 'string' || user.role !== 'ADMIN') return null
-                    }
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                    if (item.techAdminOnly && !isTechAdmin) return null
+                    if (isTechAdmin && !item.techAdminOnly) return null
+                    if (item.adminOnly && session?.user?.role !== 'ADMIN') return null
 
                     return (
                         <Link
