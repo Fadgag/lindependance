@@ -95,6 +95,7 @@ describe('public customer portal reads', () => {
   })
 
   it('calculates slot end times from the stored service duration and auto-selects one practitioner', async () => {
+    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
     vi.mocked(prisma.service.findFirst).mockResolvedValue({
       id: 'service-1',
       name: 'Coupe',
@@ -104,7 +105,7 @@ describe('public customer portal reads', () => {
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([] as never)
     vi.mocked(prisma.unavailability.findMany).mockResolvedValue([] as never)
     const response = await getSlots(new Request(
-      'https://example.test?serviceId=service-1&date=2026-10-01',
+      `https://example.test?serviceId=service-1&date=${futureDate}`,
     ), routeContext)
 
     expect(prisma.staff.findMany).toHaveBeenCalledWith(expect.objectContaining({
