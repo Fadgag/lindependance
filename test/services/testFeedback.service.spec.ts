@@ -40,6 +40,7 @@ beforeEach(() => {
     organizationId: 'org-1',
     status: 'ACTIVE',
     profiles: ['USER'],
+    scenarioGroups: ['ONLINE_BOOKING'],
   })
   mocks.transactionClient.testFeedback.createMany.mockResolvedValue({ count: 1 })
   mocks.campaignUpdateMany.mockResolvedValue({ count: 1 })
@@ -49,17 +50,18 @@ describe('test feedback service', () => {
   it('creates campaigns only for existing organizations with an opaque random token', async () => {
     await createTestCampaign({
       name: 'Recette bêta',
-      build: 'abc123',
       organizationId: 'org-1',
       profiles: ['USER'],
+      scenarioGroups: ['ONLINE_BOOKING'],
     })
 
     const [createInput] = mocks.campaignCreate.mock.calls[0]
     expect(createInput.data).toMatchObject({
       name: 'Recette bêta',
-      build: 'abc123',
+      build: null,
       organizationId: 'org-1',
       profiles: ['USER'],
+      scenarioGroups: ['ONLINE_BOOKING'],
     })
     expect(createInput.data.publicToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
     expect(mocks.organizationFindUnique).toHaveBeenCalledWith({
@@ -105,6 +107,7 @@ describe('test feedback service', () => {
       organizationId: 'org-1',
       status: 'CLOSED',
       profiles: ['USER'],
+      scenarioGroups: ['ONLINE_BOOKING'],
     })
     const closedResult = await createTestFeedback({
       publicToken: 'public-token',
@@ -118,6 +121,7 @@ describe('test feedback service', () => {
       organizationId: 'org-1',
       status: 'ACTIVE',
       profiles: ['ADMIN'],
+      scenarioGroups: ['STAFF_ADMINISTRATION'],
     })
     const wrongProfileResult = await createTestFeedback({
       publicToken: 'public-token',
@@ -125,6 +129,22 @@ describe('test feedback service', () => {
       results: [{ scenarioId: 'CUS-01', scenarioTitle: 'Réservation', scenarioPriority: 'P0', status: 'PASS' }],
     })
     expect(wrongProfileResult).toBe(false)
+    expect(mocks.transactionClient.testFeedback.createMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects feedback outside the selected scenario groups', async () => {
+    const created = await createTestFeedback({
+      publicToken: 'public-token',
+      profile: 'USER',
+      results: [{
+        scenarioId: 'CUS-11',
+        scenarioTitle: 'Mes rendez-vous',
+        scenarioPriority: 'P1',
+        status: 'PASS',
+      }],
+    })
+
+    expect(created).toBe(false)
     expect(mocks.transactionClient.testFeedback.createMany).not.toHaveBeenCalled()
   })
 

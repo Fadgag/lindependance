@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TestScenarioGroupSchema } from '@/domain/test-feedback/scenarioGroups'
 import { FeedbackStatusSchema, TestProfileSchema } from './testFeedback'
 
 const ScenarioSchema = z.object({
@@ -32,7 +33,7 @@ export const TestCampaignListResponseSchema = z.object({
   campaigns: z.array(z.object({
     id: z.string(),
     name: z.string(),
-    build: z.string(),
+    scenarioGroups: z.array(TestScenarioGroupSchema),
     profiles: z.array(TestProfileSchema),
     status: z.enum(['ACTIVE', 'CLOSED']),
     publicToken: z.string(),
@@ -47,7 +48,7 @@ export const TestCampaignDetailResponseSchema = z.object({
   campaign: z.object({
     id: z.string(),
     name: z.string(),
-    build: z.string(),
+    scenarioGroups: z.array(TestScenarioGroupSchema),
     profiles: z.array(TestProfileSchema),
     status: z.enum(['ACTIVE', 'CLOSED']),
     publicToken: z.string(),
@@ -80,7 +81,7 @@ export const TestCampaignDetailResponseSchema = z.object({
 
 export const PublicTestCampaignResponseSchema = z.object({
   name: z.string(),
-  build: z.string(),
+  scenarioGroups: z.array(TestScenarioGroupSchema),
   status: z.enum(['ACTIVE', 'CLOSED']),
   organizationName: z.string(),
   profiles: z.array(TestProfileSchema),

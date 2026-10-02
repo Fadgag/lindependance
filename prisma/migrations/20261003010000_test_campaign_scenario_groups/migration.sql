@@ -1,0 +1,5 @@
+ALTER TABLE "TestCampaign"
+ADD COLUMN "scenarioGroups" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+ALTER TABLE "TestCampaign"
+ALTER COLUMN "build" DROP NOT NULL;

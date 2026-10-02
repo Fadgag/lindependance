@@ -5,9 +5,17 @@ import type { FormEvent } from 'react'
 import { z } from 'zod'
 import { PublicTestCampaignResponseSchema } from '@/schemas/testFeedbackResponses'
 import type { FeedbackStatus, TestProfile, TestScenario } from '@/domain/test-feedback/scenarios'
+import {
+  testScenarioGroups as scenarioGroupCatalog,
+  type TestScenarioGroupId,
+} from '@/domain/test-feedback/scenarioGroups'
 
 type PublicCampaign = z.infer<typeof PublicTestCampaignResponseSchema>
 type ScenarioEntry = { status: FeedbackStatus; comment: string }
+
+function scenarioGroupLabel(id: TestScenarioGroupId): string {
+  return scenarioGroupCatalog.find((group) => group.id === id)?.label ?? id
+}
 
 async function responseError(response: Response): Promise<string> {
   try {
@@ -130,7 +138,10 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
       <header className="rounded-2xl border border-(--studio-border) bg-white p-6 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-(--studio-primary)">Retour de test</p>
         <h1 className="mt-2 font-serif text-3xl text-(--studio-text)">{campaign.name}</h1>
-        <p className="mt-2 text-sm text-(--studio-muted)">{campaign.organizationName} · Build {campaign.build}</p>
+        <p className="mt-2 text-sm text-(--studio-muted)">{campaign.organizationName}</p>
+        <p className="mt-1 text-sm text-(--studio-muted)">
+          Parcours : {campaign.scenarioGroups.map(scenarioGroupLabel).join(' · ')}
+        </p>
         <p className="mt-4 text-sm text-(--studio-muted)">Aucun compte ni nom n’est demandé. Le profil est déclaratif et sert uniquement à classer les retours de cette campagne.</p>
       </header>
 

@@ -101,6 +101,13 @@ WHERE table_schema = 'public'
 ORDER BY table_name;
 ```
 
+La sélection de parcours des campagnes est ajoutée par
+`prisma/migrations/20261003010000_test_campaign_scenario_groups/migration.sql`. Cette
+migration ajoute le champ `TestCampaign.scenarioGroups` avec un tableau vide par défaut et
+autorise l'absence de valeur dans l'ancien champ `build`. Elle ne supprime ni ne réécrit
+les campagnes existantes ; l'application interprète les groupes vides des anciennes
+campagnes comme l'ensemble des scénarios correspondant à leurs profils.
+
 ## À ne pas faire
 
 - Ne jamais lancer `prisma migrate reset`, `prisma db push`, `prisma migrate dev` ou un seed

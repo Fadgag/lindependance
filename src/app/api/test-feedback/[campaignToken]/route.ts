@@ -21,6 +21,11 @@ import {
   TestFeedbackSubmissionSchema,
   TestProfileSchema,
 } from '@/schemas/testFeedback'
+import {
+  filterScenariosByGroups,
+  getDefaultScenarioGroupsForProfiles,
+  TestScenarioGroupSchema,
+} from '@/domain/test-feedback/scenarioGroups'
 
 const SUBMISSION_WINDOW_MS = 60 * 60 * 1000
 const SUBMISSION_LIMIT = 60
@@ -34,6 +39,9 @@ export async function GET(request: Request, { params }: PublicFeedbackContext) {
     const campaign = await getPublicTestCampaign(token.data)
     if (!campaign) return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
     const profiles = TestProfileSchema.array().parse(campaign.profiles)
+    const scenarioGroups = campaign.scenarioGroups.length
+      ? TestScenarioGroupSchema.array().parse(campaign.scenarioGroups)
+      : getDefaultScenarioGroupsForProfiles(profiles)
     const profileParam = new URL(request.url).searchParams.get('profile')
     let scenarios: TestScenario[] = []
     if (profileParam) {
@@ -41,12 +49,12 @@ export async function GET(request: Request, { params }: PublicFeedbackContext) {
       if (!profile.success || !isTestProfileEnabled(profiles, profile.data)) {
         return NextResponse.json({ error: 'Profil non disponible pour cette campagne' }, { status: 400 })
       }
-      scenarios = loadScenarioCatalog()[profile.data]
+      scenarios = filterScenariosByGroups(loadScenarioCatalog()[profile.data], scenarioGroups)
     }
 
     return NextResponse.json({
       name: campaign.name,
-      build: campaign.build,
+      scenarioGroups,
       status: campaign.status,
       organizationName: campaign.organization.name,
       profiles,
@@ -75,6 +83,9 @@ export async function POST(request: Request, { params }: PublicFeedbackContext) 
     const campaign = await getPublicTestCampaign(token.data)
     if (!campaign) return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
     const profiles = TestProfileSchema.array().parse(campaign.profiles)
+    const scenarioGroups = campaign.scenarioGroups.length
+      ? TestScenarioGroupSchema.array().parse(campaign.scenarioGroups)
+      : getDefaultScenarioGroupsForProfiles(profiles)
     const availability = getCampaignSubmissionAvailability({
       campaignStatus: campaign.status,
       enabledProfiles: profiles,
@@ -87,7 +98,10 @@ export async function POST(request: Request, { params }: PublicFeedbackContext) 
       return NextResponse.json({ error: 'Profil non disponible pour cette campagne' }, { status: 400 })
     }
 
-    const scenarios = loadScenarioCatalog()[parsed.data.profile]
+    const scenarios = filterScenariosByGroups(
+      loadScenarioCatalog()[parsed.data.profile],
+      scenarioGroups,
+    )
     const results = resolveFeedbackScenarios(scenarios, parsed.data.results)
     if (!results) {
       return NextResponse.json({ error: 'Un scénario ne correspond pas au guide de recette' }, { status: 400 })
