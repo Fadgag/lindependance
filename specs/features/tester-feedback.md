@@ -13,8 +13,13 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   écran de l'application ne permet de s'attribuer ce rôle.
 - Le `TECH_ADMIN` ouvre `/test-campaigns`, crée une campagne avec son nom,
   l'organisation cible, les profils de test inclus (`ADMIN`, `USER`, ou les
-  deux) et un ou plusieurs groupes de scénarios. La campagne est active à sa
-  création ; aucun hash de commit n'est requis.
+  deux) et un ou plusieurs groupes de scénarios. Il peut sélectionner jusqu'à
+  50 comptes existants rattachés à cette organisation pour leur envoyer le
+  lien public par e-mail. Cette sélection sert uniquement à l'envoi et n'est
+  pas enregistrée dans la campagne. Il peut personnaliser l'objet et le
+  message texte de l'invitation ; le gabarit HTML, le prénom, le résumé de la
+  campagne et le bouton vers les scénarios restent gérés par l'application.
+  La campagne est active à sa création ; aucun hash de commit n'est requis.
 - La campagne possède un lien public dédié `/retour-test/[campaignToken]`.
   Le jeton est aléatoire et opaque ; il ne révèle pas l'identifiant interne de
   l'organisation. Il est stocké pour permettre de réafficher et copier le lien
@@ -81,6 +86,7 @@ cartes lisibles.
 |                                                                       |
 | Nouvelle campagne                                                       |
 | Nom [____________________] Organisation [Choisir... v]                |
+| Destinataires (facultatif) [x] Camille [x] Fanny [ ] ...              |
 | Profils [x] Admin [x] Utilisateur                                    |
 | Parcours [x] Réservation en ligne [x] Mes RDV [ ] Admin staff ...    |
 |                                                   [Créer la campagne]   |
@@ -175,6 +181,18 @@ cartes lisibles.
 - Ne pas associer le feedback à un compte utilisateur ni à un testeur identifié.
 - Ne pas stocker nom, email, adresse IP ni autre identifiant personnel du
   testeur. Le profil est librement choisi par le visiteur.
+- La liste des comptes sélectionnés pour l'invitation n'est pas persistée et
+  n'est jamais associée aux feedbacks. Les retours restent anonymes même si un
+  destinataire ouvre le lien depuis son compte.
+- Les destinataires sont les comptes `ADMIN`/`USER` avec une adresse e-mail
+  appartenant à l'organisation choisie. L'API vérifie côté serveur l'ensemble
+  des IDs avant de créer la campagne ; la sélection est limitée à 50 comptes.
+- Chaque invitation est envoyée individuellement par e-mail avec le lien public.
+  Les envois réussis et les destinataires en échec sont signalés au créateur ;
+  une campagne créée n'est pas annulée en cas d'échec partiel d'envoi.
+- L'objet personnalisé est borné à 120 caractères et ne peut contenir de
+  retour à la ligne ; le message texte facultatif est borné à 2 000 caractères.
+  Le HTML est toujours échappé et composé par le gabarit stylé de l'application.
 - Les identifiants de scénarios valides proviennent du guide correspondant au
   profil résolu côté serveur et aux groupes actifs de la campagne ; les
   libellés/priorités reçus du navigateur ne font pas autorité.
@@ -190,7 +208,12 @@ cartes lisibles.
 
 ## API
 - `GET/POST /api/test-campaigns` : `TECH_ADMIN` uniquement ; lister et créer
-  des campagnes, avec organisation résolue et vérifiée côté serveur.
+  des campagnes, avec organisation et destinataires résolus et vérifiés côté
+  serveur. `recipientIds` est facultatif et limité à 50 comptes ; l'objet et le
+  message d'invitation sont validés côté serveur.
+- `GET /api/test-campaigns/recipients?organizationId=...` : `TECH_ADMIN`
+  uniquement ; lister les comptes invitables d'une organisation sans exposer
+  d'autres organisations.
 - `GET /api/test-campaigns/[id]` : `TECH_ADMIN` uniquement ; détail, avancement
   et historique de la campagne.
 - `PATCH /api/test-campaigns/[id]` : `TECH_ADMIN` uniquement ; fermer une
@@ -204,8 +227,10 @@ cartes lisibles.
 ## Hors périmètre
 - Création ou modification des scénarios dans l'application : les guides
   Markdown existants restent la source des scénarios disponibles.
-- Ajout de pièces jointes, captures d'écran, contact du testeur ou réponse
-  depuis l'application.
+- Collecte de coordonnées dans le formulaire public, pièces jointes,
+  captures d'écran ou réponse depuis l'application. Les invitations aux
+  comptes existants utilisent leurs adresses déjà enregistrées sans les
+  conserver dans la campagne.
 - Suppression ou classement manuel des retours après soumission.
 - Réouverture d'une campagne fermée.
 
@@ -217,16 +242,21 @@ cartes lisibles.
 2. Chaque campagne référence une organisation et un ou plusieurs groupes de
    scénarios compatibles avec ses profils ; le lien public dédié ne révèle ni
    ID d'organisation ni ID interne de campagne.
-3. Un testeur non connecté voit en français le checklist correspondant au
+3. Le `TECH_ADMIN` peut envoyer le lien à un maximum de 50 comptes `ADMIN` ou
+   `USER` de l'organisation sélectionnée ; les IDs d'une autre organisation
+   sont refusés, l'objet et le message sont personnalisables et les envois
+   partiels sont rapportés sans perdre le gabarit stylé.
+4. Un testeur non connecté voit en français le checklist correspondant au
    profil choisi parmi les profils autorisés et peut envoyer plusieurs
    résultats en une fois.
-4. Les scénarios non cochés ne sont pas créés ; les commentaires sont exigés
+5. Les scénarios non cochés ne sont pas créés ; les commentaires sont exigés
    pour les échecs et blocages ; les liens invalides ou campagnes fermées sont
    refusés explicitement.
-5. Chaque retour est lié à la campagne et à son organisation, sans accepter
+6. Chaque retour est lié à la campagne et à son organisation, sans accepter
    d'identifiants d'organisation ou des libellés de scénarios du navigateur.
-6. Le tableau de bord montre progression, résultats courants par scénario et
+7. Le tableau de bord montre progression, résultats courants par scénario et
    historique complet ; le résultat courant est le dernier par profil et
    scénario.
-7. Aucune donnée personnelle du testeur n'est stockée. Rate limit, droits et
+8. Aucune donnée personnelle du testeur ni liste de destinataires n'est stockée.
+   Rate limit, droits et
    isolation sont testés ; TypeScript et lint passent.

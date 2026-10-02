@@ -44,6 +44,21 @@ export const TestCampaignListResponseSchema = z.object({
   })),
 })
 
+export const TestCampaignRecipientListResponseSchema = z.array(z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  email: z.string().email(),
+  role: z.enum(['ADMIN', 'USER']),
+}))
+
+export const TestCampaignCreationResponseSchema = z.object({
+  invitations: z.object({
+    sent: z.number().int().nonnegative(),
+    failedRecipients: z.array(z.string()),
+    deliveryError: z.string().nullable(),
+  }),
+})
+
 export const TestCampaignDetailResponseSchema = z.object({
   campaign: z.object({
     id: z.string(),

@@ -4,8 +4,16 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { z } from 'zod'
-import { TestCampaignListResponseSchema } from '@/schemas/testFeedbackResponses'
-import { CreateTestCampaignSchema } from '@/schemas/testFeedback'
+import {
+  TestCampaignCreationResponseSchema,
+  TestCampaignListResponseSchema,
+  TestCampaignRecipientListResponseSchema,
+} from '@/schemas/testFeedbackResponses'
+import {
+  CreateTestCampaignSchema,
+  DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE,
+  DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT,
+} from '@/schemas/testFeedback'
 import {
   testScenarioGroups as scenarioGroupCatalog,
   type TestScenarioGroupId,
@@ -13,6 +21,7 @@ import {
 
 type CampaignDashboard = z.infer<typeof TestCampaignListResponseSchema>
 type CampaignDraft = z.infer<typeof CreateTestCampaignSchema>
+type CampaignRecipient = z.infer<typeof TestCampaignRecipientListResponseSchema>[number]
 const testProfiles: Array<'ADMIN' | 'USER'> = ['ADMIN', 'USER']
 
 async function responseError(response: Response): Promise<string> {
@@ -43,6 +52,12 @@ export default function TestCampaignDashboard() {
   const [data, setData] = useState<CampaignDashboard | null>(null)
   const [campaignName, setCampaignName] = useState('')
   const [organizationId, setOrganizationId] = useState('')
+  const [emailSubject, setEmailSubject] = useState(DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT)
+  const [emailMessage, setEmailMessage] = useState(DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE)
+  const [recipients, setRecipients] = useState<CampaignRecipient[]>([])
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([])
+  const [loadingRecipients, setLoadingRecipients] = useState(false)
+  const [recipientsError, setRecipientsError] = useState('')
   const [profiles, setProfiles] = useState<Array<'ADMIN' | 'USER'>>(['ADMIN', 'USER'])
   const [selectedScenarioGroups, setSelectedScenarioGroups] = useState<TestScenarioGroupId[]>(
     scenarioGroupCatalog.map(({ id }) => id),
@@ -74,6 +89,44 @@ export default function TestCampaignDashboard() {
     void loadCampaigns()
   }, [loadCampaigns])
 
+  useEffect(() => {
+    let active = true
+    setRecipients([])
+    setSelectedRecipientIds([])
+    setRecipientsError('')
+    if (!organizationId) {
+      setLoadingRecipients(false)
+      return () => {
+        active = false
+      }
+    }
+
+    setLoadingRecipients(true)
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/test-campaigns/recipients?organizationId=${encodeURIComponent(organizationId)}`,
+          { cache: 'no-store' },
+        )
+        if (!response.ok) throw new Error(await responseError(response))
+        const payload: unknown = await response.json()
+        const parsed = TestCampaignRecipientListResponseSchema.safeParse(payload)
+        if (!parsed.success) throw new Error('Réponse invalide pour les comptes de l’organisation')
+        if (active) setRecipients(parsed.data)
+      } catch (cause: unknown) {
+        if (active) setRecipientsError(
+          cause instanceof Error ? cause.message : 'Impossible de charger les comptes de l’organisation',
+        )
+      } finally {
+        if (active) setLoadingRecipients(false)
+      }
+    })()
+
+    return () => {
+      active = false
+    }
+  }, [organizationId])
+
   async function createCampaign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -83,10 +136,13 @@ export default function TestCampaignDashboard() {
       organizationId,
       profiles,
       scenarioGroups: selectedScenarioGroups,
+      recipientIds: selectedRecipientIds,
+      emailSubject,
+      emailMessage,
     }
     const validDraft = CreateTestCampaignSchema.safeParse(draft)
     if (!validDraft.success) {
-      setError('Renseignez le nom, l’organisation, au moins un profil et un groupe de scénarios correspondant.')
+      setError('Vérifiez le nom, l’organisation, les profils, les parcours, l’objet de l’e-mail et la limite de 50 destinataires.')
       return
     }
 
@@ -98,9 +154,26 @@ export default function TestCampaignDashboard() {
         body: JSON.stringify(validDraft.data),
       })
       if (!response.ok) throw new Error(await responseError(response))
+      const payload: unknown = await response.json()
+      const parsedResponse = TestCampaignCreationResponseSchema.safeParse(payload)
+      if (!parsedResponse.success) throw new Error('Réponse invalide à la création de la campagne')
+      const { sent, failedRecipients, deliveryError } = parsedResponse.data.invitations
       setCampaignName('')
-      setNotice('La campagne a été créée.')
+      setSelectedRecipientIds([])
+      setEmailSubject(DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT)
+      setEmailMessage(DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE)
       await loadCampaigns()
+      if (selectedRecipientIds.length === 0) {
+        setNotice('La campagne a été créée.')
+      } else {
+        const invitationSummary = `${sent} invitation${sent === 1 ? '' : 's'} envoyée${sent === 1 ? '' : 's'} sur ${selectedRecipientIds.length}.`
+        setNotice(`La campagne a été créée. ${invitationSummary}`)
+        if (deliveryError) {
+          setError(`Échec global de l’envoi : ${deliveryError}. Vous pouvez copier le lien testeur depuis le suivi.`)
+        } else if (failedRecipients.length > 0) {
+          setError(`Échec d’envoi pour : ${failedRecipients.join(', ')}. Vous pouvez copier le lien testeur depuis le suivi.`)
+        }
+      }
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : 'Impossible de créer la campagne')
     } finally {
@@ -140,6 +213,12 @@ export default function TestCampaignDashboard() {
         ? current
         : current.filter((profile) => profile !== group.profile)
     })
+  }
+
+  function updateRecipient(recipientId: string, checked: boolean) {
+    setSelectedRecipientIds((current) => checked
+      ? current.includes(recipientId) ? current : [...current, recipientId]
+      : current.filter((currentId) => currentId !== recipientId))
   }
 
   async function closeCampaign(id: string) {
@@ -283,6 +362,57 @@ export default function TestCampaignDashboard() {
               ))}
             </select>
           </label>
+          <fieldset className="grid gap-2 md:col-span-2">
+            <legend className="text-sm font-medium text-(--studio-text)">Envoyer le lien à des comptes existants (facultatif)</legend>
+            <p className="text-xs text-(--studio-muted)">
+              Sélectionnez jusqu’à 50 comptes. Ils recevront le lien par e-mail ; les retours resteront anonymes et ne seront pas associés à leur compte.
+            </p>
+            {loadingRecipients && <p role="status" className="text-xs text-(--studio-muted)">Chargement des comptes…</p>}
+            {recipientsError && <p role="alert" className="text-xs text-red-700">{recipientsError}</p>}
+            {!loadingRecipients && !recipientsError && recipients.length === 0 && (
+              <p className="text-xs text-(--studio-muted)">Aucun compte avec une adresse e-mail pour cette organisation.</p>
+            )}
+            {recipients.map((recipient) => (
+              <label key={recipient.id} className="flex items-center gap-2 text-sm text-(--studio-muted)">
+                <input
+                  type="checkbox"
+                  checked={selectedRecipientIds.includes(recipient.id)}
+                  onChange={(event) => updateRecipient(recipient.id, event.target.checked)}
+                  disabled={saving || (
+                    !selectedRecipientIds.includes(recipient.id) && selectedRecipientIds.length >= 50
+                  )}
+                />
+                {recipient.name ? `${recipient.name} (${recipient.email})` : recipient.email} · {profileLabel(recipient.role)}
+              </label>
+            ))}
+          </fieldset>
+          {selectedRecipientIds.length > 0 && (
+            <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+              <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
+                Objet de l’e-mail
+                <input
+                  required
+                  maxLength={120}
+                  value={emailSubject}
+                  onChange={(event) => setEmailSubject(event.target.value)}
+                  className="rounded-lg border border-(--studio-border) px-3 py-2"
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-medium text-(--studio-text) md:col-span-2">
+                Message personnalisé
+                <textarea
+                  rows={4}
+                  maxLength={2000}
+                  value={emailMessage}
+                  onChange={(event) => setEmailMessage(event.target.value)}
+                  className="rounded-lg border border-(--studio-border) px-3 py-2"
+                />
+                <span className="text-xs font-normal text-(--studio-muted)">
+                  Le prénom, les informations de la campagne et le lien testeur sont ajoutés automatiquement. Texte simple uniquement.
+                </span>
+              </label>
+            </div>
+          )}
           <fieldset className="grid gap-2">
             <legend className="text-sm font-medium text-(--studio-text)">Profils de test</legend>
             {testProfiles.map((profile) => (
@@ -296,24 +426,24 @@ export default function TestCampaignDashboard() {
               </label>
             ))}
           </fieldset>
-          <fieldset className="grid gap-2">
-            <legend className="text-sm font-medium text-(--studio-text)">Parcours à tester</legend>
-            <p className="text-xs text-(--studio-muted)">
-              Tous les parcours sont sélectionnés par défaut. Décochez ceux à exclure ; les profils suivent les parcours retenus.
-            </p>
-            {scenarioGroupCatalog.map((group) => (
-              <label key={group.id} className="flex items-start gap-2 text-sm text-(--studio-muted)">
-                <input
-                  type="checkbox"
-                  checked={selectedScenarioGroups.includes(group.id)}
-                  onChange={(event) => updateScenarioGroup(group.id, event.target.checked)}
-                />
-                <span>{group.label} ({group.range})</span>
-              </label>
-            ))}
-          </fieldset>
-          <div className="md:col-span-2">
-            <button type="submit" disabled={saving || !data?.organizations.length} className="rounded-xl bg-(--studio-text) px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
+          <div className="grid content-start gap-4">
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-medium text-(--studio-text)">Parcours à tester</legend>
+              <p className="text-xs text-(--studio-muted)">
+                Tous les parcours sont sélectionnés par défaut. Décochez ceux à exclure ; les profils suivent les parcours retenus.
+              </p>
+              {scenarioGroupCatalog.map((group) => (
+                <label key={group.id} className="flex items-start gap-2 text-sm text-(--studio-muted)">
+                  <input
+                    type="checkbox"
+                    checked={selectedScenarioGroups.includes(group.id)}
+                    onChange={(event) => updateScenarioGroup(group.id, event.target.checked)}
+                  />
+                  <span>{group.label} ({group.range})</span>
+                </label>
+              ))}
+            </fieldset>
+            <button type="submit" disabled={saving || loadingRecipients || !data?.organizations.length} className="rounded-xl bg-(--studio-text) px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
               {saving ? 'Création…' : 'Créer la campagne'}
             </button>
           </div>

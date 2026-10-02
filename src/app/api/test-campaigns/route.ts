@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server'
 import { apiErrorResponse } from '@/lib/api'
 import { getTestCampaignAdminAccess } from '@/lib/testCampaignAccess'
 import { CreateTestCampaignSchema } from '@/schemas/testFeedback'
-import { createTestCampaign, listTestCampaigns } from '@/services/testFeedback.service'
+import {
+  createTestCampaign,
+  listTestCampaigns,
+  listTestCampaignRecipients,
+} from '@/services/testFeedback.service'
+import { sendTestCampaignInvitationEmails } from '@/services/testCampaignInvitationEmail.service'
 
 export async function GET() {
   try {
@@ -40,9 +45,47 @@ export async function POST(request: Request) {
   }
 
   try {
-    const campaign = await createTestCampaign(parsed.data)
+    const {
+      recipientIds,
+      emailSubject,
+      emailMessage,
+      ...campaignInput
+    } = parsed.data
+    const recipients = recipientIds.length
+      ? await listTestCampaignRecipients(campaignInput.organizationId, recipientIds)
+      : []
+    if (recipients.length !== recipientIds.length) {
+      return NextResponse.json({ error: 'Un ou plusieurs destinataires ne correspondent pas à l’organisation sélectionnée.' }, { status: 400 })
+    }
+
+    const publicBaseUrl = process.env.NEXT_PUBLIC_APP_URL
+      || process.env.NEXTAUTH_URL
+      || new URL(request.url).origin
+    const campaignBaseUrl = new URL(publicBaseUrl)
+    const campaign = await createTestCampaign(campaignInput)
     if (!campaign) return NextResponse.json({ error: 'Organisation introuvable' }, { status: 404 })
-    return NextResponse.json(campaign, { status: 201 })
+
+    const campaignUrl = new URL(`/retour-test/${campaign.publicToken}`, campaignBaseUrl).toString()
+    const delivery = await sendTestCampaignInvitationEmails({
+      recipients: recipients.map(({ email, name }) => ({ to: email, recipientName: name })),
+      campaignName: campaign.name,
+      organizationName: campaign.organizationName,
+      campaignUrl,
+      subject: emailSubject,
+      message: emailMessage,
+    })
+    const failedIndexes = new Set(delivery.failedIndexes)
+    const failedRecipients = recipients
+      .filter((_, index) => failedIndexes.has(index))
+      .map((recipient) => recipient.name || recipient.email)
+    return NextResponse.json({
+      ...campaign,
+      invitations: {
+        sent: recipients.length - failedRecipients.length,
+        failedRecipients,
+        deliveryError: delivery.error,
+      },
+    }, { status: 201 })
   } catch (error: unknown) {
     return apiErrorResponse(error)
   }

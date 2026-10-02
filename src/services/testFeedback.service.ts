@@ -109,6 +109,22 @@ export async function listTestCampaigns() {
   }
 }
 
+export async function listTestCampaignRecipients(organizationId: string, recipientIds?: string[]) {
+  const recipients = await prisma.user.findMany({
+    where: {
+      organizationId,
+      email: { not: null },
+      role: { in: ['ADMIN', 'USER'] },
+      ...(recipientIds ? { id: { in: recipientIds } } : {}),
+    },
+    orderBy: [{ name: 'asc' }, { email: 'asc' }],
+    select: { id: true, name: true, email: true, role: true },
+  })
+  return recipients.flatMap((recipient) => recipient.email
+    ? [{ ...recipient, email: recipient.email }]
+    : [])
+}
+
 export async function createTestCampaign(input: {
   name: string
   organizationId: string
@@ -117,11 +133,11 @@ export async function createTestCampaign(input: {
 }) {
   const organization = await prisma.organization.findUnique({
     where: { id: input.organizationId },
-    select: { id: true },
+    select: { id: true, name: true },
   })
   if (!organization) return null
 
-  return prisma.testCampaign.create({
+  const campaign = await prisma.testCampaign.create({
     data: {
       name: input.name,
       build: null,
@@ -138,6 +154,7 @@ export async function createTestCampaign(input: {
       createdAt: true,
     },
   })
+  return { ...campaign, organizationName: organization.name }
 }
 
 export async function getTestCampaignDetail(id: string) {
