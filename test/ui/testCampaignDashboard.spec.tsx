@@ -62,12 +62,15 @@ describe('TestCampaignDashboard', () => {
       target: { value: 'Merci de vérifier le parcours de réservation.' },
     })
     const scenarioGroup = screen.getByRole('group', { name: 'Parcours à tester' })
-    const createButton = screen.getByRole('button', { name: 'Créer la campagne' })
-    expect(createButton).toBeVisible()
-    expect(createButton.parentElement).toHaveClass('sticky')
-    expect(createButton.closest('form')).toContainElement(scenarioGroup)
+    const [desktopCreateButton, mobileCreateButton] = screen.getAllByRole('button', {
+      name: 'Créer la campagne',
+    })
+    expect(desktopCreateButton.parentElement).toHaveClass('hidden', 'md:flex')
+    expect(mobileCreateButton).toHaveClass('fixed', 'left-4', 'right-24', 'md:hidden')
+    expect(mobileCreateButton.parentElement).toHaveClass('grid')
+    expect(mobileCreateButton.closest('form')).toContainElement(scenarioGroup)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Administration' }))
-    fireEvent.click(createButton)
+    fireEvent.click(mobileCreateButton)
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4))
     const createRequest = fetchMock.mock.calls[2][1]

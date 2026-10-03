@@ -369,7 +369,7 @@ export default function TestCampaignDashboard() {
               && event.target.type !== 'checkbox'
             ) event.preventDefault()
           }}
-          className="mt-5 grid gap-4 md:grid-cols-2"
+          className="mt-5 grid gap-4 pb-24 md:grid-cols-2 md:pb-0"
         >
           <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
             Nom de la campagne
@@ -384,11 +384,6 @@ export default function TestCampaignDashboard() {
               ))}
             </select>
           </label>
-          <div className="sticky bottom-0 z-10 flex justify-end bg-white/95 py-2 backdrop-blur md:col-span-2">
-            <button type="submit" disabled={saving || loadingRecipients || !data?.organizations.length} className="rounded-xl bg-(--studio-text) px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
-              {saving ? 'Création…' : 'Créer la campagne'}
-            </button>
-          </div>
           <fieldset className="grid gap-2 md:col-span-2">
             <legend className="text-sm font-medium text-(--studio-text)">Envoyer le lien à des comptes ou clients existants (facultatif)</legend>
             <p className="text-xs text-(--studio-muted)">
@@ -471,6 +466,22 @@ export default function TestCampaignDashboard() {
               ))}
             </fieldset>
           </div>
+          <div className="hidden justify-end pt-2 md:col-span-2 md:flex">
+            <button
+              type="submit"
+              disabled={saving || loadingRecipients || !data?.organizations.length}
+              className="rounded-xl bg-(--studio-text) px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {saving ? 'Création…' : 'Créer la campagne'}
+            </button>
+          </div>
+          <button
+            type="submit"
+            disabled={saving || loadingRecipients || !data?.organizations.length}
+            className="fixed bottom-4 left-4 right-24 z-50 rounded-xl bg-(--studio-text) px-4 py-4 text-sm font-semibold text-white shadow-xl disabled:opacity-50 md:hidden"
+          >
+            {saving ? 'Création…' : 'Créer la campagne'}
+          </button>
         </form>
       </section>
     </section>
