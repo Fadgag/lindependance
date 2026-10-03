@@ -1,9 +1,22 @@
 # Migrations Prisma manuelles sur Neon
 
 Cette procédure s'applique aux bases partagées Neon, notamment `preprod` et `production`.
-La CI et Vercel ne lancent pas les migrations : un opérateur vérifie la cible et applique
-les migrations manuellement. Ne crée pas de secrets de base de données GitHub Actions pour
-cette procédure.
+La CI vérifie les migrations sur une base PostgreSQL éphémère, mais ne touche pas aux
+bases partagées. Vercel ne lance pas les migrations : un opérateur vérifie la cible et les
+applique manuellement. Ne crée pas de secrets de base de données GitHub Actions pour cette
+procédure.
+
+## Contrôles automatiques en CI
+
+Chaque PR et push couvert par le workflow `CI` exécute `pnpm run check:migrations`, puis
+applique toute l'historique Prisma sur une base PostgreSQL 16 neuve et vérifie son statut.
+Ces contrôles détectent une migration SQL interdite par le garde-fou du dépôt ou un
+historique qui ne s'applique pas depuis une base vide. Ils ne vérifient ni une base Neon
+partagée, ni la sauvegarde, ni le comportement des données réelles.
+
+Les scripts de backfill et autres migrations de données restent séparés de l'historique
+automatique Prisma. Ils nécessitent une procédure dédiée, relançable sans effet indésirable,
+et une vérification opérateur avant exécution sur une base partagée.
 
 ## Avant de commencer
 

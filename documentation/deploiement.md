@@ -58,12 +58,14 @@ Pour appliquer une migration manuellement sur Neon, suivre la procédure détail
 [`migrations-manuelles.md`](./migrations-manuelles.md). Ne pas utiliser `migrate dev`
 sur une base partagée ou de production.
 
-Scripts pratiques déjà fournis dans `package.json` (pointent vers une DB locale par défaut,
-à adapter) :
+Scripts pratiques déjà fournis dans `package.json` :
 ```bash
-pnpm run migrate:local   # prisma migrate deploy sur une DB Postgres locale
+pnpm run migrate:local   # utilise DATABASE_URL et DIRECT_URL fournis par l'environnement
 pnpm run seed:local      # prisma db seed sur une DB Postgres locale
 ```
+Pour les migrations Prisma, fournir explicitement ces deux variables dans l'environnement
+local (ou le fichier `.env` chargé par Prisma) ; le script ne choisit plus une base ou un
+utilisateur propres à un poste.
 
 Des scripts de maintenance ponctuels existent dans `prisma/scripts/` et `scripts/`
 (ex. `scripts/backfill_soldProducts.ts`, `prisma/scripts/backfill_appointment_price.ts`) —
@@ -125,17 +127,18 @@ déploie `main` en Production. Ne pas utiliser le workflow manuel historique
 
 Dans **GitHub → Settings → Rules / Branch protection**, protéger `main` en
 exigeant une PR, en interdisant les pushes directs et en exigeant les contrôles
-`CI / Lint, typecheck, test, and build` et
+`CI / Validate Prisma migrations`, `CI / Lint, typecheck, test, and build` et
 `Main promotion source / Only preprod may target main`. Ne pas autoriser le
 bypass administrateur si la règle doit s’appliquer à tous les contributeurs.
-Les règles de `preprod` devraient également exiger la CI avant fusion.
+Les règles de `preprod` devraient également exiger les contrôles de migration et de qualité
+avant fusion.
 
-Les migrations ne sont pas exécutées par GitHub Actions : aucun secret de base de données
-n'est nécessaire dans GitHub. Le contrôle statique
-`scripts/check-additive-migrations.mjs` peut être lancé localement avant une migration ;
-il rejette les instructions de modification de données et les changements de schéma
-destructifs. Il n'est pas un substitut à la revue du SQL et à la vérification de la base
-cible avant exécution.
+GitHub Actions n'applique les migrations que sur sa base PostgreSQL éphémère : aucun
+secret de base de données partagé n'est nécessaire dans GitHub. La CI lance
+`pnpm run check:migrations`, qui applique les règles statiques du dépôt, puis applique
+l'historique Prisma sur une base vide et vérifie son statut. Cela ne remplace ni la revue
+du SQL, ni la sauvegarde, ni la vérification de la cible avant l'exécution manuelle sur
+Neon.
 
 ## 7. Déploiement sur un autre hébergeur (Node.js générique)
 
