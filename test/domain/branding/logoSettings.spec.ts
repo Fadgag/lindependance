@@ -21,6 +21,18 @@ describe('organizationBrandingUpdateSchema', () => {
     })
   })
 
+  it('normalizes organization names and accepts the name display preference', () => {
+    expect(organizationBrandingUpdateSchema.parse({
+      organizationName: '  Studio Étoile  ',
+      showNameWithLogo: true,
+    })).toEqual({
+      organizationName: 'Studio Étoile',
+      showNameWithLogo: true,
+    })
+    expect(organizationBrandingUpdateSchema.safeParse({ organizationName: '   ' }).success).toBe(false)
+    expect(organizationBrandingUpdateSchema.safeParse({ organizationName: 'Studio\nÉtoile' }).success).toBe(false)
+  })
+
   it('rejects unsupported image formats, malformed data, and empty updates', () => {
     expect(organizationBrandingUpdateSchema.safeParse({
       logoDataUrl: 'data:image/svg+xml;base64,PHN2Zy8+',

@@ -16,6 +16,7 @@ model Organization {
   closingTime       String             @default("20:00")
   logoDataUrl       String?
   logoShape         String             @default("circle")
+  showNameWithLogo  Boolean            @default(false)
   slug              String?            @unique
   portalEnabled     Boolean            @default(false)
   timezone          String             @default("Europe/Paris")

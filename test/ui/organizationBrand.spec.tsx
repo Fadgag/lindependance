@@ -21,7 +21,12 @@ beforeEach(() => {
     const dataUrl = sessionState.current?.user.organizationId === 'org-1'
       ? 'data:image/webp;base64,AA=='
       : 'data:image/webp;base64,AQ=='
-    return new Response(JSON.stringify({ logoDataUrl: dataUrl, logoShape: 'circle' }), { status: 200 })
+    return new Response(JSON.stringify({
+      logoDataUrl: dataUrl,
+      logoShape: 'circle',
+      organizationName: sessionState.current?.user.organizationId === 'org-1' ? 'Salon 1' : 'Salon 2',
+      showNameWithLogo: false,
+    }), { status: 200 })
   })
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -42,7 +47,8 @@ describe('OrganizationBrand', () => {
     view.rerender(<OrganizationBrand variant="mobile" />)
 
     await waitFor(() => {
-      expect(brandImage.querySelector('img')).toHaveAttribute('src', 'data:image/webp;base64,AQ==')
+      expect(screen.getByRole('img', { name: 'Logo de l’organisation' }).querySelector('img'))
+        .toHaveAttribute('src', 'data:image/webp;base64,AQ==')
     })
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
@@ -55,6 +61,8 @@ describe('OrganizationBrand', () => {
       .mockImplementationOnce(async () => new Response(JSON.stringify({
         logoDataUrl: 'data:image/webp;base64,AQ==',
         logoShape: 'circle',
+        organizationName: 'Salon 1',
+        showNameWithLogo: false,
       }), { status: 200 }))
 
     render(<OrganizationBrand variant="mobile" />)
@@ -69,11 +77,27 @@ describe('OrganizationBrand', () => {
     completeInitialRequest?.(new Response(JSON.stringify({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
+      organizationName: 'Salon 1',
+      showNameWithLogo: false,
     }), { status: 200 }))
 
     await waitFor(() => {
       expect(brandImage.querySelector('img')).toHaveAttribute('src', 'data:image/webp;base64,AQ==')
     })
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows the organization name beside its logo when that preference is enabled', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      logoDataUrl: 'data:image/webp;base64,AA==',
+      logoShape: 'circle',
+      organizationName: 'Studio Étoile',
+      showNameWithLogo: true,
+    }), { status: 200 }))
+
+    render(<OrganizationBrand variant="mobile" />)
+
+    expect(await screen.findByText('Studio Étoile')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Logo de l’organisation' })).toBeInTheDocument()
   })
 })

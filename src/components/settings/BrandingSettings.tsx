@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useState, type ChangeEvent } from 'react'
 import {
   MAX_LOGO_DATA_URL_LENGTH,
+  organizationBrandingUpdateSchema,
   organizationBrandingSchema,
   type LogoShape,
   type OrganizationBranding,
@@ -54,6 +55,8 @@ export default function BrandingSettings() {
   const [branding, setBranding] = useState<OrganizationBranding>({
     logoDataUrl: null,
     logoShape: 'circle',
+    organizationName: 'Atelier Studio Coiffure',
+    showNameWithLogo: false,
   })
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
@@ -104,7 +107,19 @@ export default function BrandingSettings() {
     setMessage('')
   }
 
+  function handleNameChange(organizationName: string) {
+    setBranding((current) => ({ ...current, organizationName }))
+    setMessage('')
+  }
+
   async function saveBranding() {
+    const parsedUpdate = organizationBrandingUpdateSchema.safeParse(branding)
+    if (!parsedUpdate.success) {
+      setError(parsedUpdate.error.issues[0]?.message ?? 'Les réglages ne sont pas valides.')
+      setMessage('')
+      return
+    }
+
     setSaving(true)
     setError('')
     setMessage('')
@@ -112,7 +127,7 @@ export default function BrandingSettings() {
       const response = await fetch('/api/organization/branding', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(branding),
+        body: JSON.stringify(parsedUpdate.data),
       })
       const data: unknown = await response.json()
       if (!response.ok) throw new Error(responseErrorMessage(data))
@@ -120,7 +135,7 @@ export default function BrandingSettings() {
       if (!parsed.success) throw new Error('Réponse invalide du serveur.')
       setBranding(parsed.data)
       window.dispatchEvent(new Event('organization:branding-updated'))
-      setMessage('Logo enregistré.')
+      setMessage('Personnalisation enregistrée.')
     } catch (saveError: unknown) {
       setError(saveError instanceof Error ? saveError.message : 'Impossible d’enregistrer le logo.')
     } finally {
@@ -132,9 +147,9 @@ export default function BrandingSettings() {
 
   return (
     <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">Logo de l’organisation</h2>
+      <h2 className="text-lg font-semibold text-gray-900">Identité de l’organisation</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Importez votre logo et choisissez son masque d’affichage. L’image est optimisée à l’import et recadrée automatiquement dans l’aperçu.
+        Modifiez le nom affiché dans l’application et personnalisez l’apparence de votre logo.
       </p>
 
       {loading ? (
@@ -157,6 +172,22 @@ export default function BrandingSettings() {
           </div>
 
           <div className="min-w-0 flex-1 space-y-5">
+            <div>
+              <label htmlFor="organization-name" className="block text-sm font-medium text-gray-700">
+                Nom de l’organisation
+              </label>
+              <input
+                id="organization-name"
+                type="text"
+                value={branding.organizationName}
+                onChange={(event) => handleNameChange(event.target.value)}
+                maxLength={100}
+                required
+                disabled={saving}
+                className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+
             <div>
               <label htmlFor="organization-logo-file" className="block text-sm font-medium text-gray-700">
                 Importer une image
@@ -191,6 +222,20 @@ export default function BrandingSettings() {
               </div>
             </fieldset>
 
+            <label className="flex items-start gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={branding.showNameWithLogo}
+                onChange={(event) => {
+                  setBranding((current) => ({ ...current, showNameWithLogo: event.target.checked }))
+                  setMessage('')
+                }}
+                disabled={saving}
+                className="mt-0.5 size-4 accent-indigo-600"
+              />
+              <span>Afficher le nom à côté du logo</span>
+            </label>
+
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
@@ -198,7 +243,7 @@ export default function BrandingSettings() {
                 disabled={loading || processing || saving}
                 className="rounded-lg bg-indigo-600 px-5 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
               >
-                {saving ? 'Enregistrement…' : 'Enregistrer le logo'}
+                {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
               </button>
               {branding.logoDataUrl && (
                 <button

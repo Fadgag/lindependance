@@ -39,6 +39,8 @@ describe('/api/organization/branding', () => {
     vi.mocked(getOrganizationBranding).mockResolvedValue({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
+      organizationName: 'Studio Étoile',
+      showNameWithLogo: false,
     })
 
     const response = await GET()
@@ -47,6 +49,8 @@ describe('/api/organization/branding', () => {
     expect(await response.json()).toEqual({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
+      organizationName: 'Studio Étoile',
+      showNameWithLogo: false,
     })
     expect(getOrganizationBranding).toHaveBeenCalledWith('org-1')
   })
@@ -58,21 +62,37 @@ describe('/api/organization/branding', () => {
     vi.mocked(updateOrganizationBranding).mockResolvedValue({
       logoDataUrl: null,
       logoShape: 'square',
+      organizationName: 'Nouveau salon',
+      showNameWithLogo: true,
     })
 
-    const response = await PATCH(patch({ logoShape: 'square', organizationId: 'org-2' }))
-
+    const response = await PATCH(patch({
+      logoShape: 'square',
+      organizationName: 'Nouveau salon',
+      showNameWithLogo: true,
+      organizationId: 'org-2',
+    }))
     expect(response.status).toBe(400)
     expect(updateOrganizationBranding).not.toHaveBeenCalled()
 
-    const validResponse = await PATCH(patch({ logoShape: 'square' }))
+    const validResponse = await PATCH(patch({
+      logoShape: 'square',
+      organizationName: '  Nouveau salon  ',
+      showNameWithLogo: true,
+    }))
 
     expect(validResponse.status).toBe(200)
     expect(await validResponse.json()).toEqual({
       logoDataUrl: null,
       logoShape: 'square',
+      organizationName: 'Nouveau salon',
+      showNameWithLogo: true,
     })
-    expect(updateOrganizationBranding).toHaveBeenCalledWith('org-1', { logoShape: 'square' })
+    expect(updateOrganizationBranding).toHaveBeenCalledWith('org-1', {
+      logoShape: 'square',
+      organizationName: 'Nouveau salon',
+      showNameWithLogo: true,
+    })
   })
 
   it('rejects unauthenticated and non-admin update requests', async () => {
