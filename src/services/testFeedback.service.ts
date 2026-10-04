@@ -19,7 +19,11 @@ import {
   TestScenarioGroupSchema,
   type TestScenarioGroupId,
 } from '@/domain/test-feedback/scenarioGroups'
-import { FeedbackStatusSchema, TestProfileSchema } from '@/schemas/testFeedback'
+import {
+  FeedbackStatusSchema,
+  TestCampaignReviewSubmissionSchema,
+  TestProfileSchema,
+} from '@/schemas/testFeedback'
 
 export function loadScenarioCatalog(): Record<TestProfile, TestScenario[]> {
   return {
@@ -221,6 +225,9 @@ export async function getTestCampaignDetail(id: string) {
     include: {
       organization: { select: { name: true } },
       feedback: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] },
+      campaignReviews: {
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      },
     },
   })
   if (!campaign) return null
@@ -270,6 +277,16 @@ export async function getTestCampaignDetail(id: string) {
       comment: entry.comment,
       createdAt: entry.createdAt,
     })),
+    campaignReviews: campaign.campaignReviews.map((review) => ({
+      id: review.id,
+      profile: TestProfileSchema.parse(review.profile),
+      clarity: review.clarity,
+      duration: review.duration,
+      links: review.links,
+      satisfaction: review.satisfaction,
+      comment: review.comment,
+      createdAt: review.createdAt,
+    })),
   }
 }
 
@@ -291,7 +308,7 @@ export async function getPublicTestCampaign(publicToken: string) {
       status: true,
       profiles: true,
       scenarioGroups: true,
-      organization: { select: { name: true } },
+      organization: { select: { name: true, slug: true, portalEnabled: true } },
     },
   })
 }
@@ -300,6 +317,7 @@ export async function createTestFeedback(input: {
   publicToken: string
   profile: TestProfile
   environment?: string
+  campaignReview?: z.infer<typeof TestCampaignReviewSubmissionSchema>
   results: Array<{
     scenarioId: string
     scenarioTitle: string
@@ -333,6 +351,11 @@ export async function createTestFeedback(input: {
       return false
     }
 
+    const campaignReview = input.campaignReview
+      ? TestCampaignReviewSubmissionSchema.safeParse(input.campaignReview)
+      : null
+    if (campaignReview && !campaignReview.success) return false
+
     await transaction.testFeedback.createMany({
       data: input.results.map((result) => ({
         campaignId: campaign.id,
@@ -346,6 +369,20 @@ export async function createTestFeedback(input: {
         comment: result.comment || null,
       })),
     })
+    if (campaignReview?.success) {
+      await transaction.testCampaignReview.create({
+        data: {
+          campaignId: campaign.id,
+          organizationId: campaign.organizationId,
+          profile: input.profile,
+          clarity: campaignReview.data.clarity ?? null,
+          duration: campaignReview.data.duration ?? null,
+          links: campaignReview.data.links ?? null,
+          satisfaction: campaignReview.data.satisfaction ?? null,
+          comment: campaignReview.data.comment || null,
+        },
+      })
+    }
     return true
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 }

@@ -3,11 +3,26 @@ import {
   isValidTestCampaignScope,
   TestScenarioGroupSchema,
 } from '@/domain/test-feedback/scenarioGroups'
+import { campaignReviewChoiceValues } from '@/domain/test-feedback/campaignReview'
 
 export const TestProfileSchema = z.enum(['ADMIN', 'USER'])
 export const FeedbackStatusSchema = z.enum(['PASS', 'FAIL', 'BLOCKED'])
 export const DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT = 'Invitation à la campagne de recette'
 export const DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE = 'Vous êtes invité(e) à participer à cette campagne de recette.'
+export const TestCampaignReviewClaritySchema = z.enum(campaignReviewChoiceValues.clarity)
+export const TestCampaignReviewDurationSchema = z.enum(campaignReviewChoiceValues.duration)
+export const TestCampaignReviewLinksSchema = z.enum(campaignReviewChoiceValues.links)
+export const TestCampaignReviewSatisfactionSchema = z.enum(campaignReviewChoiceValues.satisfaction)
+export const TestCampaignReviewSubmissionSchema = z.object({
+  clarity: TestCampaignReviewClaritySchema.optional(),
+  duration: TestCampaignReviewDurationSchema.optional(),
+  links: TestCampaignReviewLinksSchema.optional(),
+  satisfaction: TestCampaignReviewSatisfactionSchema.optional(),
+  comment: z.string().trim().max(2000).optional(),
+}).strict().refine(
+  (review) => Object.values(review).some((answer) => Boolean(answer)),
+  'Le retour doit contenir au moins une réponse.',
+)
 export const TestCampaignRecipientSourceSchema = z.enum(['USER', 'CUSTOMER'])
 export const TestCampaignRecipientRefSchema = z.object({
   id: z.string().min(1).max(64),
@@ -47,6 +62,7 @@ export const CloseTestCampaignSchema = z.object({
 export const TestFeedbackSubmissionSchema = z.object({
   profile: TestProfileSchema,
   environment: z.string().trim().max(120).optional(),
+  campaignReview: TestCampaignReviewSubmissionSchema.optional(),
   results: z.array(z.object({
     scenarioId: z.string().regex(/^(?:ADM|CUS)-\d{2}$/),
     status: FeedbackStatusSchema,

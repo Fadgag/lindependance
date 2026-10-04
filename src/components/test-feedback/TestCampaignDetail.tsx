@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 import { TestCampaignDetailResponseSchema } from '@/schemas/testFeedbackResponses'
+import { campaignReviewChoiceLabels } from '@/domain/test-feedback/campaignReview'
 import {
   testScenarioGroups as scenarioGroupCatalog,
   type TestScenarioGroupId,
@@ -258,6 +259,52 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
               </p>
               {entry.comment && <p className="mt-3 whitespace-pre-wrap text-sm text-(--studio-text)">{entry.comment}</p>}
               {entry.environment && <p className="mt-2 text-xs text-(--studio-muted)">Navigateur/appareil : {entry.environment}</p>}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="campaign-reviews-title" className="space-y-3">
+        <div>
+          <h2 id="campaign-reviews-title" className="font-serif text-2xl text-(--studio-text)">Avis général des testeurs</h2>
+          <p className="mt-1 text-sm text-(--studio-muted)">Retours anonymes sur la clarté, la durée et l’expérience de la campagne.</p>
+        </div>
+        {data.campaignReviews.length === 0 && (
+          <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Aucun avis général reçu pour le moment.</p>
+        )}
+        <div className="grid gap-3">
+          {data.campaignReviews.map((review) => (
+            <article key={review.id} className="rounded-xl border border-(--studio-border) bg-white p-4">
+              <p className="text-xs text-(--studio-muted)">
+                Profil déclaré : {review.profile === 'ADMIN' ? 'Administration' : 'Utilisateur'} · {formatDate(review.createdAt)}
+              </p>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                {review.clarity && (
+                  <div>
+                    <dt className="text-xs text-(--studio-muted)">Compréhension des consignes</dt>
+                    <dd className="text-sm font-medium text-(--studio-text)">{campaignReviewChoiceLabels.clarity[review.clarity]}</dd>
+                  </div>
+                )}
+                {review.duration && (
+                  <div>
+                    <dt className="text-xs text-(--studio-muted)">Durée de la campagne</dt>
+                    <dd className="text-sm font-medium text-(--studio-text)">{campaignReviewChoiceLabels.duration[review.duration]}</dd>
+                  </div>
+                )}
+                {review.links && (
+                  <div>
+                    <dt className="text-xs text-(--studio-muted)">Utilité des liens directs</dt>
+                    <dd className="text-sm font-medium text-(--studio-text)">{campaignReviewChoiceLabels.links[review.links]}</dd>
+                  </div>
+                )}
+                {review.satisfaction && (
+                  <div>
+                    <dt className="text-xs text-(--studio-muted)">Satisfaction générale</dt>
+                    <dd className="text-sm font-medium text-(--studio-text)">{campaignReviewChoiceLabels.satisfaction[review.satisfaction]}</dd>
+                  </div>
+                )}
+              </dl>
+              {review.comment && <p className="mt-3 whitespace-pre-wrap text-sm text-(--studio-text)">{review.comment}</p>}
             </article>
           ))}
         </div>

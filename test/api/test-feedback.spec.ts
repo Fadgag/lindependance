@@ -86,7 +86,7 @@ beforeEach(() => {
     status: 'ACTIVE',
     profiles: ['USER'],
     scenarioGroups: ['ONLINE_BOOKING'],
-    organization: { name: 'Osez le T’re' },
+    organization: { name: 'Osez le T’re', slug: 'osez-le-tre', portalEnabled: true },
   } as never)
   vi.mocked(listTestCampaignRecipients).mockResolvedValue([])
   vi.mocked(sendTestCampaignInvitationEmails).mockResolvedValue({ failedIndexes: [], error: null })
@@ -368,6 +368,8 @@ describe('public test feedback API', () => {
       name: 'Recette bêta',
       status: 'ACTIVE',
       organizationName: 'Osez le T’re',
+      organizationSlug: 'osez-le-tre',
+      organizationPortalEnabled: true,
       profiles: ['USER'],
       scenarioGroups: ['ONLINE_BOOKING'],
       scenarios: [scenarioCatalog.USER[0]],
@@ -398,6 +400,13 @@ describe('public test feedback API', () => {
           profile: 'USER',
           environment: 'Firefox',
           results: [{ scenarioId: 'CUS-01', status: 'FAIL', comment: 'Le bouton ne répond pas.' }],
+          campaignReview: {
+            clarity: 'MOSTLY_CLEAR',
+            duration: 'ABOUT_RIGHT',
+            links: 'VERY_USEFUL',
+            satisfaction: 'SATISFIED',
+            comment: 'Les liens directs m’ont aidé à suivre les étapes.',
+          },
         }),
       },
     ), context)
@@ -414,11 +423,54 @@ describe('public test feedback API', () => {
         status: 'FAIL',
         comment: 'Le bouton ne répond pas.',
       }],
+      campaignReview: {
+        clarity: 'MOSTLY_CLEAR',
+        duration: 'ABOUT_RIGHT',
+        links: 'VERY_USEFUL',
+        satisfaction: 'SATISFIED',
+        comment: 'Les liens directs m’ont aidé à suivre les étapes.',
+      },
     })
     expect(consumePortalRateLimits).toHaveBeenCalledWith([expect.objectContaining({
       scope: 'test-feedback-campaign-submission',
       keyHash: 'hashed-campaign-token',
     })])
+  })
+
+  it('rejects unsupported campaign review answers', async () => {
+    const response = await postPublicFeedback(new Request(
+      `https://example.test/api/test-feedback/${campaignToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: 'USER',
+          results: [{ scenarioId: 'CUS-01', status: 'PASS' }],
+          campaignReview: { clarity: 'CONFUSING_BUT_ALSO_CLEAR' },
+        }),
+      },
+    ), context)
+
+    expect(response.status).toBe(400)
+    expect(createTestFeedback).not.toHaveBeenCalled()
+  })
+
+  it('does not accept campaign feedback without at least one checked scenario', async () => {
+    const response = await postPublicFeedback(new Request(
+      `https://example.test/api/test-feedback/${campaignToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: 'USER',
+          results: [],
+          campaignReview: { comment: 'Les consignes étaient utiles.' },
+        }),
+      },
+    ), context)
+
+    expect(response.status).toBe(400)
+    expect(createTestFeedback).not.toHaveBeenCalled()
   })
 
   it('requires a comment for failures and blocks submissions after campaign closure', async () => {

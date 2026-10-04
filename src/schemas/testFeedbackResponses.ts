@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import { TestScenarioGroupSchema } from '@/domain/test-feedback/scenarioGroups'
-import { FeedbackStatusSchema, TestProfileSchema } from './testFeedback'
+import {
+  FeedbackStatusSchema,
+  TestCampaignReviewClaritySchema,
+  TestCampaignReviewDurationSchema,
+  TestCampaignReviewLinksSchema,
+  TestCampaignReviewSatisfactionSchema,
+  TestProfileSchema,
+} from './testFeedback'
 
 const ScenarioSchema = z.object({
   id: z.string(),
@@ -101,6 +108,16 @@ export const TestCampaignDetailResponseSchema = z.object({
     comment: z.string().nullable(),
     createdAt: z.string(),
   })),
+  campaignReviews: z.array(z.object({
+    id: z.string(),
+    profile: TestProfileSchema,
+    clarity: TestCampaignReviewClaritySchema.nullable(),
+    duration: TestCampaignReviewDurationSchema.nullable(),
+    links: TestCampaignReviewLinksSchema.nullable(),
+    satisfaction: TestCampaignReviewSatisfactionSchema.nullable(),
+    comment: z.string().nullable(),
+    createdAt: z.string(),
+  })),
 })
 
 export const PublicTestCampaignResponseSchema = z.object({
@@ -108,6 +125,8 @@ export const PublicTestCampaignResponseSchema = z.object({
   scenarioGroups: z.array(TestScenarioGroupSchema),
   status: z.enum(['ACTIVE', 'CLOSED']),
   organizationName: z.string(),
+  organizationSlug: z.string().nullable(),
+  organizationPortalEnabled: z.boolean(),
   profiles: z.array(TestProfileSchema),
   scenarios: z.array(ScenarioSchema),
 })
