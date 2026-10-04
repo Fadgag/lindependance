@@ -17,10 +17,7 @@ import {
 } from '@/schemas/testFeedback'
 import type { FeedbackStatus, TestProfile, TestScenario } from '@/domain/test-feedback/scenarios'
 import { getTestScenarioLinks } from '@/domain/test-feedback/scenarioLinks'
-import {
-  testScenarioGroups as scenarioGroupCatalog,
-  type TestScenarioGroupId,
-} from '@/domain/test-feedback/scenarioGroups'
+import type { TestScenarioGroupId } from '@/domain/test-feedback/scenarioGroups'
 
 type PublicCampaign = z.infer<typeof PublicTestCampaignResponseSchema>
 type ScenarioEntry = { status: FeedbackStatus; comment: string }
@@ -102,7 +99,13 @@ const emptyCampaignReview: CampaignReviewDraft = {
 }
 
 function scenarioGroupLabel(id: TestScenarioGroupId): string {
-  return scenarioGroupCatalog.find((group) => group.id === id)?.label ?? id
+  const labels: Record<TestScenarioGroupId, string> = {
+    ONLINE_BOOKING: 'Prendre rendez-vous',
+    APPOINTMENTS_AND_CHANGES: 'Gérer mes rendez-vous',
+    SECURITY_AND_MOBILE: 'Confidentialité et téléphone',
+    STAFF_ADMINISTRATION: 'Gérer le salon',
+  }
+  return labels[id]
 }
 
 const guideTokenPattern = /(ORG-A|ORG-B|ORG-SOLO|SVC-30|SVC-60|STAFF-A1|STAFF-A2|EMAIL-SINGLE|EMAIL-FAMILY|EMAIL-OTHER|RDV-FAR|RDV-NEAR|RDV-PACKAGE|\/change-requests)/g
@@ -142,9 +145,7 @@ function renderScenarioText(text: string, campaign: PublicCampaign) {
     }
 
     if (part === 'ORG-A') {
-      return campaign.organizationSlug
-        ? `${campaign.organizationName} (slug : ${campaign.organizationSlug})`
-        : campaign.organizationName
+      return campaign.organizationName
     }
     return guideAliases[part] ?? part
   })
@@ -307,7 +308,7 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
         }),
       })
       if (!response.ok) throw new Error(await responseError(response))
-      setNotice(`${results.length} résultat${results.length > 1 ? 's' : ''} enregistré${results.length > 1 ? 's' : ''}. Merci pour votre retour.`)
+      setNotice(`${results.length} réponse${results.length > 1 ? 's' : ''} enregistrée${results.length > 1 ? 's' : ''}. Merci pour votre retour.`)
       setSubmitted((current) => ({
         ...current,
         ...Object.fromEntries(results.map(({ scenarioId }) => [scenarioId, true])),
@@ -331,21 +332,20 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
   return (
     <main className="mx-auto min-h-screen max-w-4xl space-y-6 px-4 py-8 md:px-8">
       <header className="rounded-2xl border border-(--studio-border) bg-white p-6 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-(--studio-primary)">Retour de test</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-(--studio-primary)">Test du salon</p>
         <h1 className="mt-2 font-serif text-3xl text-(--studio-text)">{campaign.name}</h1>
         <p className="mt-2 text-sm text-(--studio-muted)">
-          Organisation à tester : <strong className="text-(--studio-text)">{campaign.organizationName}</strong>
-        </p>
-        <p className="mt-1 text-sm text-(--studio-muted)">
-          Slug : {campaign.organizationSlug ?? 'non configuré'}
+          Salon : <strong className="text-(--studio-text)">{campaign.organizationName}</strong>
         </p>
         {!campaign.organizationPortalEnabled && (
-          <p className="mt-1 text-sm text-amber-800">Le portail client de cette organisation n’est pas activé.</p>
+          <p className="mt-1 text-sm text-amber-800">La prise de rendez-vous en ligne n’est pas disponible pour ce salon.</p>
         )}
         <p className="mt-1 text-sm text-(--studio-muted)">
-          Parcours : {campaign.scenarioGroups.map(scenarioGroupLabel).join(' · ')}
+          Vous allez essayer : {campaign.scenarioGroups.map(scenarioGroupLabel).join(' · ')}
         </p>
-        <p className="mt-4 text-sm text-(--studio-muted)">Aucun compte ni nom n’est demandé. Le profil est déclaratif et sert uniquement à classer les retours de cette campagne.</p>
+        <p className="mt-4 text-sm text-(--studio-muted)">
+          Pas besoin de créer un compte ni d’indiquer votre nom. Choisissez ci-dessous si vous testez en tant que client ou gérant du salon.
+        </p>
       </header>
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
@@ -355,15 +355,15 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
 
       {campaign.status !== 'ACTIVE' ? (
         <p className="rounded-2xl border border-(--studio-border) bg-white p-6 text-sm text-(--studio-muted)">
-          Cette campagne est clôturée. Les nouveaux résultats ne sont plus acceptés.
+          Ce test est terminé. Il n’est plus possible d’envoyer de réponses.
         </p>
       ) : (
         <form onSubmit={(event) => event.preventDefault()} className="space-y-6">
           <p className="rounded-xl bg-white p-4 text-sm text-(--studio-muted)">
-            Les réponses non envoyées sont sauvegardées automatiquement sur cet appareil. Évitez d’y inscrire des noms ou coordonnées.
+            Vos réponses sont gardées sur cet appareil jusqu’à leur envoi. Vous pourrez les retrouver si vous fermez cette page.
           </p>
           <fieldset className="rounded-2xl border border-(--studio-border) bg-white p-6">
-            <legend className="px-2 text-base font-semibold text-(--studio-text)">Votre profil de test *</legend>
+            <legend className="px-2 text-base font-semibold text-(--studio-text)">Vous testez en tant que… *</legend>
             <div className="grid gap-3 sm:grid-cols-2">
               {campaign.profiles.map((availableProfile) => (
                 <label key={availableProfile} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${profile === availableProfile ? 'border-(--studio-primary) bg-orange-50/40' : 'border-(--studio-border)'}`}>
@@ -376,10 +376,12 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                   />
                   <span>
                     <span className="block font-medium text-(--studio-text)">
-                      {availableProfile === 'ADMIN' ? 'Administration' : 'Utilisateur'}
+                      {availableProfile === 'ADMIN' ? 'Gérant du salon' : 'Client du salon'}
                     </span>
                     <span className="mt-1 block text-xs text-(--studio-muted)">
-                      {availableProfile === 'ADMIN' ? 'Je teste l’espace équipe.' : 'Je teste le parcours de réservation.'}
+                      {availableProfile === 'ADMIN'
+                        ? 'Je teste les outils de gestion du salon.'
+                        : 'Je teste la prise de rendez-vous comme un client.'}
                     </span>
                   </span>
                 </label>
@@ -388,14 +390,14 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
           </fieldset>
 
           <label className="grid gap-2 rounded-2xl border border-(--studio-border) bg-white p-6 text-sm font-medium text-(--studio-text)">
-            Navigateur / appareil (facultatif)
-            <input maxLength={120} value={environment} onChange={(event) => setEnvironment(event.target.value)} placeholder="Ex. Safari sur iPhone" className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal" />
+            Sur quel appareil faites-vous le test ? (facultatif)
+            <input maxLength={120} value={environment} onChange={(event) => setEnvironment(event.target.value)} placeholder="Ex. iPhone ou ordinateur" className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal" />
           </label>
 
-          {!profile && <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Choisissez un profil pour afficher les scénarios correspondants.</p>}
+          {!profile && <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Choisissez votre rôle pour voir les points à essayer.</p>}
           {profile && (
             <section aria-labelledby="scenario-checklist-title" className="space-y-3">
-              <h2 id="scenario-checklist-title" className="font-serif text-2xl text-(--studio-text)">Scénarios à vérifier</h2>
+              <h2 id="scenario-checklist-title" className="font-serif text-2xl text-(--studio-text)">Points à essayer</h2>
               {scenarios.map((scenario) => {
                 const entry = selected[scenario.id]
                 const scenarioLinks = getTestScenarioLinks(
@@ -426,18 +428,17 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                         }
                       }} />
                       <span>
-                        <span className="block font-semibold text-(--studio-text)">{scenario.id} — {scenario.title}</span>
-                        <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-(--studio-muted)">{scenario.priority}</span>
+                        <span className="block font-semibold text-(--studio-text)">{scenario.title}</span>
                       </span>
                     </label>
                     {entry && (
                       <p role="status" className="mt-2 pl-7 text-xs font-medium text-(--studio-muted)">
-                        {submitted[scenario.id] ? 'Envoyé' : 'À envoyer'}
+                        {submitted[scenario.id] ? 'Réponse envoyée' : 'À envoyer'}
                       </p>
                     )}
                     <div className="mt-4 space-y-2 border-l-2 border-(--studio-border) pl-4 text-sm">
                       <p><strong>Étapes :</strong> {renderScenarioText(scenario.steps, campaign)}</p>
-                      <p><strong>Résultat attendu :</strong> {renderScenarioText(scenario.expected, campaign)}</p>
+                      <p><strong>Ce qui devrait se passer :</strong> {renderScenarioText(scenario.expected, campaign)}</p>
                     </div>
                     {scenarioLinks.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2">
@@ -457,20 +458,20 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                     {entry && (
                       <div className="mt-4 grid gap-3 border-t border-(--studio-border) pt-4 md:grid-cols-2">
                         <label className="grid gap-1 text-sm font-medium text-(--studio-text)">
-                          Résultat
+                          Comment cela s’est-il passé ?
                           <select value={entry.status} onChange={(event) => {
                             const value = event.target.value
                             if (value === 'PASS' || value === 'FAIL' || value === 'BLOCKED') {
                               updateScenario(scenario.id, { status: value })
                             }
                           }} className="rounded-lg border border-(--studio-border) bg-white px-3 py-2">
-                            <option value="PASS">Réussi</option>
-                            <option value="FAIL">Échec</option>
-                            <option value="BLOCKED">Bloqué</option>
+                            <option value="PASS">Tout s’est bien passé</option>
+                            <option value="FAIL">Ça n’a pas marché</option>
+                            <option value="BLOCKED">Je n’ai pas pu terminer</option>
                           </select>
                         </label>
                         <label className="grid gap-1 text-sm font-medium text-(--studio-text) md:col-span-2">
-                          Commentaire ou preuve expurgée {entry.status !== 'PASS' && '*'}
+                          Que s’est-il passé ? {entry.status !== 'PASS' && '(obligatoire)'}
                           <textarea
                             maxLength={2000}
                             required={entry.status !== 'PASS'}
@@ -485,16 +486,16 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                   </article>
                 )
               })}
-              {scenarios.length === 0 && <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Aucun scénario disponible pour ce profil.</p>}
+              {scenarios.length === 0 && <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Aucun point à essayer n’est disponible pour ce rôle.</p>}
             </section>
           )}
 
           {profile && (
             <section aria-labelledby="campaign-review-title" className="space-y-4 rounded-2xl border border-(--studio-border) bg-white p-5 md:p-6">
               <div>
-                <h2 id="campaign-review-title" className="font-serif text-2xl text-(--studio-text)">Votre avis sur la campagne (facultatif)</h2>
+                <h2 id="campaign-review-title" className="font-serif text-2xl text-(--studio-text)">Votre avis sur ce test (facultatif)</h2>
                 <p className="mt-1 text-sm text-(--studio-muted)">
-                  Ce retour est anonyme et sera envoyé avec au moins un scénario coché. N’indiquez pas de nom ni de coordonnées.
+                  Votre avis est anonyme et sera envoyé avec au moins une réponse. N’indiquez pas votre nom ni vos coordonnées.
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -515,7 +516,7 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
-                  Comment avez-vous trouvé la durée de la campagne ?
+                  Comment avez-vous trouvé la durée de ce test ?
                   <select
                     value={campaignReview.duration}
                     onChange={(event) => setCampaignReview((current) => ({
@@ -547,7 +548,7 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
-                  Comment évaluez-vous globalement cette campagne ?
+                  Comment évaluez-vous globalement ce test ?
                   <select
                     value={campaignReview.satisfaction}
                     onChange={(event) => setCampaignReview((current) => ({
@@ -563,13 +564,13 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm font-medium text-(--studio-text) md:col-span-2">
-                  Avis ou suggestion d’amélioration
+                  Votre commentaire ou une idée pour améliorer ce test
                   <textarea
                     maxLength={2000}
                     rows={4}
                     value={campaignReview.comment}
                     onChange={(event) => setCampaignReview((current) => ({ ...current, comment: event.target.value }))}
-                    placeholder="Qu’est-ce qui vous a aidé, gêné ou manqué pendant cette campagne ?"
+                    placeholder="Qu’est-ce qui vous a aidé, gêné ou manqué pendant ce test ?"
                     className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal"
                   />
                 </label>
@@ -580,12 +581,14 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
           <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-(--studio-border) bg-white/95 p-4 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium text-(--studio-text)" aria-live="polite">
-                {pendingResultCount} résultat{pendingResultCount === 1 ? '' : 's'} en attente
+                {pendingResultCount === 0
+                  ? 'Aucune réponse à envoyer'
+                  : `${pendingResultCount} réponse${pendingResultCount === 1 ? '' : 's'} à envoyer`}
               </p>
               <p className="text-xs text-(--studio-muted)">
-                Rien n’est envoyé avant votre clic. Les résultats envoyés restent visibles dans la checklist.
+                Rien n’est envoyé avant votre clic. Vos réponses restent visibles ici après l’envoi.
               </p>
-              <p className="mt-1 text-xs text-(--studio-muted)">Un commentaire est obligatoire pour les scénarios en échec ou bloqués.</p>
+              <p className="mt-1 text-xs text-(--studio-muted)">Si quelque chose ne se passe pas comme prévu, dites-nous ce qui s’est passé.</p>
             </div>
             <button
               type="button"
@@ -593,9 +596,7 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
               disabled={saving || !profile || pendingResultCount === 0}
               className="rounded-xl bg-(--studio-text) px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
-              {saving
-                ? 'Envoi…'
-                : `Envoyer ${pendingResultCount} résultat${pendingResultCount === 1 ? '' : 's'} en attente`}
+              {saving ? 'Envoi…' : 'Envoyer mes réponses'}
             </button>
           </div>
         </form>
