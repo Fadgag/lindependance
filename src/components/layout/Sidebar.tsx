@@ -20,7 +20,7 @@ export default function Sidebar() {
         <aside className="hidden md:flex w-72 bg-(--studio-bg) border-r border-(--studio-border) flex-col h-screen sticky top-0 px-6 py-8">
 
             {/* LOGO ELÉGANT */}
-            <Link href="/" className="mb-12 px-4 block no-underline" aria-label="Accueil - Atelier">
+            <Link href="/" className="mb-12 px-4 block no-underline">
                 <OrganizationBrand variant="sidebar" />
             </Link>
 

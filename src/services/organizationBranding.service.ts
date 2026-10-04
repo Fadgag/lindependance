@@ -8,22 +8,36 @@ import {
 export async function getOrganizationBranding(organizationId: string): Promise<OrganizationBranding> {
   const branding = await prisma.organization.findUnique({
     where: { id: organizationId },
-    select: { logoDataUrl: true, logoShape: true },
+    select: { name: true, logoDataUrl: true, logoShape: true, showNameWithLogo: true },
   })
 
   if (!branding) throw new Error('Organization branding not found')
-  return organizationBrandingSchema.parse(branding)
+  return organizationBrandingSchema.parse({
+    organizationName: branding.name,
+    logoDataUrl: branding.logoDataUrl,
+    logoShape: branding.logoShape,
+    showNameWithLogo: branding.showNameWithLogo,
+  })
 }
 
 export async function updateOrganizationBranding(
   organizationId: string,
   update: OrganizationBrandingUpdate,
 ): Promise<OrganizationBranding> {
+  const { organizationName, ...brandingUpdate } = update
   const branding = await prisma.organization.update({
     where: { id: organizationId },
-    data: update,
-    select: { logoDataUrl: true, logoShape: true },
+    data: {
+      ...brandingUpdate,
+      ...(organizationName === undefined ? {} : { name: organizationName }),
+    },
+    select: { name: true, logoDataUrl: true, logoShape: true, showNameWithLogo: true },
   })
 
-  return organizationBrandingSchema.parse(branding)
+  return organizationBrandingSchema.parse({
+    organizationName: branding.name,
+    logoDataUrl: branding.logoDataUrl,
+    logoShape: branding.logoShape,
+    showNameWithLogo: branding.showNameWithLogo,
+  })
 }
