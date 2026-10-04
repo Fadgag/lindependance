@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { menuItems } from './menuItems'
+import OrganizationBrand from './OrganizationBrand'
 
 export default function Sidebar() {
     const pathname = usePathname()
@@ -20,12 +21,7 @@ export default function Sidebar() {
 
             {/* LOGO ELÉGANT */}
             <Link href="/" className="mb-12 px-4 block no-underline" aria-label="Accueil - Atelier">
-                <h1 className="font-serif text-3xl tracking-tight text-(--studio-text)">
-                    Atelier<span className="text-(--studio-primary)">.</span>
-                </h1>
-                <p className="text-[10px] tracking-[0.3em] uppercase text-(--studio-muted) font-bold mt-1">
-                    Studio Coiffure
-                </p>
+                <OrganizationBrand variant="sidebar" />
             </Link>
 
             {session?.user && (

@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import MobileSheet from './MobileSheet'
 import { usePathname } from 'next/navigation'
+import OrganizationBrand from './OrganizationBrand'
 
 export default function MobileHeader() {
     const [isOpen, setIsOpen] = useState(false)
@@ -26,11 +27,14 @@ export default function MobileHeader() {
                             {isOpen ? <X /> : <Menu />}
                         </button>
                     )}
-                    <div className="font-serif text-lg">Atelier<span className="text-[var(--studio-primary)]">.</span></div>
+                    {isCustomerPortal ? (
+                        <div className="font-serif text-lg">Atelier<span className="text-[var(--studio-primary)]">.</span></div>
+                    ) : (
+                        <OrganizationBrand variant="mobile" />
+                    )}
                 </div>
             </header>}
             {!isCustomerPortal && !isPublicFeedback && <MobileSheet isOpen={isOpen} onClose={() => setIsOpen(false)} />}
         </>
     )
 }
-

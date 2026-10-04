@@ -14,6 +14,8 @@ model Organization {
   dailyTarget       Float              @default(0)
   openingTime       String             @default("08:00")
   closingTime       String             @default("20:00")
+  logoDataUrl       String?
+  logoShape         String             @default("circle")
   slug              String?            @unique
   portalEnabled     Boolean            @default(false)
   timezone          String             @default("Europe/Paris")
