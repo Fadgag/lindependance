@@ -38,9 +38,9 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
 - Le `TECH_ADMIN` peut fermer une campagne ; ses liens de test deviennent
   alors en lecture seule/indisponibles pour les nouvelles soumissions.
 - Formulaire public sans compte, accessible uniquement par le lien de campagne.
-- Le testeur choisit son profil déclaratif : `ADMIN` ou `USER`. Ce choix sert
-  uniquement à classer le retour et n'est jamais une preuve d'identité ni un
-  droit d'accès.
+- Le testeur choisit son rôle déclaratif : « Client du salon » (`USER`) ou
+  « Gérant du salon » (`ADMIN`). Ce choix sert uniquement à classer le retour
+  et n'est jamais une preuve d'identité ni un droit d'accès.
 - La page publique affiche le vrai nom et le slug de l'organisation cible à la
   place des alias de guide comme `ORG-A`. Les alias de jeux de données et les
   chemins de page connus sont présentés en termes compréhensibles et les
@@ -52,15 +52,19 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   correspondant : `quality/recette-beta-admin.md` pour `ADMIN`,
   `quality/recette-beta-customer.md` pour `USER`, filtrés par les groupes
   sélectionnés dans la campagne.
-- Les groupes sélectionnables sont : « Réservation en ligne » (CUS-01 à
-  CUS-10), « Mes rendez-vous et changements » (CUS-11 à CUS-15), « Sécurité et
-  mobile » (CUS-16 à CUS-17) et « Administration staff » (ADM-01 à ADM-12).
-  Chaque profil activé doit avoir au moins un groupe correspondant.
-- Chaque scénario reprend son identifiant, son titre, sa priorité, ses étapes
-  et son résultat attendu depuis le guide. Une case à cocher marque le
-  scénario comme effectué ; une fois coché, le testeur indique `PASS`, `FAIL`
-  ou `BLOQUÉ` et peut ajouter un commentaire ou une preuve expurgée. Le
-  commentaire est obligatoire pour `FAIL` et `BLOQUÉ`.
+- Les groupes sélectionnables dans la campagne sont : « Réservation en ligne »
+  (CUS-01 à CUS-10), « Mes rendez-vous et changements » (CUS-11 à CUS-15),
+  « Sécurité et mobile » (CUS-16 à CUS-17) et « Administration staff »
+  (ADM-01 à ADM-12). Dans la checklist publique, ils sont présentés comme
+  « Prendre rendez-vous », « Gérer mes rendez-vous », « Confidentialité et
+  téléphone » et « Gérer le salon ». Chaque profil activé doit avoir au moins
+  un groupe correspondant.
+- Chaque point à tester reprend son titre, ses étapes et ce qui devrait se
+  passer depuis le guide. Dans la checklist publique, les identifiants internes
+  (`CUS-*`, `ADM-*`) et priorités (`P0`-`P2`) ne sont pas affichés. Une case à
+  cocher marque le point comme fait ; le testeur choisit une réponse formulée
+  simplement et peut raconter ce qui s'est passé. Un commentaire est
+  obligatoire si le test ne s'est pas bien passé ou n'a pas pu être terminé.
 - Toute l'interface est en français par défaut ; aucun choix de langue n'est
   demandé au testeur. Le profil choisi doit être inclus dans la campagne.
 - Le testeur peut cocher et envoyer plusieurs scénarios à la fois. Un scénario
@@ -116,7 +120,7 @@ cartes lisibles.
 | Nouvelle campagne                                                       |
 | Nom [____________________] Organisation [Choisir... v]                |
 | Destinataires (facultatif) [x] Camille [x] Cliente Léa [ ] ...        |
-| Profils [x] Admin [x] Utilisateur                                    |
+| Profils [x] Gérant du salon [x] Client du salon                      |
 | Parcours [x] Réservation en ligne [x] Mes RDV [ ] Admin staff ...    |
 |                                                   [Créer la campagne]   |
 +-----------------------------------------------------------------------+
@@ -126,29 +130,33 @@ cartes lisibles.
 
 ```text
 +-----------------------------------------------------------------------+
-| [Nom de l'organisation]                             Retour de test      |
-| Campagne : Recette bêta portail · Parcours : Réservation en ligne      |
+| TEST DU SALON                                                         |
+| Recette bêta portail                                                  |
+| Salon : [Nom du salon]                                                |
+| Vous allez essayer : Prendre rendez-vous                              |
+| Pas besoin de créer un compte ni d’indiquer votre nom.                |
 |                                                                       |
-| Votre profil *                                                        |
-| ( ) Admin — recette administration     ( ) Utilisateur — recette client|
+| Vous testez en tant que… *                                            |
+| ( ) Client du salon                  ( ) Gérant du salon              |
 |                                                                       |
-| Navigateur / appareil (facultatif) [____________________________]     |
+| Sur quel appareil faites-vous le test ? (facultatif) [____________]   |
 |                                                                       |
-| Scénarios des parcours sélectionnés (selon profil et groupes)          |
+| Points à essayer                                                      |
 |                                                                       |
-| [x] CUS-01 — Résolution de l'organisation                    P0       |
-|     Étapes et résultat attendu repris du guide qualité.                |
-| Résultat : (o) Réussi  ( ) Échec  ( ) Bloqué                          |
-|     Commentaire / preuve expurgée : [____________________________]     |
+| [x] Ouvrir la réservation du bon salon                                |
+|     Étapes : ouvrez le lien de réservation reçu…                      |
+|     Ce qui devrait se passer : la réservation s’ouvre pour ce salon.  |
+|     [Ouvrir le portail de réservation]                                |
+|     Comment cela s’est-il passé ? [Tout s’est bien passé v]           |
+|     Que s’est-il passé ? [____________________________________]      |
 |                                                                       |
-| [ ] CUS-02 — Choix de prestation, praticien et créneaux        P0       |
-|     (Cocher un scénario pour afficher son résultat et commentaire.)    |
+| Votre avis sur ce test (facultatif)                                    |
+| Consignes [Choisir une réponse v]  Durée [Choisir une réponse v]       |
+| Liens utiles [Choisir une réponse v]  Avis général [Choisir... v]     |
+| Votre commentaire ou une idée pour améliorer ce test [_____________]  |
 |                                                                       |
-|                                                                       |
-| Les commentaires sont obligatoires en cas d'échec ou de blocage.       |
-|                                                                       |
-|                                  [ Envoyer les scénarios cochés ]       |
-| Rien n'est envoyé avant ce clic. Les résultats envoyés restent visibles. |
+| Rien n’est envoyé avant votre clic.                                   |
+|                                  [ Envoyer mes réponses ]              |
 +-----------------------------------------------------------------------+
 ```
 

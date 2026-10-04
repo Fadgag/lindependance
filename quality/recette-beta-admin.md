@@ -42,51 +42,44 @@ date : `________` · navigateur/appareil : `________` · organisation : `_______
 
 ### Accès, périmètre et notifications
 
-#### [ ] ADM-01 — Accès staff et organisation courante
+#### [ ] ADM-01 — Voir uniquement les demandes de votre salon
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, sécurité et `customer-portal-phase-3.md`]
 
-**Étapes :** se connecter avec le compte staff de `ORG-A`, ouvrir
-`/change-requests`, puis ouvrir une session staff de `ORG-B` et refaire
-l'opération. Essayer les mêmes pages/API avec une session client.
+**Étapes :** connectez-vous à l'espace de gestion de votre salon et ouvrez la
+liste des demandes de changement.
 
-**Attendu :** le compte staff n'accède qu'aux demandes de son organisation ;
-la session client est refusée pour la page et les actions de revue. Les
-identifiants de demande d'une autre organisation ne permettent ni lecture,
-ni approbation, ni refus.
+**Attendu :** seules les demandes concernant votre salon sont visibles.
+L'espace de gestion n'est pas accessible depuis un compte client.
 
 **Automatisé :** `test/api/appointment-change-requests.spec.ts`,
 `test/api/appointment-portal-count.spec.ts`,
 `test/proxy.portal.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-02 — Compteur et accès à la file de demandes
+#### [ ] ADM-02 — Suivre les réservations et demandes
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 7]
 
-**Étapes :** relever les réservations portail créées aujourd'hui dans le
-fuseau de `ORG-A` et le nombre de demandes en attente. Créer une réservation
-portail et une demande, puis attendre le rafraîchissement du compteur.
+**Étapes :** notez le nombre de nouvelles réservations et de demandes
+affichées. Faites ensuite une réservation de test et envoyez une demande de
+changement pour vérifier la mise à jour des compteurs.
 
-**Attendu :** le compteur montre séparément les réservations portail du jour
-et les demandes `PENDING`, est limité à l'organisation et se rafraîchit sans
-rechargement complet. Les rendez-vous saisis par le staff, annulés ou créés
-hors de la journée locale ne gonflent pas le compteur de réservations portail.
-Le lien mène à `/change-requests`.
+**Attendu :** les nouvelles réservations et demandes sont comptées
+séparément, uniquement pour votre salon. Les chiffres se mettent à jour sans
+recharger toute la page.
 
 **Automatisé :** `test/api/appointment-portal-count.spec.ts`,
 `test/ui/portalBookingCounter.spec.tsx`. La cadence et le calcul de frontière
 de journée sont à confirmer dans le navigateur.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-03 — File de revue
+#### [ ] ADM-03 — Consulter les demandes en attente
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3ter]
 
-**Étapes :** ouvrir la file avec des demandes pendantes, approuvées, rejetées
-et une demande liée à `ORG-B`.
+**Étapes :** ouvrez la liste des demandes et choisissez une demande en attente.
 
-**Attendu :** seules les demandes `PENDING` de l'organisation courante sont
-affichées. Chaque ligne montre le client, le rendez-vous d'origine, le service,
-le praticien, le créneau demandé, le motif et les heures dans le fuseau de
-l'organisation. Une demande traitée disparaît de la file.
+**Attendu :** la demande indique le nom du client, le rendez-vous concerné,
+l'horaire souhaité et le commentaire laissé. Une demande déjà traitée
+n'apparaît plus dans la liste des demandes en attente.
 
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
 `test/api/appointment-change-requests.spec.ts`,
@@ -95,52 +88,45 @@ l'organisation. Une demande traitée disparaît de la file.
 
 ### Décision des demandes
 
-#### [ ] ADM-04 — Approbation d'un créneau valide
+#### [ ] ADM-04 — Accepter un changement d'horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 1, 3 et 4]
 
-**Étapes :** approuver une demande dont le créneau est encore libre et dans
-les heures d'ouverture.
+**Étapes :** acceptez une demande dont le nouvel horaire est toujours libre.
 
-**Attendu :** le rendez-vous d'origine est déplacé ; sa fin est recalculée à
-partir de la durée persistée du service. La prestation, le praticien et le
-lien forfait restent inchangés ; aucun crédit supplémentaire n'est consommé.
-La demande passe à `APPROVED`, indique le réviseur, et le client voit le
-nouveau créneau et le statut.
+**Attendu :** le rendez-vous est déplacé au nouvel horaire. La prestation,
+le coiffeur et le forfait restent les mêmes. Le client voit le changement
+dans son espace.
 
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
 `test/ui/appointmentChangeRequests.spec.tsx`,
 `test/services/customerPortalAppointments.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-05 — Revalidation à l'approbation
+#### [ ] ADM-05 — Vérifier si le nouvel horaire est encore libre
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 3–4]
 
-**Étapes :** après création d'une demande, occuper son créneau avec un
-rendez-vous du même praticien. Recommencer sur un créneau bloqué par une
-indisponibilité globale, hors des heures de l'organisation, passé ou associé
-à un praticien désactivé.
+**Étapes :** après réception d'une demande, prenez un autre rendez-vous sur
+le même horaire demandé, puis essayez d'accepter la demande. Réessayez aussi
+avec un horaire en dehors des heures d'ouverture.
 
-**Attendu :** chaque approbation est refusée avec un conflit compréhensible.
-Le rendez-vous conserve son heure initiale et la demande n'est pas marquée
-`APPROVED`. Un rendez-vous d'un autre praticien ne doit pas être traité comme
-un conflit de praticien, mais une indisponibilité globale bloque tous les
-praticiens.
+**Attendu :** le changement n'est pas accepté si l'horaire n'est plus
+disponible. Le rendez-vous du client conserve son horaire actuel et un message
+explique qu'il faut choisir une autre solution.
 
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts` couvre
 conflit de rendez-vous et indisponibilité globale. Les limites horaires,
 praticien inactif et course réelle restent à vérifier en bêta.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-06 — Refus avec ou sans motif
+#### [ ] ADM-06 — Refuser une demande
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, workflow staff]
 
-**Étapes :** refuser une demande avec motif, puis une autre sans motif.
-Essayer ensuite de l'approuver ou de la refuser une seconde fois.
+**Étapes :** refusez une demande en expliquant la raison, puis refusez-en une
+autre sans ajouter de commentaire.
 
-**Attendu :** la demande passe une seule fois à `REJECTED`, le motif staff
-est enregistré lorsqu'il est fourni et l'heure du rendez-vous ne change pas.
-Les actions répétées échouent sans écraser la décision initiale. Le client
-voit le statut de rejet.
+**Attendu :** la demande est refusée et le rendez-vous garde son horaire. Le
+client voit que le changement n'a pas été accepté et peut lire votre
+commentaire, s'il y en a un.
 
 **Automatisé :** `test/api/appointment-change-requests.spec.ts`,
 `test/services/customerPortalChangeRequests.spec.ts`,
@@ -148,62 +134,55 @@ voit le statut de rejet.
 partiellement couverte par l'état pending requis côté service.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-07 — Modification directe du rendez-vous
+#### [ ] ADM-07 — Modifier un rendez-vous ayant une demande en attente
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 5]
 
-**Étapes :** pendant qu'une demande est `PENDING`, déplacer le rendez-vous
-depuis le calendrier/back-office avec une modification directe.
+**Étapes :** pendant qu'une demande de changement attend une réponse, modifiez
+le rendez-vous depuis le calendrier de votre salon.
 
-**Attendu :** la modification staff réussit selon les règles habituelles et,
-dans la même opération, la demande devient `REJECTED` avec le motif système
-« RDV modifié directement par l’organisation ». Elle disparaît de la file ;
-son approbation ultérieure est impossible.
+**Attendu :** le rendez-vous est modifié et l'ancienne demande est retirée
+des demandes en attente. Elle ne peut pas être acceptée ensuite.
 
 **Automatisé :** `test/services/appointmentSchedulingChangeRequests.spec.ts`
 et `test/services/appointmentScheduling.service.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-08 — Suppression du rendez-vous d'origine
+#### [ ] ADM-08 — Supprimer un rendez-vous avec une demande en attente
 **Priorité : P0 · Exigence :** [Req: user-confirmed — choix de conserver le DELETE physique et l'historique de demande]
 
-**Étapes :** supprimer un rendez-vous non payé qui porte une demande
-`PENDING`, puis vérifier la file et, si l'accès DBA est prévu, la ligne
-d'historique en base.
+**Étapes :** dans les données de test, supprimez un rendez-vous qui a une
+demande de changement en attente. Vérifiez ensuite la liste des demandes.
 
-**Attendu :** le rendez-vous est supprimé selon le comportement staff existant,
-la demande est rejetée avant la suppression et ne peut plus être approuvée.
-L'historique de la demande reste conservé avec `appointmentId` détaché ;
-cette dernière assertion est une vérification technique, pas un écran bêta.
+**Attendu :** le rendez-vous est supprimé et sa demande ne figure plus parmi
+les demandes en attente. Elle ne peut pas être acceptée ensuite.
 
 **Automatisé :** `test/services/appointmentSchedulingChangeRequests.spec.ts`.
 La conservation après suppression physique doit être validée par l'équipe
 technique sur la base bêta.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-09 — Annulation du client pendant une demande
+#### [ ] ADM-09 — Vérifier l'annulation d'un rendez-vous avec une demande
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, invalidation et `customer-portal-phase-2.md`]
 
-**Étapes :** laisser une demande `PENDING`, puis annuler le rendez-vous côté
-client alors qu'il reste plus de 24 h.
+**Étapes :** laissez une demande de changement en attente, puis faites
+annuler le rendez-vous par le client depuis son espace client.
 
-**Attendu :** l'annulation est acceptée selon la règle Phase 2 ; la demande
-devient `REJECTED` avec le motif d'annulation client dans la même transaction.
-Le forfait est recrédité au plus une fois et la demande ne peut pas être
-approuvée.
+**Attendu :** le rendez-vous est annulé, la demande disparaît de la liste et
+les séances du forfait sont correctement remises à jour.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-10 — Rendez-vous payé et protection des données
+#### [ ] ADM-10 — Protéger les rendez-vous déjà payés
 **Priorité : P0 · Exigence :** [Req: inferred — comportement DELETE staff existant, `src/domain/appointment/policies.ts`]
 
-**Étapes :** tenter de supprimer un rendez-vous payé, avec ou sans demande
-pendante. Essayer également d'approuver/refuser une demande de `ORG-B` en
-changeant l'identifiant dans l'URL.
+**Étapes :** dans les données de test, essayez de supprimer un rendez-vous
+déjà payé. Vérifiez également que vous ne pouvez pas ouvrir les demandes d'un
+autre salon.
 
-**Attendu :** la suppression du rendez-vous payé est refusée et ne doit pas
-supprimer l'appointment. Un compte `ORG-A` ne peut pas traiter la demande
-`ORG-B`. Aucun détail privé d'un autre client/organisation n'est renvoyé.
+**Attendu :** le rendez-vous payé n'est pas supprimé. Vous ne pouvez pas
+consulter ni traiter les demandes d'un autre salon ou voir les informations
+de ses clients.
 
 **Automatisé :** `test/services/appointmentSchedulingChangeRequests.spec.ts`
 couvre la suppression d'un rendez-vous payé ; le scoping est couvert par
@@ -213,31 +192,29 @@ l'absence de fuite.
 
 ### Robustesse et ergonomie
 
-#### [ ] ADM-11 — Actions concurrentes et reprise après erreur
+#### [ ] ADM-11 — Éviter de traiter deux fois la même demande
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, unicité pending et transaction]
 
-**Étapes :** ouvrir la même demande dans deux sessions staff et approuver
-quasi simultanément ; refaire avec une approbation et un refus concurrents.
-Répéter un appel après une erreur réseau simulée si l'environnement le permet.
+**Étapes :** ouvrez la même demande dans deux sessions de l'équipe, puis
+essayez de l'accepter dans les deux presque en même temps. Recommencez avec
+une personne qui l'accepte et une autre qui la refuse.
 
-**Attendu :** une seule décision est appliquée ; l'autre action reçoit une
-réponse de conflit/non-pending, sans deuxième déplacement ni perte de la
-première décision. Une reprise ne doit pas produire de modification en double.
+**Attendu :** une seule décision est prise. Le rendez-vous n'est déplacé
+qu'une fois et la première réponse reste affichée.
 
 **Automatisé :** les tests de service vérifient qu'une demande doit être
 `PENDING` ; la concurrence réelle de deux sessions reste à valider.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-12 — Motifs, messages et usage sur écran réduit
+#### [ ] ADM-12 — Comprendre les messages et utiliser la page sur téléphone
 **Priorité : P2 · Exigence :** [Req: formal — spec Phase 3, écran de revue]
 
-**Étapes :** vérifier les demandes sans motif, avec motif long, les réponses
-409 (créneau devenu indisponible) et 404 (demande traitée/introuvable) ; ouvrir
-la page sur un écran réduit.
+**Étapes :** sur un téléphone, ouvrez des demandes avec et sans commentaire.
+Essayez d'accepter une demande dont l'horaire vient d'être pris.
 
-**Attendu :** les motifs sont lisibles, une erreur ne retire pas une demande
-qui reste pendante et l'interface permet de la traiter ou d'actualiser la
-file. Aucun changement n'est présenté comme réussi avant confirmation serveur.
+**Attendu :** les commentaires et boutons restent lisibles. Si l'horaire n'est
+plus disponible, un message clair s'affiche et la demande reste visible tant
+qu'elle n'a pas été traitée.
 
 **Automatisé :** `test/ui/appointmentChangeRequests.spec.tsx` vérifie le rendu
 et l'envoi des actions ; les états d'erreur réels doivent être vérifiés

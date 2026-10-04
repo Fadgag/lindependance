@@ -51,60 +51,55 @@ date : `________` · navigateur/appareil : `________` · organisation : `_______
 
 ### Accès public et disponibilité
 
-#### [ ] CUS-01 — Résolution de l'organisation
+#### [ ] CUS-01 — Ouvrir la réservation du bon salon
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, DoD 1]
 
-**Étapes :** ouvrir la réservation pour `ORG-A`, puis essayer un slug inconnu
-et le slug d'une organisation dont le portail est désactivé.
+**Étapes :** ouvrez le lien de réservation reçu et vérifiez que le nom affiché
+est bien celui du salon que vous souhaitez contacter.
 
-**Attendu :** `ORG-A` s'ouvre ; les deux autres cas renvoient une page/erreur
-404 sans révéler l'identifiant interne de l'organisation ni ses données.
+**Attendu :** la réservation s'ouvre pour le bon salon. Vous ne voyez aucune
+information appartenant à un autre salon.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts` (lecture publique).
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-02 — Choix de prestation, praticien et créneaux
+#### [ ] CUS-02 — Choisir une prestation, un coiffeur et un horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, parcours de réservation]
 
-**Étapes :** dans `ORG-A`, choisir `SVC-30` puis `SVC-60`; sélectionner
-`STAFF-A1` ou `STAFF-A2`. Refaire dans `ORG-SOLO`. Comparer les créneaux avec
-les rendez-vous, l'indisponibilité globale et les heures d'ouverture.
+**Étapes :** essayez de choisir différentes prestations, puis choisissez un
+coiffeur et un horaire disponible. Recommencez dans un salon où un seul
+coiffeur est proposé.
 
-**Attendu :** avec plusieurs praticiens, un choix est requis ; avec un seul,
-le sélecteur est masqué et ce praticien est utilisé. La durée affichée et la
-fin des créneaux suivent la prestation persistée. Les rendez-vous actifs du
-même praticien et les indisponibilités globales bloquent les chevauchements ;
-un rendez-vous d'un autre praticien ne bloque pas le créneau. Aucun créneau
-ne dépasse les heures d'ouverture.
+**Attendu :** vous pouvez choisir parmi les coiffeurs disponibles ; si un
+seul coiffeur est proposé, il est sélectionné automatiquement. Les horaires
+proposés tiennent compte de la durée de la prestation et des disponibilités
+du salon.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts`,
 `test/domain/customer-portal/scheduling.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-03 — Fuseau horaire et changement d'heure
+#### [ ] CUS-03 — Vérifier les dates et heures des rendez-vous
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §5.4]
 
-**Étapes :** ouvrir les rendez-vous et les créneaux depuis un appareil réglé
-sur un fuseau différent de celui de l'organisation ; vérifier également une
-date autour d'un changement d'heure si elle est disponible dans l'environnement.
+**Étapes :** consultez les rendez-vous et les horaires proposés, si possible
+depuis un téléphone réglé sur un autre fuseau horaire.
 
-**Attendu :** heures et dates correspondent au fuseau de l'organisation, pas
-au fuseau du téléphone. Aucun horaire local inexistant n'est proposé.
+**Attendu :** les dates et heures correspondent à celles annoncées par le
+salon et restent cohérentes entre la réservation et la liste des rendez-vous.
 
 **Automatisé :** tests de domaine de `scheduling.spec.ts` couvrent les helpers
 de fuseau et DST ; le parcours réel sur appareil reste à valider.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-04 — Agenda public anonymisé
+#### [ ] CUS-04 — Consulter les disponibilités du salon
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §3bis et sécurité]
 
-**Étapes :** ouvrir l'agenda public et inspecter la réponse réseau JSON des
-événements occupés et des indisponibilités.
+**Étapes :** ouvrez l'agenda public du salon et regardez comment les horaires
+déjà pris ou indisponibles sont présentés.
 
-**Attendu :** l'interface affiche seulement « Réservé »/indisponible. Chaque
-événement contient uniquement `start`, `end` et `status` (`RESERVED` ou
-`UNAVAILABLE`) ; aucun nom, client, praticien, prestation, note ou prix n'est
-présent dans la réponse.
+**Attendu :** les horaires occupés sont indiqués sans révéler le nom des
+clients, leurs rendez-vous ou d'autres informations personnelles.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts` vérifie la projection
 et l'absence de champs privés.
@@ -112,31 +107,27 @@ et l'absence de champs privés.
 
 ### Identification et identité client
 
-#### [ ] CUS-05 — Réponse OTP anti-énumération
+#### [ ] CUS-05 — Recevoir un code de connexion par e-mail
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §2]
 
-**Étapes :** demander un code avec `EMAIL-SINGLE`, puis avec `EMAIL-OTHER`.
-Comparer code HTTP et corps de réponse.
+**Étapes :** demandez un code avec votre adresse e-mail habituelle, puis
+recommencez avec une autre adresse de test si l'équipe vous en a fourni une.
 
-**Attendu :** la réponse publique est générique et identique dans les deux
-cas. Seule l'adresse réellement reliée à une fiche reçoit un OTP ; aucune
-fiche ni session n'est créée pour `EMAIL-OTHER`.
+**Attendu :** le message affiché reste simple et ne révèle pas si une adresse
+est déjà connue du salon. Le code est envoyé à l'adresse enregistrée.
 
 **Automatisé :** `test/api/customer-portal-request-code.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-06 — Cycle de vie OTP, tentatives et quotas
+#### [ ] CUS-06 — Utiliser le code de connexion
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §2 et sécurité]
 
-**Étapes :** vérifier un code correct, le réutiliser, demander un renvoi puis
-essayer l'ancien code ; tester un code expiré et cinq codes erronés. Sur une
-adresse/IP de test dédiées, vérifier la limite de 3 envois par adresse sur
-15 minutes et de 10 demandes par IP sur une heure.
+**Étapes :** connectez-vous avec le code reçu par e-mail. Si vous demandez un
+nouveau code, essayez ensuite l'ancien code.
 
-**Attendu :** un code est numérique, à usage unique et valable 10 minutes ;
-un renvoi invalide l'ancien. Un code expiré, consommé ou incorrect n'ouvre
-pas de session ; après le maximum d'essais, il est refusé. Les limites serveur
-retournent une erreur sans révéler si la fiche existe.
+**Attendu :** le code reçu vous permet d'ouvrir votre espace client. Un ancien
+code ou un code incorrect ne permet pas de se connecter ; le message explique
+comment demander un nouveau code.
 
 **Automatisé :** `test/api/customer-portal-verify-code.spec.ts` couvre les
 codes invalides/consommés/expirés ; `test/domain/customer-portal/rateLimit.spec.ts`
@@ -144,17 +135,15 @@ couvre la fenêtre glissante. Renvoi, essais réels, IP et envoi e-mail restent
 à confirmer dans l'environnement bêta.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-07 — Fiches familiales et cloisonnement
+#### [ ] CUS-07 — Retrouver les rendez-vous de votre famille
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, identité et réservation]
 
-**Étapes :** se connecter avec `EMAIL-FAMILY`, consulter les rendez-vous et
-commencer une réservation. Essayer ensuite un identifiant de fiche de
-`ORG-B` ou d'une fiche non liée à cette adresse.
+**Étapes :** connectez-vous avec l'adresse e-mail partagée par plusieurs
+membres de votre famille, puis consultez les rendez-vous et commencez une
+réservation pour l'un d'eux.
 
-**Attendu :** les deux fiches liées à l'adresse dans `ORG-A` sont accessibles
-et proposées pour la réservation ; la fiche choisie est bien celle du nouveau
-rendez-vous. Aucune fiche d'une autre organisation ou non reliée à l'email
-vérifié n'est visible ou réservable.
+**Attendu :** vous pouvez choisir le membre de la famille concerné et voir ses
+rendez-vous. Les informations d'autres clients restent privées.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts`,
 `test/services/customerPortalBooking.spec.ts`,
@@ -163,49 +152,43 @@ vérifié n'est visible ou réservable.
 
 ### Réservation et rendez-vous
 
-#### [ ] CUS-08 — Réservation avec données calculées côté serveur
+#### [ ] CUS-08 — Réserver une prestation
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, DoD 3–5]
 
-**Étapes :** réserver `SVC-60` pour un créneau libre. Si l'équipe autorise
-l'inspection API en environnement de test, essayer aussi d'envoyer une durée,
-un prix, une fin de rendez-vous ou une organisation forgés.
+**Étapes :** choisissez une prestation, un coiffeur et un horaire libre, puis
+confirmez la réservation.
 
-**Attendu :** le rendez-vous est lié à la fiche autorisée, au service et au
-praticien sélectionnés dans l'organisation ; sa durée, son prix et sa fin
-proviennent des données serveur. Les champs forgés sont rejetés et aucun
-rendez-vous supplémentaire n'est créé.
+**Attendu :** la confirmation reprend le bon salon, la bonne prestation, le
+coiffeur choisi, l'horaire et le prix affichés avant la réservation.
 
 **Automatisé :** `test/api/customer-portal-booking.spec.ts`,
 `test/services/customerPortalBooking.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-09 — Conflit de créneau au moment de confirmer
+#### [ ] CUS-09 — Éviter une double réservation
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §4bis et protocole de test]
 
-**Étapes :** ouvrir le même créneau dans deux sessions de test, puis confirmer
-quasi simultanément ; répéter une réservation à la même heure avec deux
-praticiens distincts.
+**Étapes :** ouvrez le même horaire disponible dans deux fenêtres de test et
+confirmez d'abord la réservation dans l'une, puis dans l'autre.
 
-**Attendu :** pour un même praticien, au plus une réservation réussit ; l'autre
-est refusée sans doublon. Deux praticiens différents ne se bloquent pas
-mutuellement. Un conflit apparu après l'affichage des créneaux est revalidé
-par le serveur.
+**Attendu :** le premier rendez-vous est confirmé. Le même horaire n'est plus
+proposé comme disponible et ne peut pas être réservé une deuxième fois.
 
 **Automatisé :** `test/services/customerPortalBooking.spec.ts` couvre un conflit
 dans la transaction ; le test de concurrence multi-session reste une recette
 bêta manuelle.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-10 — Confirmation e-mail, calendrier et renvoi
+#### [ ] CUS-10 — Recevoir la confirmation de réservation
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, confirmation e-mail]
 
-**Étapes :** réserver, vérifier l'e-mail et le fichier `.ics`, puis utiliser
-l'action de renvoi de confirmation. Si l'équipe dispose d'un mode de panne
-simulé, rejouer avec l'envoi e-mail en erreur.
+**Étapes :** effectuez une réservation et vérifiez l'e-mail de confirmation.
+Ouvrez également le lien permettant d'ajouter le rendez-vous à votre agenda,
+si cette option est proposée.
 
-**Attendu :** l'e-mail décrit le bon service, l'heure locale et la durée ;
-`DTSTART`/`DTEND` et le fuseau du calendrier correspondent au rendez-vous
-persisté. Un renvoi ou une panne e-mail ne crée jamais un second rendez-vous.
+**Attendu :** l'e-mail indique le bon salon, la bonne prestation et le bon
+horaire. Ajouter le rendez-vous à votre agenda ne crée pas de réservation
+supplémentaire.
 
 **Automatisé :** `test/api/customer-portal-confirmation.spec.ts`,
 `test/services/customerPortalEmail.spec.ts`,
@@ -213,34 +196,28 @@ persisté. Un renvoi ou une panne e-mail ne crée jamais un second rendez-vous.
 dans une application calendrier sont à vérifier manuellement.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-11 — « Mes rendez-vous »
+#### [ ] CUS-11 — Retrouver vos prochains rendez-vous
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2]
 
-**Étapes :** ouvrir la liste avec un email familial contenant des rendez-vous
-passés, futurs et annulés.
+**Étapes :** ouvrez la page « Mes rendez-vous » après avoir pris un rendez-vous
+et vérifiez la liste affichée.
 
-**Attendu :** seuls les rendez-vous futurs non annulés des fiches reliées à
-l'email et à l'organisation apparaissent ; ils sont triés du plus proche au
-plus lointain et identifient la bonne personne, prestation, praticien et
-statut. Les heures sont locales à l'organisation.
+**Attendu :** vos prochains rendez-vous apparaissent du plus proche au plus
+lointain, avec la bonne prestation, le bon coiffeur et le bon horaire.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts`,
 `test/api/customer-portal-appointments.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-12 — Annulation et seuil des 24 heures
+#### [ ] CUS-12 — Annuler un rendez-vous
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 3–5]
 
-**Étapes :** annuler `RDV-FAR`, puis tenter d'annuler `RDV-NEAR` (exactement
-24 h ou moins). Relever le nombre de séances avant/après pour `RDV-PACKAGE`.
-Retenter une annulation déjà effectuée.
+**Étapes :** annulez un rendez-vous prévu dans plus d'un jour. Essayez ensuite
+d'annuler un rendez-vous prévu dans moins d'un jour.
 
-**Attendu :** au-delà de 24 h, le rendez-vous passe une seule fois à
-`CANCELLED` et un forfait récupère exactement une séance. À 24 h ou moins,
-l'API refuse, l'interface invite à contacter l'établissement et aucun crédit
-ne bouge. Une annulation répétée ne recrédite pas ; un rendez-vous sans forfait
-ne modifie aucun crédit.
+**Attendu :** vous pouvez annuler en ligne le rendez-vous suffisamment éloigné.
+Pour un rendez-vous imminent, un message vous indique de contacter le salon.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`,
@@ -249,34 +226,28 @@ ne modifie aucun crédit.
 
 ### Demande de changement de créneau — Phase 3
 
-#### [ ] CUS-13 — Création d'une demande sans déplacement immédiat
+#### [ ] CUS-13 — Demander un autre horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 1]
 
-**Étapes :** sur un rendez-vous futur avec praticien, choisir un autre créneau
-disponible et envoyer une demande avec puis sans motif.
+**Étapes :** pour un rendez-vous à venir, choisissez un autre horaire proposé
+et envoyez votre demande, avec ou sans commentaire.
 
-**Attendu :** une demande `PENDING` est visible. Jusqu'à décision du staff,
-l'heure du rendez-vous, sa prestation, son praticien et ses crédits restent
-inchangés. La fin demandée est calculée depuis la durée réelle du service.
+**Attendu :** votre demande apparaît comme en attente. Le rendez-vous garde son
+horaire actuel tant que le salon ne vous a pas répondu.
 
 **Automatisé :** `test/api/customer-portal-change-requests.spec.ts`,
 `test/services/customerPortalChangeRequests.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-14 — Éligibilité, demande unique et quota 24 h
+#### [ ] CUS-14 — Suivre une demande déjà envoyée
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 2 et 6]
 
-**Étapes :** tenter une demande sur un rendez-vous passé, annulé, sans
-praticien ou appartenant à une autre fiche/organisation ; retenter le même
-rendez-vous alors qu'une demande est déjà `PENDING`. Sur des rendez-vous de
-test distincts, créer cinq demandes dans la fenêtre de 24 h puis en tenter
-une sixième.
+**Étapes :** envoyez une demande de changement pour un rendez-vous. Avant que
+le salon ait répondu, essayez d'en envoyer une autre pour ce même rendez-vous.
 
-**Attendu :** les cas non éligibles et la demande pendante en doublon sont
-refusés sans modifier le rendez-vous. La sixième demande est refusée côté
-serveur avec une limite explicite ; les demandes OTP ne consomment pas ce
-quota. Aucune donnée d'une autre fiche n'est révélée.
+**Attendu :** une seule demande est en attente à la fois pour ce rendez-vous.
+Le rendez-vous ne change pas avant la réponse du salon.
 
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
 `test/domain/appointment/changeRequests.spec.ts`,
@@ -284,15 +255,14 @@ quota. Aucune donnée d'une autre fiche n'est révélée.
 interaction avec les appels OTP sont à vérifier sur environnement dédié.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-15 — Statut après décision du staff
+#### [ ] CUS-15 — Voir la réponse du salon
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3ter]
 
-**Étapes :** faire approuver une demande et en faire refuser une autre depuis
-le compte staff ; actualiser « Mes rendez-vous » côté client.
+**Étapes :** après la réponse du salon à votre demande, ouvrez ou actualisez
+la page « Mes rendez-vous ».
 
-**Attendu :** le client voit le statut exact (`APPROVED` ou `REJECTED`) et le
-rendez-vous approuvé apparaît au nouveau créneau. Aucun e-mail de décision
-n'est attendu en V1.
+**Attendu :** vous voyez si le changement a été accepté ou refusé. Si le salon
+l'accepte, le rendez-vous apparaît au nouvel horaire.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts` vérifie la
 projection ; `test/ui/customerPortalAppointments.spec.tsx` vérifie l'état
@@ -301,17 +271,15 @@ pendant l'envoi. Vérifier la propagation réelle après décision.
 
 ### Sécurité et expérience
 
-#### [ ] CUS-16 — Session client, IDOR et origine
+#### [ ] CUS-16 — Vérifier la confidentialité de votre espace
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, sécurité]
 
-**Étapes :** depuis une session client, essayer d'ouvrir une page/API staff ;
-sur un environnement autorisé, forger `customerId`, `organizationId`,
-`serviceId` ou l'heure de fin, puis envoyer une mutation depuis une origine
-externe.
+**Étapes :** connectez-vous à votre espace client et essayez d'ouvrir une page
+réservée à l'équipe du salon. Vérifiez que seuls vos rendez-vous et ceux des
+membres de votre famille autorisés sont visibles.
 
-**Attendu :** les routes staff sont refusées. Les mutations client utilisent
-l'identité de la session OTP, rejettent les champs inattendus et refusent une
-origine croisée ; un identifiant forgé n'élargit jamais l'accès.
+**Attendu :** les pages de l'équipe ne sont pas accessibles depuis votre
+espace client et les informations des autres clients restent privées.
 
 **Automatisé :** `test/proxy.portal.spec.ts`,
 `test/api/customer-portal-booking.spec.ts`,
@@ -319,17 +287,15 @@ origine croisée ; un identifiant forgé n'élargit jamais l'accès.
 `test/api/customer-portal-change-requests.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-17 — Utilisation mobile et erreurs compréhensibles
+#### [ ] CUS-17 — Utiliser le service sur un téléphone
 **Priorité : P2 · Exigence :** [Req: formal — `customer-portal.md`, UX]
 
-**Étapes :** refaire connexion, choix de créneau, annulation refusée et demande
-de changement sur un téléphone ; vérifier chargement, clavier, navigation et
-messages d'erreur.
+**Étapes :** sur un téléphone, connectez-vous, choisissez un horaire, consultez
+vos rendez-vous et essayez de demander un changement.
 
-**Attendu :** aucun contrôle n'est inaccessible ou coupé ; l'utilisateur
-comprend si le rendez-vous est confirmé, si une demande est en attente ou s'il
-doit contacter l'établissement. Une erreur réseau ne provoque pas de doublon
-après une nouvelle tentative.
+**Attendu :** les boutons et les messages sont faciles à lire et à utiliser.
+Vous comprenez si le rendez-vous est confirmé, si le salon doit répondre ou
+s'il faut le contacter.
 
 **Automatisé :** composants couverts par les tests UI Vitest cités ci-dessus ;
 aucun parcours navigateur mobile complet n'est remplacé par ces tests.
