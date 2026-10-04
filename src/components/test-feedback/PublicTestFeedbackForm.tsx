@@ -594,7 +594,7 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
               type="button"
               onClick={() => void submitFeedback()}
               disabled={saving || !profile || pendingResultCount === 0}
-              className="rounded-xl bg-(--studio-text) px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+              className="rounded-xl bg-studio-text px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
               {saving ? 'Envoi…' : 'Envoyer mes réponses'}
             </button>

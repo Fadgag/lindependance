@@ -108,7 +108,9 @@ describe('PublicTestFeedbackForm', () => {
     fireEvent.click(checkboxes[0])
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(screen.getByRole('button', { name: 'Envoyer mes réponses' })).toBeInTheDocument()
+    const submitButton = screen.getByRole('button', { name: 'Envoyer mes réponses' })
+    expect(submitButton).toBeInTheDocument()
+    expect(submitButton).toHaveClass('bg-studio-text')
 
     fireEvent.click(screen.getByRole('button', { name: 'Envoyer mes réponses' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
