@@ -1,10 +1,22 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
 import { z } from 'zod'
-import { PublicTestCampaignResponseSchema } from '@/schemas/testFeedbackResponses'
+import {
+  PublicTestCampaignResponseSchema,
+} from '@/schemas/testFeedbackResponses'
+import {
+  campaignReviewChoiceLabels,
+  campaignReviewChoiceValues,
+} from '@/domain/test-feedback/campaignReview'
+import {
+  TestCampaignReviewClaritySchema,
+  TestCampaignReviewDurationSchema,
+  TestCampaignReviewLinksSchema,
+  TestCampaignReviewSatisfactionSchema,
+} from '@/schemas/testFeedback'
 import type { FeedbackStatus, TestProfile, TestScenario } from '@/domain/test-feedback/scenarios'
+import { getTestScenarioLinks } from '@/domain/test-feedback/scenarioLinks'
 import {
   testScenarioGroups as scenarioGroupCatalog,
   type TestScenarioGroupId,
@@ -12,9 +24,130 @@ import {
 
 type PublicCampaign = z.infer<typeof PublicTestCampaignResponseSchema>
 type ScenarioEntry = { status: FeedbackStatus; comment: string }
+const scenarioEntryDraftSchema = z.object({
+  status: z.enum(['PASS', 'FAIL', 'BLOCKED']),
+  comment: z.string().max(2000),
+})
+const campaignReviewDraftSchema = z.object({
+  clarity: z.union([z.literal(''), TestCampaignReviewClaritySchema]),
+  duration: z.union([z.literal(''), TestCampaignReviewDurationSchema]),
+  links: z.union([z.literal(''), TestCampaignReviewLinksSchema]),
+  satisfaction: z.union([z.literal(''), TestCampaignReviewSatisfactionSchema]),
+  comment: z.string().max(2000),
+})
+const storedCampaignDraftSchema = z.object({
+  version: z.literal(1),
+  selected: z.record(z.string(), scenarioEntryDraftSchema),
+  submitted: z.record(z.string(), z.boolean()),
+  campaignReview: campaignReviewDraftSchema,
+  environment: z.string().max(120),
+})
+
+type CampaignReviewDraft = z.infer<typeof campaignReviewDraftSchema>
+type StoredCampaignDraft = z.infer<typeof storedCampaignDraftSchema>
+
+function readCampaignDraft(
+  campaignToken: string,
+  profile: TestProfile,
+  scenarioIds: ReadonlySet<string>,
+): { draft: StoredCampaignDraft | null; warning: string } {
+  try {
+    const raw = window.localStorage.getItem(`test-feedback:draft:${campaignToken}:${profile}`)
+    if (!raw) return { draft: null, warning: '' }
+
+    let value: unknown
+    try {
+      value = JSON.parse(raw)
+    } catch {
+      return {
+        draft: null,
+        warning: 'Le brouillon local est illisible et n’a pas pu être restauré.',
+      }
+    }
+
+    const parsed = storedCampaignDraftSchema.safeParse(value)
+    if (!parsed.success) {
+      return {
+        draft: null,
+        warning: 'Le brouillon local n’a pas pu être restauré car son format est invalide.',
+      }
+    }
+
+    const selected = Object.fromEntries(
+      Object.entries(parsed.data.selected).filter(([scenarioId]) => scenarioIds.has(scenarioId)),
+    )
+    const submitted = Object.fromEntries(
+      Object.entries(parsed.data.submitted)
+        .filter(([scenarioId, isSubmitted]) => scenarioIds.has(scenarioId) && isSubmitted && scenarioId in selected),
+    )
+
+    return {
+      draft: { ...parsed.data, selected, submitted },
+      warning: '',
+    }
+  } catch {
+    return {
+      draft: null,
+      warning: 'Le stockage local est indisponible ; le brouillon n’a pas pu être restauré.',
+    }
+  }
+}
+
+const emptyCampaignReview: CampaignReviewDraft = {
+  clarity: '',
+  duration: '',
+  links: '',
+  satisfaction: '',
+  comment: '',
+}
 
 function scenarioGroupLabel(id: TestScenarioGroupId): string {
   return scenarioGroupCatalog.find((group) => group.id === id)?.label ?? id
+}
+
+const guideTokenPattern = /(ORG-A|ORG-B|ORG-SOLO|SVC-30|SVC-60|STAFF-A1|STAFF-A2|EMAIL-SINGLE|EMAIL-FAMILY|EMAIL-OTHER|RDV-FAR|RDV-NEAR|RDV-PACKAGE|\/change-requests)/g
+const guideAliases: Record<string, string> = {
+  'ORG-B': 'une autre organisation',
+  'ORG-SOLO': 'l’organisation de test avec un seul praticien actif',
+  'SVC-30': 'la prestation de 30 minutes',
+  'SVC-60': 'la prestation de 60 minutes',
+  'STAFF-A1': 'le premier praticien actif',
+  'STAFF-A2': 'le deuxième praticien actif',
+  'EMAIL-SINGLE': 'l’adresse liée à une seule fiche client',
+  'EMAIL-FAMILY': 'l’adresse partagée par plusieurs fiches client',
+  'EMAIL-OTHER': 'l’adresse sans fiche client dans cette organisation',
+  'RDV-FAR': 'le rendez-vous prévu dans plus de 24 heures',
+  'RDV-NEAR': 'le rendez-vous prévu dans 24 heures ou moins',
+  'RDV-PACKAGE': 'le rendez-vous lié à un forfait',
+}
+
+function findChoice<T extends string>(choices: readonly T[], value: string): T | '' {
+  return choices.find((choice) => choice === value) ?? ''
+}
+
+function renderScenarioText(text: string, campaign: PublicCampaign) {
+  return text.split(guideTokenPattern).map((part, index) => {
+    if (part === '/change-requests') {
+      return (
+        <a
+          key={`${part}-${index}`}
+          href={part}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-(--studio-primary) underline underline-offset-2"
+        >
+          {part}
+        </a>
+      )
+    }
+
+    if (part === 'ORG-A') {
+      return campaign.organizationSlug
+        ? `${campaign.organizationName} (slug : ${campaign.organizationSlug})`
+        : campaign.organizationName
+    }
+    return guideAliases[part] ?? part
+  })
 }
 
 async function responseError(response: Response): Promise<string> {
@@ -34,11 +167,36 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
   const [profile, setProfile] = useState<TestProfile | ''>('')
   const [scenarios, setScenarios] = useState<TestScenario[]>([])
   const [selected, setSelected] = useState<Record<string, ScenarioEntry>>({})
+  const [submitted, setSubmitted] = useState<Record<string, boolean>>({})
+  const [campaignReview, setCampaignReview] = useState<CampaignReviewDraft>(emptyCampaignReview)
   const [environment, setEnvironment] = useState('')
+  const [draftReadyForProfile, setDraftReadyForProfile] = useState<TestProfile | ''>('')
+  const [draftWarning, setDraftWarning] = useState('')
+  const [draftSaveWarning, setDraftSaveWarning] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const pendingResultCount = Object.keys(selected).filter((scenarioId) => !submitted[scenarioId]).length
+
+  useEffect(() => {
+    if (!profile || draftReadyForProfile !== profile) return
+
+    const key = `test-feedback:draft:${campaignToken}:${profile}`
+    const draft: StoredCampaignDraft = {
+      version: 1,
+      selected,
+      submitted,
+      campaignReview,
+      environment,
+    }
+    try {
+      window.localStorage.setItem(key, JSON.stringify(draft))
+      setDraftSaveWarning('')
+    } catch {
+      setDraftSaveWarning('Le stockage local est indisponible ; vos réponses ne pourront pas être restaurées après fermeture de la page.')
+    }
+  }, [campaignReview, campaignToken, draftReadyForProfile, environment, profile, selected, submitted])
 
   const loadCampaign = useCallback(async () => {
     setLoading(true)
@@ -63,8 +221,14 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
 
   async function chooseProfile(value: TestProfile) {
     setProfile(value)
+    setDraftReadyForProfile('')
     setSelected({})
+    setSubmitted({})
+    setCampaignReview(emptyCampaignReview)
+    setEnvironment('')
     setScenarios([])
+    setDraftWarning('')
+    setDraftSaveWarning('')
     setError('')
     setNotice('')
     try {
@@ -74,6 +238,19 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
       const parsed = PublicTestCampaignResponseSchema.safeParse(payload)
       if (!parsed.success) throw new Error('Liste des scénarios invalide')
       setScenarios(parsed.data.scenarios)
+      const restored = readCampaignDraft(
+        campaignToken,
+        value,
+        new Set(parsed.data.scenarios.map((scenario) => scenario.id)),
+      )
+      if (restored.draft) {
+        setSelected(restored.draft.selected)
+        setSubmitted(restored.draft.submitted)
+        setCampaignReview(restored.draft.campaignReview)
+        setEnvironment(restored.draft.environment)
+      }
+      setDraftWarning(restored.warning)
+      setDraftReadyForProfile(value)
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : 'Impossible de charger les scénarios')
     }
@@ -84,19 +261,21 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
       ...current,
       [id]: { status: current[id]?.status ?? 'PASS', comment: current[id]?.comment ?? '', ...update },
     }))
+    setSubmitted((current) => ({ ...current, [id]: false }))
   }
 
-  async function submitFeedback(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function submitFeedback() {
     setError('')
     setNotice('')
-    const results = Object.entries(selected).map(([scenarioId, value]) => ({
-      scenarioId,
-      status: value.status,
-      ...(value.comment.trim() ? { comment: value.comment.trim() } : {}),
-    }))
+    const results = Object.entries(selected)
+      .filter(([scenarioId]) => !submitted[scenarioId])
+      .map(([scenarioId, value]) => ({
+        scenarioId,
+        status: value.status,
+        ...(value.comment.trim() ? { comment: value.comment.trim() } : {}),
+      }))
     if (results.length === 0) {
-      setError('Cochez au moins un scénario effectué avant l’envoi.')
+      setError('Sélectionnez au moins un résultat à envoyer.')
       return
     }
     if (results.some((result) => result.status !== 'PASS' && !result.comment)) {
@@ -107,17 +286,33 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
       setError('Choisissez votre profil de test.')
       return
     }
+    const campaignReviewInput = {
+      ...(campaignReview.clarity ? { clarity: campaignReview.clarity } : {}),
+      ...(campaignReview.duration ? { duration: campaignReview.duration } : {}),
+      ...(campaignReview.links ? { links: campaignReview.links } : {}),
+      ...(campaignReview.satisfaction ? { satisfaction: campaignReview.satisfaction } : {}),
+      ...(campaignReview.comment.trim() ? { comment: campaignReview.comment.trim() } : {}),
+    }
 
     setSaving(true)
     try {
       const response = await fetch(`/api/test-feedback/${campaignToken}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile, environment, results }),
+        body: JSON.stringify({
+          profile,
+          environment,
+          results,
+          ...(Object.keys(campaignReviewInput).length > 0 ? { campaignReview: campaignReviewInput } : {}),
+        }),
       })
       if (!response.ok) throw new Error(await responseError(response))
       setNotice(`${results.length} résultat${results.length > 1 ? 's' : ''} enregistré${results.length > 1 ? 's' : ''}. Merci pour votre retour.`)
-      setSelected({})
+      setSubmitted((current) => ({
+        ...current,
+        ...Object.fromEntries(results.map(({ scenarioId }) => [scenarioId, true])),
+      }))
+      setCampaignReview(emptyCampaignReview)
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : 'Impossible d’enregistrer vos résultats')
     } finally {
@@ -138,7 +333,15 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
       <header className="rounded-2xl border border-(--studio-border) bg-white p-6 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-(--studio-primary)">Retour de test</p>
         <h1 className="mt-2 font-serif text-3xl text-(--studio-text)">{campaign.name}</h1>
-        <p className="mt-2 text-sm text-(--studio-muted)">{campaign.organizationName}</p>
+        <p className="mt-2 text-sm text-(--studio-muted)">
+          Organisation à tester : <strong className="text-(--studio-text)">{campaign.organizationName}</strong>
+        </p>
+        <p className="mt-1 text-sm text-(--studio-muted)">
+          Slug : {campaign.organizationSlug ?? 'non configuré'}
+        </p>
+        {!campaign.organizationPortalEnabled && (
+          <p className="mt-1 text-sm text-amber-800">Le portail client de cette organisation n’est pas activé.</p>
+        )}
         <p className="mt-1 text-sm text-(--studio-muted)">
           Parcours : {campaign.scenarioGroups.map(scenarioGroupLabel).join(' · ')}
         </p>
@@ -147,13 +350,18 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
       {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
+      {draftWarning && <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{draftWarning}</p>}
+      {draftSaveWarning && <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{draftSaveWarning}</p>}
 
       {campaign.status !== 'ACTIVE' ? (
         <p className="rounded-2xl border border-(--studio-border) bg-white p-6 text-sm text-(--studio-muted)">
           Cette campagne est clôturée. Les nouveaux résultats ne sont plus acceptés.
         </p>
       ) : (
-        <form onSubmit={(event) => void submitFeedback(event)} className="space-y-6">
+        <form onSubmit={(event) => event.preventDefault()} className="space-y-6">
+          <p className="rounded-xl bg-white p-4 text-sm text-(--studio-muted)">
+            Les réponses non envoyées sont sauvegardées automatiquement sur cet appareil. Évitez d’y inscrire des noms ou coordonnées.
+          </p>
           <fieldset className="rounded-2xl border border-(--studio-border) bg-white p-6">
             <legend className="px-2 text-base font-semibold text-(--studio-text)">Votre profil de test *</legend>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -190,6 +398,12 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
               <h2 id="scenario-checklist-title" className="font-serif text-2xl text-(--studio-text)">Scénarios à vérifier</h2>
               {scenarios.map((scenario) => {
                 const entry = selected[scenario.id]
+                const scenarioLinks = getTestScenarioLinks(
+                  scenario.profile,
+                  scenario.id,
+                  campaign.organizationSlug,
+                  campaign.organizationPortalEnabled,
+                )
                 return (
                   <article key={scenario.id} className="rounded-2xl border border-(--studio-border) bg-white p-5">
                     <label className="flex cursor-pointer items-start gap-3">
@@ -203,16 +417,43 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                           }
                           return { ...current, [scenario.id]: { status: 'PASS', comment: '' } }
                         })
+                        if (!checked) {
+                          setSubmitted((current) => {
+                            const next = { ...current }
+                            delete next[scenario.id]
+                            return next
+                          })
+                        }
                       }} />
                       <span>
                         <span className="block font-semibold text-(--studio-text)">{scenario.id} — {scenario.title}</span>
                         <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-(--studio-muted)">{scenario.priority}</span>
                       </span>
                     </label>
+                    {entry && (
+                      <p role="status" className="mt-2 pl-7 text-xs font-medium text-(--studio-muted)">
+                        {submitted[scenario.id] ? 'Envoyé' : 'À envoyer'}
+                      </p>
+                    )}
                     <div className="mt-4 space-y-2 border-l-2 border-(--studio-border) pl-4 text-sm">
-                      <p><strong>Étapes :</strong> {scenario.steps}</p>
-                      <p><strong>Résultat attendu :</strong> {scenario.expected}</p>
+                      <p><strong>Étapes :</strong> {renderScenarioText(scenario.steps, campaign)}</p>
+                      <p><strong>Résultat attendu :</strong> {renderScenarioText(scenario.expected, campaign)}</p>
                     </div>
+                    {scenarioLinks.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {scenarioLinks.map((link) => (
+                          <a
+                            key={`${scenario.id}-${link.href}`}
+                            href={link.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex rounded-lg border border-(--studio-primary) px-3 py-2 text-sm font-medium text-(--studio-primary) hover:bg-orange-50"
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     {entry && (
                       <div className="mt-4 grid gap-3 border-t border-(--studio-border) pt-4 md:grid-cols-2">
                         <label className="grid gap-1 text-sm font-medium text-(--studio-text)">
@@ -248,10 +489,113 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
             </section>
           )}
 
-          <p className="text-sm text-(--studio-muted)">Un commentaire est obligatoire pour les scénarios en échec ou bloqués.</p>
-          <div className="flex justify-end">
-            <button type="submit" disabled={saving || !profile || scenarios.length === 0} className="rounded-xl bg-(--studio-text) px-6 py-3 text-sm font-semibold text-white disabled:opacity-50">
-              {saving ? 'Envoi…' : 'Envoyer les scénarios cochés'}
+          {profile && (
+            <section aria-labelledby="campaign-review-title" className="space-y-4 rounded-2xl border border-(--studio-border) bg-white p-5 md:p-6">
+              <div>
+                <h2 id="campaign-review-title" className="font-serif text-2xl text-(--studio-text)">Votre avis sur la campagne (facultatif)</h2>
+                <p className="mt-1 text-sm text-(--studio-muted)">
+                  Ce retour est anonyme et sera envoyé avec au moins un scénario coché. N’indiquez pas de nom ni de coordonnées.
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
+                  Les consignes étaient-elles compréhensibles ?
+                  <select
+                    value={campaignReview.clarity}
+                    onChange={(event) => setCampaignReview((current) => ({
+                      ...current,
+                      clarity: findChoice(campaignReviewChoiceValues.clarity, event.target.value),
+                    }))}
+                    className="rounded-lg border border-(--studio-border) bg-white px-3 py-2"
+                  >
+                    <option value="">Choisir une réponse</option>
+                    {campaignReviewChoiceValues.clarity.map((choice) => (
+                      <option key={choice} value={choice}>{campaignReviewChoiceLabels.clarity[choice]}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
+                  Comment avez-vous trouvé la durée de la campagne ?
+                  <select
+                    value={campaignReview.duration}
+                    onChange={(event) => setCampaignReview((current) => ({
+                      ...current,
+                      duration: findChoice(campaignReviewChoiceValues.duration, event.target.value),
+                    }))}
+                    className="rounded-lg border border-(--studio-border) bg-white px-3 py-2"
+                  >
+                    <option value="">Choisir une réponse</option>
+                    {campaignReviewChoiceValues.duration.map((choice) => (
+                      <option key={choice} value={choice}>{campaignReviewChoiceLabels.duration[choice]}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
+                  Les liens directs vers les pages à tester vous ont-ils aidé ?
+                  <select
+                    value={campaignReview.links}
+                    onChange={(event) => setCampaignReview((current) => ({
+                      ...current,
+                      links: findChoice(campaignReviewChoiceValues.links, event.target.value),
+                    }))}
+                    className="rounded-lg border border-(--studio-border) bg-white px-3 py-2"
+                  >
+                    <option value="">Choisir une réponse</option>
+                    {campaignReviewChoiceValues.links.map((choice) => (
+                      <option key={choice} value={choice}>{campaignReviewChoiceLabels.links[choice]}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-(--studio-text)">
+                  Comment évaluez-vous globalement cette campagne ?
+                  <select
+                    value={campaignReview.satisfaction}
+                    onChange={(event) => setCampaignReview((current) => ({
+                      ...current,
+                      satisfaction: findChoice(campaignReviewChoiceValues.satisfaction, event.target.value),
+                    }))}
+                    className="rounded-lg border border-(--studio-border) bg-white px-3 py-2"
+                  >
+                    <option value="">Choisir une réponse</option>
+                    {campaignReviewChoiceValues.satisfaction.map((choice) => (
+                      <option key={choice} value={choice}>{campaignReviewChoiceLabels.satisfaction[choice]}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-(--studio-text) md:col-span-2">
+                  Avis ou suggestion d’amélioration
+                  <textarea
+                    maxLength={2000}
+                    rows={4}
+                    value={campaignReview.comment}
+                    onChange={(event) => setCampaignReview((current) => ({ ...current, comment: event.target.value }))}
+                    placeholder="Qu’est-ce qui vous a aidé, gêné ou manqué pendant cette campagne ?"
+                    className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal"
+                  />
+                </label>
+              </div>
+            </section>
+          )}
+
+          <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-(--studio-border) bg-white/95 p-4 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-(--studio-text)" aria-live="polite">
+                {pendingResultCount} résultat{pendingResultCount === 1 ? '' : 's'} en attente
+              </p>
+              <p className="text-xs text-(--studio-muted)">
+                Rien n’est envoyé avant votre clic. Les résultats envoyés restent visibles dans la checklist.
+              </p>
+              <p className="mt-1 text-xs text-(--studio-muted)">Un commentaire est obligatoire pour les scénarios en échec ou bloqués.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void submitFeedback()}
+              disabled={saving || !profile || pendingResultCount === 0}
+              className="rounded-xl bg-(--studio-text) px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {saving
+                ? 'Envoi…'
+                : `Envoyer ${pendingResultCount} résultat${pendingResultCount === 1 ? '' : 's'} en attente`}
             </button>
           </div>
         </form>

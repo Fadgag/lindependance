@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => {
   const transactionClient = {
     testCampaign: { findUnique: vi.fn() },
     testFeedback: { createMany: vi.fn() },
+    testCampaignReview: { create: vi.fn() },
   }
   return {
     organizationFindUnique: vi.fn(),
@@ -37,6 +38,8 @@ import {
   createTestCampaign,
   createTestFeedback,
   closeTestCampaign,
+  getTestCampaignDetail,
+  getPublicTestCampaign,
   listTestCampaignRecipients,
 } from '@/services/testFeedback.service'
 
@@ -58,6 +61,34 @@ beforeEach(() => {
 })
 
 describe('test feedback service', () => {
+  it('includes the organization slug in public campaign metadata without exposing its ID', async () => {
+    mocks.campaignFindUnique.mockResolvedValueOnce({
+      name: 'Recette bêta',
+      status: 'ACTIVE',
+      profiles: ['USER'],
+      scenarioGroups: ['ONLINE_BOOKING'],
+      organization: { name: 'Osez le T’re', slug: 'osez-le-tre', portalEnabled: true },
+    })
+
+    await expect(getPublicTestCampaign('public-token')).resolves.toEqual({
+      name: 'Recette bêta',
+      status: 'ACTIVE',
+      profiles: ['USER'],
+      scenarioGroups: ['ONLINE_BOOKING'],
+      organization: { name: 'Osez le T’re', slug: 'osez-le-tre', portalEnabled: true },
+    })
+    expect(mocks.campaignFindUnique).toHaveBeenCalledWith({
+      where: { publicToken: 'public-token' },
+      select: {
+        name: true,
+        status: true,
+        profiles: true,
+        scenarioGroups: true,
+        organization: { select: { name: true, slug: true, portalEnabled: true } },
+      },
+    })
+  })
+
   it('lists email-enabled accounts and clients for the selected organization and deduplicates addresses', async () => {
     mocks.userFindMany.mockResolvedValue([{
       id: 'user-1',
@@ -177,6 +208,13 @@ describe('test feedback service', () => {
       publicToken: 'public-token',
       profile: 'USER',
       environment: 'Firefox',
+      campaignReview: {
+        clarity: 'MOSTLY_CLEAR',
+        duration: 'ABOUT_RIGHT',
+        links: 'VERY_USEFUL',
+        satisfaction: 'SATISFIED',
+        comment: 'Les liens directs m’ont aidé.',
+      },
       results: [{
         scenarioId: 'CUS-01',
         scenarioTitle: 'Réservation',
@@ -201,6 +239,63 @@ describe('test feedback service', () => {
         comment: 'Le formulaire bloque.',
       }],
     })
+    expect(mocks.transactionClient.testCampaignReview.create).toHaveBeenCalledWith({
+      data: {
+        campaignId: 'campaign-1',
+        organizationId: 'org-1',
+        profile: 'USER',
+        clarity: 'MOSTLY_CLEAR',
+        duration: 'ABOUT_RIGHT',
+        links: 'VERY_USEFUL',
+        satisfaction: 'SATISFIED',
+        comment: 'Les liens directs m’ont aidé.',
+      },
+    })
+  })
+
+  it('returns anonymous campaign review answers in the technical campaign detail', async () => {
+    mocks.campaignFindUnique.mockResolvedValueOnce({
+      id: 'campaign-1',
+      name: 'Recette bêta',
+      scenarioGroups: ['ONLINE_BOOKING'],
+      profiles: ['USER'],
+      status: 'ACTIVE',
+      publicToken: 'public-token',
+      createdAt: new Date('2026-10-04T09:00:00.000Z'),
+      closedAt: null,
+      organization: { name: 'Osez le T’re' },
+      feedback: [],
+      campaignReviews: [{
+        id: 'review-1',
+        profile: 'USER',
+        clarity: 'MOSTLY_CLEAR',
+        duration: 'ABOUT_RIGHT',
+        links: 'VERY_USEFUL',
+        satisfaction: 'SATISFIED',
+        comment: 'Les liens directs m’ont aidé.',
+        createdAt: new Date('2026-10-04T09:30:00.000Z'),
+      }],
+    })
+
+    const detail = await getTestCampaignDetail('campaign-1')
+
+    expect(detail?.campaignReviews).toEqual([{
+      id: 'review-1',
+      profile: 'USER',
+      clarity: 'MOSTLY_CLEAR',
+      duration: 'ABOUT_RIGHT',
+      links: 'VERY_USEFUL',
+      satisfaction: 'SATISFIED',
+      comment: 'Les liens directs m’ont aidé.',
+      createdAt: new Date('2026-10-04T09:30:00.000Z'),
+    }])
+    expect(mocks.campaignFindUnique).toHaveBeenCalledWith(expect.objectContaining({
+      include: expect.objectContaining({
+        campaignReviews: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        },
+      }),
+    }))
   })
 
   it('does not record results for closed campaigns or profiles not enabled for that campaign', async () => {

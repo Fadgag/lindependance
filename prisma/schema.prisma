@@ -25,6 +25,7 @@ model Organization {
   changeRequests    AppointmentChangeRequest[]
   testCampaigns     TestCampaign[]
   testFeedback      TestFeedback[]
+  testCampaignReviews TestCampaignReview[]
   Package           Package[]
   products          Product[]
   unavailabilities  Unavailability[]
@@ -196,6 +197,7 @@ model TestCampaign {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   feedback       TestFeedback[]
+  campaignReviews TestCampaignReview[]
   createdAt      DateTime     @default(now())
   closedAt       DateTime?
 
@@ -218,6 +220,24 @@ model TestFeedback {
   createdAt        DateTime     @default(now())
 
   @@index([campaignId, profile, scenarioId, createdAt])
+  @@index([organizationId, createdAt])
+}
+
+model TestCampaignReview {
+  id             String       @id @default(cuid())
+  campaignId     String
+  campaign       TestCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile        String
+  clarity        String?
+  duration       String?
+  links          String?
+  satisfaction   String?
+  comment        String?
+  createdAt      DateTime     @default(now())
+
+  @@index([campaignId, createdAt])
   @@index([organizationId, createdAt])
 }
 

@@ -41,6 +41,13 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
 - Le testeur choisit son profil déclaratif : `ADMIN` ou `USER`. Ce choix sert
   uniquement à classer le retour et n'est jamais une preuve d'identité ni un
   droit d'accès.
+- La page publique affiche le vrai nom et le slug de l'organisation cible à la
+  place des alias de guide comme `ORG-A`. Les alias de jeux de données et les
+  chemins de page connus sont présentés en termes compréhensibles et les
+  chemins deviennent cliquables.
+- Chaque scénario propose un lien direct vers l'écran associé, si l'organisation
+  et le profil disposent d'une destination connue. Ces liens s'ouvrent dans un
+  nouvel onglet afin de conserver la checklist et les résultats non envoyés.
 - Selon ce choix, la page affiche les scénarios de recette du guide qualité
   correspondant : `quality/recette-beta-admin.md` pour `ADMIN`,
   `quality/recette-beta-customer.md` pour `USER`, filtrés par les groupes
@@ -60,6 +67,23 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   non coché n'est pas enregistré.
 - Le navigateur/appareil peut être indiqué par le testeur et s'applique à tous
   les scénarios envoyés dans la même soumission.
+- Cocher un scénario ou modifier son résultat ne déclenche aucun envoi réseau.
+  Le testeur envoie explicitement les résultats en attente avec un bouton
+  toujours visible ; les scénarios déjà envoyés restent cochés et identifiés
+  comme envoyés jusqu'à la fermeture ou au rechargement de la page.
+- Le brouillon du testeur (résultats sélectionnés, commentaires, navigateur et
+  réponses au questionnaire) est conservé dans le stockage local du navigateur,
+  séparément par campagne et profil, et restauré après réouverture de la page.
+  Un problème de stockage local est signalé sans empêcher l'envoi manuel. Le
+  formulaire avertit de ne pas saisir de nom ni de coordonnées.
+- À la fin de la checklist, le testeur peut répondre à un questionnaire
+  facultatif : compréhension des consignes, durée de la campagne, utilité des
+  liens directs et satisfaction générale. Il peut ajouter un commentaire ou
+  une suggestion d'amélioration de 2 000 caractères maximum. Le formulaire
+  n'enregistre cet avis qu'avec au moins un scénario coché.
+- Les réponses générales sont enregistrées séparément des résultats par
+  scénario, sans coordonnées ni identifiant personnel. Le tableau de suivi
+  technique les présente avec le profil déclaratif et la date de réception.
 - Les retours sont liés à l'organisation cible de la campagne résolue côté
   serveur ; aucune organisation ne vient du navigateur.
 - L'accès à `/test-campaigns` et aux API de gestion/suivi est réservé au
@@ -124,6 +148,7 @@ cartes lisibles.
 | Les commentaires sont obligatoires en cas d'échec ou de blocage.       |
 |                                                                       |
 |                                  [ Envoyer les scénarios cochés ]       |
+| Rien n'est envoyé avant ce clic. Les résultats envoyés restent visibles. |
 +-----------------------------------------------------------------------+
 ```
 
@@ -183,6 +208,10 @@ cartes lisibles.
   identifiant et instantané du scénario (titre/priorité), résultat,
   navigateur/appareil, commentaire et date de création. Chaque ligne
   correspond au résultat d'un scénario.
+- Ajouter `TestCampaignReview`, lié à la campagne et à l'organisation, avec
+  profil déclaratif, réponses facultatives aux questions prédéfinies, un
+  commentaire facultatif et la date de création. Ne pas stocker d'identifiant
+  de testeur ; plusieurs avis anonymes par campagne sont possibles.
 - Ne pas associer le feedback à un compte utilisateur ni à un testeur identifié.
 - Ne pas stocker nom, email, adresse IP ni autre identifiant personnel du
   testeur. Le profil est librement choisi par le visiteur.
@@ -228,9 +257,10 @@ cartes lisibles.
   campagne, sans suppression ni réouverture en phase 1.
 - `GET /api/test-feedback/[campaignToken]` : public ; obtenir le nom de la
   campagne, ses profils disponibles et le checklist approprié.
-- `POST /api/test-feedback/[campaignToken]` : public, validation Zod,
+- `POST /api/test-feedback/[campaignToken]` : public, validation Zod des
+  résultats et du questionnaire facultatif,
   rate limit, contrôle campagne active, validation des scénarios et création
-  atomique des scénarios cochés.
+  atomique des scénarios cochés et de l'avis général éventuel.
 
 ## Hors périmètre
 - Création ou modification des scénarios dans l'application : les guides
@@ -259,14 +289,21 @@ cartes lisibles.
 4. Un testeur non connecté voit en français le checklist correspondant au
    profil choisi parmi les profils autorisés et peut envoyer plusieurs
    résultats en une fois.
-5. Les scénarios non cochés ne sont pas créés ; les commentaires sont exigés
+5. La page de campagne montre le nom et le slug de l'organisation ; les étapes
+   ne montrent pas les alias internes du guide et proposent les liens directs
+   vers les écrans associés, sans lien de portail erroné si aucun slug n'est
+   configuré ou si le portail client est désactivé.
+6. Un testeur peut envoyer un avis général facultatif avec un ou plusieurs
+   scénarios cochés. Les réponses aux listes prédéfinies et le commentaire
+   apparaissent dans le suivi technique, sans données personnelles.
+7. Les scénarios non cochés ne sont pas créés ; les commentaires sont exigés
    pour les échecs et blocages ; les liens invalides ou campagnes fermées sont
    refusés explicitement.
-6. Chaque retour est lié à la campagne et à son organisation, sans accepter
+8. Chaque retour est lié à la campagne et à son organisation, sans accepter
    d'identifiants d'organisation ou des libellés de scénarios du navigateur.
-7. Le tableau de bord montre progression, résultats courants par scénario et
+9. Le tableau de bord montre progression, résultats courants par scénario et
    historique complet ; le résultat courant est le dernier par profil et
    scénario.
-8. Aucune donnée personnelle du testeur ni liste de destinataires n'est stockée.
+10. Aucune donnée personnelle du testeur ni liste de destinataires n'est stockée.
    Rate limit, droits et
    isolation sont testés ; TypeScript et lint passent.

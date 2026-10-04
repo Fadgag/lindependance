@@ -66,7 +66,8 @@ describe('TestCampaignDashboard', () => {
       name: 'Créer la campagne',
     })
     expect(desktopCreateButton.parentElement).toHaveClass('hidden', 'md:flex')
-    expect(mobileCreateButton).toHaveClass('fixed', 'left-4', 'right-24', 'md:hidden')
+    expect(desktopCreateButton).toHaveClass('bg-studio-primary', 'text-white')
+    expect(mobileCreateButton).toHaveClass('fixed', 'left-4', 'right-24', 'md:hidden', 'bg-studio-primary', 'text-white')
     expect(mobileCreateButton.parentElement).toHaveClass('grid')
     expect(mobileCreateButton.closest('form')).toContainElement(scenarioGroup)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Administration' }))

@@ -470,7 +470,7 @@ export default function TestCampaignDashboard() {
             <button
               type="submit"
               disabled={saving || loadingRecipients || !data?.organizations.length}
-              className="rounded-xl bg-(--studio-text) px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+              className="rounded-xl bg-studio-primary px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-studio-primary/20 disabled:opacity-50"
             >
               {saving ? 'Création…' : 'Créer la campagne'}
             </button>
@@ -478,7 +478,7 @@ export default function TestCampaignDashboard() {
           <button
             type="submit"
             disabled={saving || loadingRecipients || !data?.organizations.length}
-            className="fixed bottom-4 left-4 right-24 z-50 rounded-xl bg-(--studio-text) px-4 py-4 text-sm font-semibold text-white shadow-xl disabled:opacity-50 md:hidden"
+            className="fixed bottom-4 left-4 right-24 z-50 rounded-xl bg-studio-primary px-4 py-4 text-sm font-semibold text-white shadow-xl shadow-studio-primary/20 disabled:opacity-50 md:hidden"
           >
             {saving ? 'Création…' : 'Créer la campagne'}
           </button>

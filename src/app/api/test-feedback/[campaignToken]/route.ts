@@ -57,6 +57,8 @@ export async function GET(request: Request, { params }: PublicFeedbackContext) {
       scenarioGroups,
       status: campaign.status,
       organizationName: campaign.organization.name,
+      organizationSlug: campaign.organization.slug,
+      organizationPortalEnabled: campaign.organization.portalEnabled,
       profiles,
       scenarios,
     })
@@ -125,6 +127,7 @@ export async function POST(request: Request, { params }: PublicFeedbackContext) 
       publicToken: token.data,
       profile: parsed.data.profile,
       ...(parsed.data.environment ? { environment: parsed.data.environment } : {}),
+      ...(parsed.data.campaignReview ? { campaignReview: parsed.data.campaignReview } : {}),
       results,
     })
     if (!created) {
