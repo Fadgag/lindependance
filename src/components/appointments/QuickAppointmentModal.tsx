@@ -5,7 +5,7 @@ import useServices from '@/hooks/useServices'
 import useCustomers from '@/hooks/useCustomers'
 import FloatingActionButton from '@/components/ui/FloatingActionButton'
 import AppointmentModal from '@/components/calendar/AppointmentModal'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
 /**
@@ -14,11 +14,14 @@ import { useSession } from 'next-auth/react'
  * Recharge services et clients à chaque ouverture pour rester à jour.
  */
 export default function QuickAppointmentModal() {
+  const pathname = usePathname()
   const { data: session } = useSession()
   const isOrganizationStaff = session?.user?.accountType === 'STAFF'
     && (session.user.role === 'ADMIN' || session.user.role === 'USER')
+  const isPublicCustomerPage = pathname?.startsWith('/portail/')
+    || pathname?.startsWith('/retour-test/')
 
-  if (!isOrganizationStaff) return null
+  if (isPublicCustomerPage || !isOrganizationStaff) return null
   return <StaffQuickAppointmentModal />
 }
 

@@ -3,6 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
+  pathname: '/',
   useCustomers: vi.fn(() => ({ customers: [], reload: vi.fn() })),
   useServices: vi.fn(() => ({ services: [], reload: vi.fn() })),
 }))
@@ -11,6 +12,7 @@ vi.mock('next-auth/react', () => ({
   useSession: mocks.getSession,
 }))
 vi.mock('next/navigation', () => ({
+  usePathname: () => mocks.pathname,
   useRouter: () => ({ refresh: vi.fn() }),
 }))
 vi.mock('@/hooks/useCustomers', () => ({ default: mocks.useCustomers }))
@@ -28,6 +30,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.pathname = '/'
 })
 
 describe('QuickAppointmentModal', () => {
@@ -85,4 +88,22 @@ describe('QuickAppointmentModal', () => {
     expect(mocks.useCustomers).not.toHaveBeenCalled()
     expect(mocks.useServices).not.toHaveBeenCalled()
   })
+
+  it.each(['/retour-test/public-token', '/portail/osez-le-tre/reserver'])(
+    'does not render the appointment action on public customer pages (%s)',
+    (pathname) => {
+      mocks.pathname = pathname
+      mocks.getSession.mockReturnValue({
+        data: { user: { accountType: 'STAFF', role: 'ADMIN' } },
+        status: 'authenticated',
+      })
+
+      const { queryByTestId } = render(<QuickAppointmentModal />)
+
+      expect(queryByTestId('floating-quick-rdv')).not.toBeInTheDocument()
+      expect(queryByTestId('appointment-modal')).not.toBeInTheDocument()
+      expect(mocks.useCustomers).not.toHaveBeenCalled()
+      expect(mocks.useServices).not.toHaveBeenCalled()
+    },
+  )
 })

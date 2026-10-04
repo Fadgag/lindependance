@@ -15,6 +15,11 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
 - **Non-Régression :** Aucun agent n'a le droit de modifier un test existant pour faire passer son code. Si un test échoue, le code source doit être corrigé, pas le test.
 - **Atomicité :** Les opérations sur les compteurs ou les stocks doivent utiliser des transactions Prisma ou des opérations atomiques.
 
+## 🗣️ Langage des campagnes de recette
+- Pour les scénarios **CUS** destinés aux clients et **ADM** destinés aux gérants de salon, écrire les titres, étapes, résultats attendus et libellés de la checklist en français simple, concret et naturel pour un public non technique. Décrire ce que la personne doit faire et ce qu'elle devrait constater ; éviter le jargon informatique et métier inutile.
+- Ne pas afficher aux testeurs les identifiants internes `CUS-*` / `ADM-*`, les priorités `P0` / `P1` / `P2`, ni les autres détails techniques de suivi. Les conserver dans les données et outils internes lorsque nécessaires au suivi.
+- Le code, les API, les tests, les rapports et les explications destinés à l'équipe technique peuvent rester techniques. Adapter le niveau de langage au public visé sans simplifier ni masquer les informations techniques utiles aux développeurs.
+
 ## 🔍 Revue après développement
 - Après toute tâche de développement qui modifie du code ou de la configuration, lancer `skills/reviewer.skill.md` une fois les tests et contrôles ciblés terminés, avant le compte rendu final. Cette revue est automatique : ne pas attendre une demande `/review`.
 - Examiner le diff complet de la branche par rapport à `preprod` (ou à la base réelle de la PR), en incluant les modifications staged, unstaged et les nouveaux fichiers non suivis. Exclure le rapport de revue lui-même. Les tâches strictement documentaires ne nécessitent pas cette revue automatique.
