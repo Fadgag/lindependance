@@ -1,6 +1,6 @@
 import PortalBooking from '@/components/customer-portal/PortalBooking'
 import { notFound } from 'next/navigation'
-import { findEnabledPortalOrganization } from '@/services/customerPortal.service'
+import { findEnabledPortalBookingOrganization } from '@/services/customerPortal.service'
 
 export default async function PortalBookingPage({
   params,
@@ -8,7 +8,16 @@ export default async function PortalBookingPage({
   params: Promise<{ organizationSlug: string }>
 }) {
   const { organizationSlug } = await params
-  const organization = await findEnabledPortalOrganization(organizationSlug)
+  const organization = await findEnabledPortalBookingOrganization(organizationSlug)
   if (!organization) notFound()
-  return <PortalBooking organizationSlug={organizationSlug} organizationTimezone={organization.timezone} />
+  return (
+    <PortalBooking
+      organizationSlug={organizationSlug}
+      organizationTimezone={organization.timezone}
+      organizationName={organization.name}
+      logoDataUrl={organization.logoDataUrl}
+      logoShape={organization.logoShape}
+      logoSize={organization.logoSize}
+    />
+  )
 }

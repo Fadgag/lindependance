@@ -23,7 +23,6 @@ vi.mock('@/services/customerPortal.service', async (importOriginal) => ({
 import { GET as getServices } from '@/app/api/portail/[organizationSlug]/services/route'
 import { GET as getStaff } from '@/app/api/portail/[organizationSlug]/praticiens/route'
 import { GET as getCustomers } from '@/app/api/portail/[organizationSlug]/customers/route'
-import { GET as getAgenda } from '@/app/api/portail/[organizationSlug]/agenda/route'
 import { GET as getSlots } from '@/app/api/portail/[organizationSlug]/creneaux/route'
 import { prisma } from '@/lib/prisma'
 import {
@@ -140,31 +139,4 @@ describe('public customer portal reads', () => {
     }))
   })
 
-  it('anonymizes every public agenda event at the response boundary', async () => {
-    vi.mocked(prisma.appointment.findMany).mockResolvedValue([{
-      startTime: new Date('2026-10-01T08:00:00.000Z'),
-      endTime: new Date('2026-10-01T09:00:00.000Z'),
-      customerId: 'private-customer',
-      serviceId: 'private-service',
-      staffId: 'private-staff',
-      title: 'private title',
-      price: 40,
-    }] as never)
-    vi.mocked(prisma.unavailability.findMany).mockResolvedValue([{
-      start: new Date('2026-10-01T09:00:00.000Z'),
-      end: new Date('2026-10-01T10:00:00.000Z'),
-      title: 'private reason',
-    }] as never)
-
-    const response = await getAgenda(new Request(
-      'https://example.test?date=2026-10-01',
-    ), routeContext)
-    const payload = await response.json() as Array<Record<string, unknown>>
-
-    expect(payload).toEqual([
-      { start: '2026-10-01T08:00:00.000Z', end: '2026-10-01T09:00:00.000Z', status: 'RESERVED' },
-      { start: '2026-10-01T09:00:00.000Z', end: '2026-10-01T10:00:00.000Z', status: 'UNAVAILABLE' },
-    ])
-    expect(JSON.stringify(payload)).not.toMatch(/customer|service|price|staff|title|private/i)
-  })
 })

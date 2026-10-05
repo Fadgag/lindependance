@@ -25,12 +25,15 @@ describe('organizationBrandingUpdateSchema', () => {
     expect(organizationBrandingUpdateSchema.parse({
       organizationName: '  Studio Étoile  ',
       showNameWithLogo: true,
+      logoSize: 'large',
     })).toEqual({
       organizationName: 'Studio Étoile',
       showNameWithLogo: true,
+      logoSize: 'large',
     })
     expect(organizationBrandingUpdateSchema.safeParse({ organizationName: '   ' }).success).toBe(false)
     expect(organizationBrandingUpdateSchema.safeParse({ organizationName: 'Studio\nÉtoile' }).success).toBe(false)
+    expect(organizationBrandingUpdateSchema.safeParse({ logoSize: 'giant' }).success).toBe(false)
   })
 
   it('rejects unsupported image formats, malformed data, and empty updates', () => {

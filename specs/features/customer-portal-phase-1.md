@@ -22,6 +22,7 @@ Le MVP est activable par organisation et ne crée pas de compte client autonome.
   ou désactiver le portail.
 - Le portail public résout toute organisation par slug et n'expose jamais
   l'id interne. Slug inconnu ou portail désactivé : 404.
+- La page de réservation affiche le nom de l'organisation et son logo configuré.
 
 ### Identification OTP
 - Le visiteur entre le slug de l'organisation et l'email. Si des fiches
@@ -54,13 +55,9 @@ Le MVP est activable par organisation et ne crée pas de compte client autonome.
 - Les heures d'ouverture/fermeture actuelles s'appliquent tous les jours.
   Les rendez-vous actifs bloquent le praticien ; les indisponibilités
   `Unavailability` sont globales et bloquent tous les praticiens.
-- Vue agenda publique en lecture seule :
-  `/portail/[organizationSlug]/agenda`, avec blocs occupés anonymisés
-  (« Réservé ») et sans client, prestation, prix, notes ni praticien exposés.
 - APIs publiques :
   - `GET /api/portail/[organizationSlug]/services`
   - `GET /api/portail/[organizationSlug]/creneaux?serviceId=&staffId=&date=`
-  - `GET /api/portail/[organizationSlug]/agenda?date=`
 - Créer les réservations de façon atomique. La politique commune
   anti-chevauchement doit couvrir les créations et modifications portail et
   staff ainsi que l'approbation de demandes futures. Check des rendez-vous et
