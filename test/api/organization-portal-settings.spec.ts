@@ -1,18 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { prismaMock, authMock } = vi.hoisted(() => ({
-  prismaMock: {
-    organization: { findUnique: vi.fn(), update: vi.fn() },
-  },
+const { authMock, getSettingsMock, updateSettingsMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
+  getSettingsMock: vi.fn(),
+  updateSettingsMock: vi.fn(),
 }))
 
-vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }))
 vi.mock('@/auth', () => ({ auth: authMock }))
+vi.mock('@/services/customerPortalSettings.service', () => ({
+  getOrganizationPortalSettings: getSettingsMock,
+  updateOrganizationPortalSettings: updateSettingsMock,
+}))
 
 import { GET, PATCH } from '@/app/api/organization/portal/route'
-import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import {
+  getOrganizationPortalSettings,
+  updateOrganizationPortalSettings,
+} from '@/services/customerPortalSettings.service'
 
 const staffSession = {
   user: { organizationId: 'org-1', accountType: 'STAFF' },
@@ -29,53 +34,88 @@ function patch(body: Record<string, unknown>) {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(auth).mockResolvedValue(staffSession as never)
+  vi.mocked(getOrganizationPortalSettings).mockResolvedValue({
+    slug: 'atelier',
+    portalEnabled: true,
+    timezone: 'Europe/Paris',
+    portalContactPhone: '+33123456789',
+    portalContactEmail: null,
+    activePractitionerCount: 1,
+  })
 })
 
 describe('/api/organization/portal', () => {
   it('returns portal settings scoped to the authenticated staff organization', async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
-      slug: 'atelier',
-      portalEnabled: true,
-      timezone: 'Europe/Paris',
-    } as never)
-
     const response = await GET(new Request('https://example.test/api/organization/portal'))
 
     expect(await response.json()).toEqual({
       slug: 'atelier',
       portalEnabled: true,
       timezone: 'Europe/Paris',
+      portalContactPhone: '+33123456789',
+      portalContactEmail: null,
+      activePractitionerCount: 1,
     })
-    expect(prisma.organization.findUnique).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'org-1' },
-    }))
+    expect(getOrganizationPortalSettings).toHaveBeenCalledWith('org-1')
   })
 
   it('updates only the authenticated organization and forbids activation without a slug', async () => {
-    vi.mocked(prisma.organization.update).mockResolvedValue({
-      slug: 'atelier',
-      portalEnabled: true,
-      timezone: 'Europe/Paris',
-    } as never)
+    vi.mocked(updateOrganizationPortalSettings).mockResolvedValue({
+      status: 'updated',
+      settings: {
+        slug: 'atelier',
+        portalEnabled: true,
+        timezone: 'Europe/Paris',
+        portalContactPhone: '+33123456789',
+        portalContactEmail: null,
+        activePractitionerCount: 1,
+      },
+    })
 
     const response = await PATCH(patch({
       slug: 'atelier',
       portalEnabled: true,
       timezone: 'Europe/Paris',
+      portalContactPhone: '+33123456789',
+      portalContactEmail: null,
     }))
 
     expect(response.status).toBe(200)
-    expect(prisma.organization.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'org-1' },
-      data: { slug: 'atelier', portalEnabled: true, timezone: 'Europe/Paris' },
-    }))
+    expect(updateOrganizationPortalSettings).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      settings: {
+        slug: 'atelier',
+        portalEnabled: true,
+        timezone: 'Europe/Paris',
+        portalContactPhone: '+33123456789',
+        portalContactEmail: null,
+      },
+    })
 
     const invalidResponse = await PATCH(patch({
       slug: null,
       portalEnabled: true,
       timezone: 'Europe/Paris',
+      portalContactPhone: '+33123456789',
+      portalContactEmail: null,
     }))
     expect(invalidResponse.status).toBe(400)
+  })
+
+  it('does not activate the portal when no active practitioner is configured', async () => {
+    vi.mocked(updateOrganizationPortalSettings).mockResolvedValue({
+      status: 'practitioner_required',
+    })
+    const response = await PATCH(patch({
+      slug: 'atelier',
+      portalEnabled: true,
+      timezone: 'Europe/Paris',
+      portalContactPhone: '+33123456789',
+      portalContactEmail: null,
+    }))
+
+    expect(response.status).toBe(400)
+    expect(updateOrganizationPortalSettings).toHaveBeenCalledOnce()
   })
 
   it('rejects customer sessions and client-supplied organization ids', async () => {
@@ -88,9 +128,11 @@ describe('/api/organization/portal', () => {
       slug: 'atelier',
       portalEnabled: false,
       timezone: 'Europe/Paris',
+      portalContactPhone: null,
+      portalContactEmail: null,
       organizationId: 'other-org',
     }))
     expect(response.status).toBe(400)
-    expect(prisma.organization.update).not.toHaveBeenCalled()
+    expect(updateOrganizationPortalSettings).not.toHaveBeenCalled()
   })
 })

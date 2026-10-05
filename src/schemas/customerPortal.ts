@@ -18,9 +18,16 @@ export const CustomerPortalSettingsSchema = z.object({
   slug: CustomerPortalSlugSchema.nullable(),
   portalEnabled: z.boolean(),
   timezone: timezoneSchema,
-}).strict().refine((settings) => !settings.portalEnabled || settings.slug !== null, {
-  message: 'Un slug est requis pour activer le portail',
-  path: ['slug'],
+  portalContactPhone: z.string().trim().min(5).max(40).nullable(),
+  portalContactEmail: z.string().trim().email().max(254).transform((email) => email.toLowerCase()).nullable(),
+}).strict().superRefine((settings, context) => {
+  if (settings.portalEnabled && settings.slug === null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Un slug est requis pour activer le portail',
+      path: ['slug'],
+    })
+  }
 })
 
 export const CustomerPortalOtpRequestSchema = z.object({

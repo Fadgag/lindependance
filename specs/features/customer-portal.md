@@ -30,6 +30,8 @@ client doit d'abord être créé par le staff.
     // ...champs existants...
     slug              String?  @unique // ex: "salon-dupont" — nullable pour compat existant, requis pour activer le portail
     portalEnabled     Boolean  @default(false)
+    portalContactPhone String? // numéro public affiché sur le portail
+    portalContactEmail String? // e-mail public affiché sur le portail
   }
   ```
   - `slug` : identifiant public lisible, généré à la création/à l'activation
@@ -38,6 +40,16 @@ client doit d'abord être créé par le staff.
   - `portalEnabled` : **flag d'activation explicite par organisation** (cf.
     point 4 ci-dessous) — le portail est **désactivé par défaut**, une
     organisation doit l'activer volontairement (`/settings/portail`).
+  - L'activation requiert au moins un praticien actif et au moins un moyen de
+    contact public (`portalContactPhone` ou `portalContactEmail`).
+  - La désactivation ou l'archivage du dernier praticien actif désactive
+    `portalEnabled` dans la même transaction. Un e-mail est envoyé après commit
+    à tous les utilisateurs `ADMIN` de cette organisation. Réactiver un
+    praticien ne réactive pas le portail ; un administrateur doit le réactiver
+    explicitement.
+  - `/settings/portail` permet aux administrateurs de configurer le téléphone
+    et l'e-mail publics du salon. Ces coordonnées ne sont jamais les coordonnées
+    d'une fiche client.
 - Toutes les routes `/portail/*` et `/api/portail/*` résolvent l'organisation
   via `slug` (`prisma.organization.findFirst({ where: { slug, portalEnabled: true } })`),
   puis utilisent son `id` interne pour toutes les requêtes suivantes — jamais
@@ -48,8 +60,10 @@ client doit d'abord être créé par le staff.
   exclusivement l'organisation de la session OTP ; si le slug est présent dans
   leur chemin, il doit correspondre à cette organisation. Ne jamais accepter
   un `organizationId` arbitraire du navigateur.
-- Si `portalEnabled` est `false` ou le `slug` inconnu → `404` (pas de fuite
-  d'existence de l'organisation).
+- Si `portalEnabled` est `false`, si aucun praticien n'est actif ou si le
+  `slug` est inconnu → `404` (pas de fuite d'existence de l'organisation).
+  Cette vérification s'applique aux pages publiques, aux API et aux sessions
+  client déjà ouvertes.
 
 ### 1. Modèle de données (Prisma)
 - **Pas de modèle `CustomerAccount`** : la fiche `Customer` existante reste la
@@ -103,6 +117,8 @@ client doit d'abord être créé par le staff.
      fiches client portant cette adresse existent dans cette organisation,
      le serveur envoie un code par email. Dans tous les cas, la réponse est générique et
      identique pour empêcher l'énumération des fiches.
+     Le formulaire affiche aussi une aide neutre invitant à contacter le salon
+     si le code n'arrive pas, avec ses coordonnées publiques configurées.
   2. Le client saisit le code dans un champ `autocomplete="one-time-code"`
      (autoremplissage best-effort selon navigateur/appareil ; l'API WebOTP ne
      s'applique pas aux emails).
