@@ -39,7 +39,7 @@ export interface PortalOrganization {
 
 export async function findEnabledPortalOrganization(slug: string): Promise<PortalOrganization | null> {
   return prisma.organization.findFirst({
-    where: { slug, portalEnabled: true },
+    where: { slug, portalEnabled: true, staff: { some: { active: true } } },
     select: {
       id: true,
       name: true,
@@ -52,10 +52,12 @@ export async function findEnabledPortalOrganization(slug: string): Promise<Porta
 
 export async function findEnabledPortalBookingOrganization(slug: string) {
   const organization = await prisma.organization.findFirst({
-    where: { slug, portalEnabled: true },
+    where: { slug, portalEnabled: true, staff: { some: { active: true } } },
     select: {
       name: true,
       timezone: true,
+      portalContactPhone: true,
+      portalContactEmail: true,
       logoDataUrl: true,
       logoShape: true,
       logoSize: true,
@@ -72,7 +74,11 @@ export async function findEnabledPortalBookingOrganization(slug: string) {
 
 export async function findDefaultEnabledPortalOrganization(): Promise<{ slug: string } | null> {
   const organizations = await prisma.organization.findMany({
-    where: { portalEnabled: true, slug: { not: null } },
+    where: {
+      portalEnabled: true,
+      slug: { not: null },
+      staff: { some: { active: true } },
+    },
     select: { slug: true },
     take: 2,
   })
@@ -84,7 +90,11 @@ export async function findEnabledPortalOrganizationForSession(
   session: CustomerPortalSession,
 ): Promise<PortalOrganization | null> {
   return prisma.organization.findFirst({
-    where: { id: session.organizationId, portalEnabled: true },
+    where: {
+      id: session.organizationId,
+      portalEnabled: true,
+      staff: { some: { active: true } },
+    },
     select: {
       id: true,
       name: true,

@@ -21,6 +21,8 @@ model Organization {
   slug              String?            @unique
   portalEnabled     Boolean            @default(false)
   timezone          String             @default("Europe/Paris")
+  portalContactPhone String?
+  portalContactEmail String?
   services          Service[]
   customers         Customer[]
   staff             Staff[]

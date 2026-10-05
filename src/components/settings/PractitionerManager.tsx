@@ -169,11 +169,21 @@ export default function PractitionerManager() {
         return
       }
       if (!response.ok) throw new Error(await responseError(response, 'Impossible d’archiver le praticien.'))
+      const body: unknown = await response.json()
+      const portalDisabled = body && typeof body === 'object'
+        && 'portalDisabled' in body
+        && body.portalDisabled === true
+      const notificationSent = body && typeof body === 'object'
+        && 'notificationSent' in body
+        && body.notificationSent === true
       setPractitioners((current) => current.map((entry) => (
         entry.id === practitioner.id ? { ...entry, active: false } : entry
       )))
       if (editingId === practitioner.id) resetForm()
-      setMessage(`${practitioner.firstName} ${practitioner.lastName} a été archivé. Ses rendez-vous sont conservés.`)
+      const archiveMessage = `${practitioner.firstName} ${practitioner.lastName} a été archivé. Ses rendez-vous sont conservés.`
+      setMessage(portalDisabled
+        ? `${archiveMessage} Le portail a été désactivé${notificationSent ? ' et les administrateurs ont été avertis par e-mail' : ' ; l’e-mail d’information n’a pas pu être envoyé'}.`
+        : archiveMessage)
       setArchiveTarget(null)
       setArchiveAppointmentCount(null)
     } catch (archiveError: unknown) {

@@ -37,6 +37,8 @@ export default function PortalBooking({
   organizationSlug,
   organizationTimezone,
   organizationName,
+  portalContactPhone,
+  portalContactEmail,
   logoDataUrl,
   logoShape,
   logoSize,
@@ -44,6 +46,8 @@ export default function PortalBooking({
   organizationSlug: string
   organizationTimezone: string
   organizationName: string
+  portalContactPhone: string | null
+  portalContactEmail: string | null
   logoDataUrl: string | null
   logoShape: string
   logoSize: LogoSize
@@ -183,7 +187,7 @@ export default function PortalBooking({
       const hasCustomers = await loadCustomers()
       if (!hasCustomers) {
         setAuthenticated(false)
-        setError('Aucune fiche client ne correspond à cet email. Contactez votre établissement.')
+        setError('Impossible de vérifier votre code. Réessayez ou contactez le salon.')
       }
     } catch (verificationError: unknown) {
       setError(verificationError instanceof Error ? verificationError.message : 'Impossible de vérifier le code.')
@@ -338,6 +342,21 @@ export default function PortalBooking({
                 </button>
               </form>
             )}
+            <aside className="rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
+              <p className="font-medium">Vous ne recevez pas de code ? Contactez le salon.</p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {portalContactPhone && (
+                  <a className="text-indigo-700 underline" href={`tel:${portalContactPhone.replace(/[^\d+]/g, '')}`}>
+                    {portalContactPhone}
+                  </a>
+                )}
+                {portalContactEmail && (
+                  <a className="text-indigo-700 underline" href={`mailto:${portalContactEmail}`}>
+                    {portalContactEmail}
+                  </a>
+                )}
+              </div>
+            </aside>
           </section>
 
           <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6">

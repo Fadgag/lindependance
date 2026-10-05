@@ -60,7 +60,11 @@ export async function createCustomerPortalAppointment(
 
   return withSerializableRetry(async (transaction: Prisma.TransactionClient) => {
     const organization = await transaction.organization.findFirst({
-      where: { id: input.organizationId, portalEnabled: true },
+      where: {
+        id: input.organizationId,
+        portalEnabled: true,
+        staff: { some: { active: true } },
+      },
       select: {
         id: true,
         name: true,
@@ -207,6 +211,7 @@ export async function getAppointmentConfirmationForCustomer(input: {
         is: {
           id: input.organizationId,
           portalEnabled: true,
+          staff: { some: { active: true } },
         },
       },
     },

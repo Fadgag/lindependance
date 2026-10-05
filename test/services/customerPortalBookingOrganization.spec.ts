@@ -19,6 +19,8 @@ describe('findEnabledPortalBookingOrganization', () => {
     findFirstMock.mockResolvedValue({
       name: 'Salon Élise',
       timezone: 'Europe/Paris',
+      portalContactPhone: '01 23 45 67 89',
+      portalContactEmail: 'contact@salon-elise.fr',
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
       logoSize: 'large',
@@ -27,15 +29,23 @@ describe('findEnabledPortalBookingOrganization', () => {
     await expect(findEnabledPortalBookingOrganization('salon-elise')).resolves.toEqual({
       name: 'Salon Élise',
       timezone: 'Europe/Paris',
+      portalContactPhone: '01 23 45 67 89',
+      portalContactEmail: 'contact@salon-elise.fr',
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
       logoSize: 'large',
     })
     expect(findFirstMock).toHaveBeenCalledWith({
-      where: { slug: 'salon-elise', portalEnabled: true },
+      where: {
+        slug: 'salon-elise',
+        portalEnabled: true,
+        staff: { some: { active: true } },
+      },
       select: {
         name: true,
         timezone: true,
+        portalContactPhone: true,
+        portalContactEmail: true,
         logoDataUrl: true,
         logoShape: true,
         logoSize: true,

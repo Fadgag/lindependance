@@ -21,7 +21,11 @@ describe('findDefaultEnabledPortalOrganization', () => {
 
     await expect(findDefaultEnabledPortalOrganization()).resolves.toEqual({ slug: 'osezletre' })
     expect(prisma.organization.findMany).toHaveBeenCalledWith({
-      where: { portalEnabled: true, slug: { not: null } },
+      where: {
+        portalEnabled: true,
+        slug: { not: null },
+        staff: { some: { active: true } },
+      },
       select: { slug: true },
       take: 2,
     })

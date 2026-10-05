@@ -15,6 +15,8 @@ export default async function PortalBookingPage({
       organizationSlug={organizationSlug}
       organizationTimezone={organization.timezone}
       organizationName={organization.name}
+      portalContactPhone={organization.portalContactPhone}
+      portalContactEmail={organization.portalContactEmail}
       logoDataUrl={organization.logoDataUrl}
       logoShape={organization.logoShape}
       logoSize={organization.logoSize}
