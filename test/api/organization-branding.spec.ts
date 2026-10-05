@@ -39,6 +39,7 @@ describe('/api/organization/branding', () => {
     vi.mocked(getOrganizationBranding).mockResolvedValue({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
+      logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
     })
@@ -49,6 +50,7 @@ describe('/api/organization/branding', () => {
     expect(await response.json()).toEqual({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
+      logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
     })
@@ -62,6 +64,7 @@ describe('/api/organization/branding', () => {
     vi.mocked(updateOrganizationBranding).mockResolvedValue({
       logoDataUrl: null,
       logoShape: 'square',
+      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
     })
@@ -77,6 +80,7 @@ describe('/api/organization/branding', () => {
 
     const validResponse = await PATCH(patch({
       logoShape: 'square',
+      logoSize: 'large',
       organizationName: '  Nouveau salon  ',
       showNameWithLogo: true,
     }))
@@ -85,11 +89,13 @@ describe('/api/organization/branding', () => {
     expect(await validResponse.json()).toEqual({
       logoDataUrl: null,
       logoShape: 'square',
+      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
     })
     expect(updateOrganizationBranding).toHaveBeenCalledWith('org-1', {
       logoShape: 'square',
+      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
     })

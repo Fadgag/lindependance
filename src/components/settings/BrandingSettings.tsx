@@ -7,12 +7,18 @@ import {
   organizationBrandingUpdateSchema,
   organizationBrandingSchema,
   type LogoShape,
+  type LogoSize,
   type OrganizationBranding,
 } from '@/domain/branding/logoSettings'
 
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 const LOGO_SHAPES: LogoShape[] = ['circle', 'square']
+const LOGO_SIZES: { value: LogoSize; label: string; previewSize: number }[] = [
+  { value: 'small', label: 'Petit', previewSize: 32 },
+  { value: 'medium', label: 'Moyen', previewSize: 48 },
+  { value: 'large', label: 'Grand', previewSize: 64 },
+]
 
 async function prepareLogo(file: File): Promise<string> {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -55,6 +61,7 @@ export default function BrandingSettings() {
   const [branding, setBranding] = useState<OrganizationBranding>({
     logoDataUrl: null,
     logoShape: 'circle',
+    logoSize: 'medium',
     organizationName: 'Atelier Studio Coiffure',
     showNameWithLogo: false,
   })
@@ -107,6 +114,11 @@ export default function BrandingSettings() {
     setMessage('')
   }
 
+  function handleSizeChange(logoSize: LogoSize) {
+    setBranding((current) => ({ ...current, logoSize }))
+    setMessage('')
+  }
+
   function handleNameChange(organizationName: string) {
     setBranding((current) => ({ ...current, organizationName }))
     setMessage('')
@@ -144,6 +156,7 @@ export default function BrandingSettings() {
   }
 
   const shapeClass = branding.logoShape === 'circle' ? 'rounded-full' : 'rounded-none'
+  const previewSize = LOGO_SIZES.find((size) => size.value === branding.logoSize)?.previewSize ?? 48
 
   return (
     <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -161,10 +174,10 @@ export default function BrandingSettings() {
               <Image
                 src={branding.logoDataUrl}
                 alt="Aperçu du logo"
-                width={96}
-                height={96}
+                width={previewSize}
+                height={previewSize}
                 unoptimized
-                className={`size-24 object-cover ${shapeClass}`}
+                className={`object-cover ${shapeClass}`}
               />
             ) : (
               <span className="text-xs text-gray-400">Aucun logo</span>
@@ -222,6 +235,25 @@ export default function BrandingSettings() {
               </div>
             </fieldset>
 
+            <fieldset>
+              <legend className="text-sm font-medium text-gray-700">Taille du logo</legend>
+              <div className="mt-2 flex gap-4">
+                {LOGO_SIZES.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="radio"
+                      name="organization-logo-size"
+                      value={value}
+                      checked={branding.logoSize === value}
+                      onChange={() => handleSizeChange(value)}
+                      disabled={saving}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
             <label className="flex items-start gap-3 text-sm text-gray-700">
               <input
                 type="checkbox"
@@ -233,7 +265,12 @@ export default function BrandingSettings() {
                 disabled={saving}
                 className="mt-0.5 size-4 accent-indigo-600"
               />
-              <span>Afficher le nom à côté du logo</span>
+              <span>
+                Afficher le nom avec le logo
+                <span className="block text-xs text-gray-500">
+                  Le nom apparaît à droite s’il tient, sinon en dessous.
+                </span>
+              </span>
             </label>
 
             <div className="flex flex-wrap items-center gap-3">

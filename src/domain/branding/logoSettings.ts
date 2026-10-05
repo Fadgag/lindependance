@@ -10,6 +10,7 @@ const logoDataUrlSchema = z.string()
   )
 
 export const logoShapeSchema = z.enum(['circle', 'square'])
+export const logoSizeSchema = z.enum(['small', 'medium', 'large'])
 const organizationNameSchema = z.string()
   .trim()
   .min(1, 'Le nom est obligatoire')
@@ -19,11 +20,13 @@ const organizationNameSchema = z.string()
 export const organizationBrandingUpdateSchema = z.object({
   logoDataUrl: logoDataUrlSchema.nullable().optional(),
   logoShape: logoShapeSchema.optional(),
+  logoSize: logoSizeSchema.optional(),
   organizationName: organizationNameSchema.optional(),
   showNameWithLogo: z.boolean().optional(),
 }).strict().refine(
   (update) => update.logoDataUrl !== undefined
     || update.logoShape !== undefined
+    || update.logoSize !== undefined
     || update.organizationName !== undefined
     || update.showNameWithLogo !== undefined,
   'Au moins un réglage doit être fourni',
@@ -32,6 +35,7 @@ export const organizationBrandingUpdateSchema = z.object({
 export const organizationBrandingSchema = z.object({
   logoDataUrl: logoDataUrlSchema.nullable(),
   logoShape: logoShapeSchema,
+  logoSize: logoSizeSchema,
   organizationName: organizationNameSchema,
   showNameWithLogo: z.boolean(),
 })
@@ -39,10 +43,12 @@ export const organizationBrandingSchema = z.object({
 export type OrganizationBrandingUpdate = z.infer<typeof organizationBrandingUpdateSchema>
 export type OrganizationBranding = z.infer<typeof organizationBrandingSchema>
 export type LogoShape = z.infer<typeof logoShapeSchema>
+export type LogoSize = z.infer<typeof logoSizeSchema>
 
 export const DEFAULT_ORGANIZATION_BRANDING: OrganizationBranding = {
   logoDataUrl: null,
   logoShape: 'circle',
+  logoSize: 'medium',
   organizationName: 'Atelier Studio Coiffure',
   showNameWithLogo: false,
 }

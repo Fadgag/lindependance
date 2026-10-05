@@ -24,9 +24,36 @@ afterEach(() => {
 })
 
 describe('PortalBooking', () => {
-  it('offers a subtle link to the staff sign-in page', async () => {
-    render(<PortalBooking organizationSlug="osezletre" organizationTimezone="Europe/Paris" />)
+  it('shows the organization name and logo without linking to the public agenda', async () => {
+    render(
+      <PortalBooking
+        organizationSlug="osezletre"
+        organizationTimezone="Europe/Paris"
+        organizationName="Salon Élise"
+        logoDataUrl="data:image/png;base64,aGVsbG8="
+        logoShape="circle"
+        logoSize="large"
+      />,
+    )
 
+    expect(await screen.findByText('Salon Élise')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Logo de Salon Élise' })).toHaveClass('size-16', 'rounded-full')
+    expect(screen.queryByRole('link', { name: 'Voir l’agenda public' })).not.toBeInTheDocument()
+  })
+
+  it('offers a subtle link to the staff sign-in page', async () => {
+    render(
+      <PortalBooking
+        organizationSlug="osezletre"
+        organizationTimezone="Europe/Paris"
+        organizationName="Salon Élise"
+        logoDataUrl={null}
+        logoShape="circle"
+        logoSize="medium"
+      />,
+    )
+
+    expect(await screen.findByText('Salon Élise')).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: 'Accès équipe' })).toHaveAttribute('href', '/auth/signin')
   })
 })

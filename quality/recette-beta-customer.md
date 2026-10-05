@@ -92,19 +92,6 @@ salon et restent cohérentes entre la réservation et la liste des rendez-vous.
 de fuseau et DST ; le parcours réel sur appareil reste à valider.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-04 — Consulter les disponibilités du salon
-**Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §3bis et sécurité]
-
-**Étapes :** ouvrez l'agenda public du salon et regardez comment les horaires
-déjà pris ou indisponibles sont présentés.
-
-**Attendu :** les horaires occupés sont indiqués sans révéler le nom des
-clients, leurs rendez-vous ou d'autres informations personnelles.
-
-**Automatisé :** `test/api/customer-portal-public.spec.ts` vérifie la projection
-et l'absence de champs privés.
-**Résultat / preuve :** `________`
-
 ### Identification et identité client
 
 #### [ ] CUS-05 — Recevoir un code de connexion par e-mail
@@ -256,7 +243,7 @@ interaction avec les appels OTP sont à vérifier sur environnement dédié.
 **Résultat / preuve :** `________`
 
 #### [ ] CUS-15 — Voir la réponse du salon
-**Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3ter]
+**Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3bis]
 
 **Étapes :** après la réponse du salon à votre demande, ouvrez ou actualisez
 la page « Mes rendez-vous ».
