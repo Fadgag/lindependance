@@ -36,6 +36,18 @@ Ce fichier sert à noter les améliorations à traiter au fur et à mesure qu'el
   - Le nouveau client apparaît dans la liste sans rechargement manuel de la page.
   - Les autres comportements de la page des clients sont conservés.
 
+### Confirmer l'adresse e-mail renseignée dans une fiche client
+
+- **Statut :** À préciser
+- **Priorité :** À définir
+- **Constat :** Une adresse e-mail peut être renseignée dans une fiche client sans que sa validité soit vérifiée.
+- **Amélioration souhaitée :** Envoyer un e-mail de confirmation lorsque l'adresse e-mail d'un client est renseignée afin que la personne puisse valider qu'elle y a accès.
+- **Critères d'acceptation :**
+  - Un e-mail de confirmation est envoyé à l'adresse renseignée dans la fiche client.
+  - La personne peut confirmer qu'elle a accès à cette adresse.
+  - L'état de validation de l'adresse est visible depuis la fiche client.
+  - Le comportement en cas d'adresse non confirmée ou de lien expiré reste à préciser.
+
 ### Simplifier le vocabulaire et revoir les formulations au féminin
 
 - **Statut :** À préciser
@@ -57,6 +69,17 @@ Ce fichier sert à noter les améliorations à traiter au fur et à mesure qu'el
   - Si l'adresse n'est pas trouvée, un message clair invite le client à contacter le salon.
   - La fiche contact du salon (coordonnées) est affichée dans ce cas.
   - Le comportement de la prise de rendez-vous après l'affichage de ce message reste à préciser.
+
+### Afficher l'identité du salon sur la page de réservation
+
+- **Statut :** À préciser
+- **Priorité :** À définir
+- **Constat :** La page de réservation n'affiche ni le logo ni le nom du salon.
+- **Amélioration souhaitée :** Afficher le logo ou, à défaut, le nom du salon sur la page de réservation afin que le client puisse identifier l'établissement.
+- **Critères d'acceptation :**
+  - Le logo du salon s'affiche sur la page de réservation lorsqu'il est configuré.
+  - Si aucun logo n'est configuré, le nom du salon est affiché.
+  - L'identité affichée correspond au salon concerné par la réservation.
 
 ### Proposer un nom de domaine personnalisé en option payante
 
