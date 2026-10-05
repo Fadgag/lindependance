@@ -2,12 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import PortalAppointments from '@/components/customer-portal/PortalAppointments'
 
+const futureAppointmentStart = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+const requestedSlotStart = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+requestedSlotStart.setUTCHours(8, 30, 0, 0)
+const requestedSlotLabel = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  hour: '2-digit',
+  minute: '2-digit',
+}).format(requestedSlotStart)
+
 const appointments = {
   timezone: 'Europe/Paris',
   appointments: [{
     id: 'appointment-1',
-    startTime: '2026-10-03T10:00:00.000Z',
-    endTime: '2026-10-03T11:00:00.000Z',
+    startTime: futureAppointmentStart.toISOString(),
+    endTime: new Date(futureAppointmentStart.getTime() + 60 * 60 * 1000).toISOString(),
     status: 'CONFIRMED',
     serviceId: 'service-1',
     staffId: 'staff-1',
@@ -105,7 +114,10 @@ describe('PortalAppointments', () => {
     fetchMock.mockResolvedValueOnce(response(appointments))
     fetchMock.mockResolvedValueOnce(response({
       timezone: 'Europe/Paris',
-      slots: [{ start: '2026-10-04T08:30:00.000Z', end: '2026-10-04T09:30:00.000Z' }],
+      slots: [{
+        start: requestedSlotStart.toISOString(),
+        end: new Date(requestedSlotStart.getTime() + 60 * 60 * 1000).toISOString(),
+      }],
     }))
     fetchMock.mockResolvedValueOnce(response({ id: 'change-request-1', status: 'PENDING' }, 201))
 
@@ -120,7 +132,7 @@ describe('PortalAppointments', () => {
     expect(screen.getByLabelText('Nouvelle date souhaitée')).toBeInTheDocument()
     expect(screen.getByLabelText('Motif (facultatif)')).toBeInTheDocument()
 
-    fireEvent.click(await screen.findByRole('button', { name: '10:30' }))
+    fireEvent.click(await screen.findByRole('button', { name: requestedSlotLabel }))
     fireEvent.change(screen.getByLabelText('Motif (facultatif)'), {
       target: { value: 'Un imprévu' },
     })
@@ -132,7 +144,7 @@ describe('PortalAppointments', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
-            requestedStart: '2026-10-04T08:30:00.000Z',
+            requestedStart: requestedSlotStart.toISOString(),
             reason: 'Un imprévu',
           }),
         }),
