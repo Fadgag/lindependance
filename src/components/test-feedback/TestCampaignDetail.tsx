@@ -4,6 +4,10 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 import { TestCampaignDetailResponseSchema } from '@/schemas/testFeedbackResponses'
+import {
+  buildTestCampaignExport,
+  buildTestCampaignExportFilename,
+} from '@/domain/test-feedback/campaignExport'
 import { campaignReviewChoiceLabels } from '@/domain/test-feedback/campaignReview'
 import {
   testScenarioGroups as scenarioGroupCatalog,
@@ -115,6 +119,35 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
     }
   }
 
+  function downloadFeedback() {
+    if (!data) return
+    const exportedAt = new Date()
+    let objectUrl: string | null = null
+    let link: HTMLAnchorElement | null = null
+    try {
+      const exportData = buildTestCampaignExport({ data, exportedAt: exportedAt.toISOString() })
+      const file = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      })
+      objectUrl = URL.createObjectURL(file)
+      link = document.createElement('a')
+      link.href = objectUrl
+      link.download = buildTestCampaignExportFilename(data.campaign.name, exportedAt)
+      link.hidden = true
+      document.body.append(link)
+      link.click()
+      setNotice('Le fichier des retours a été téléchargé.')
+      setError('')
+    } catch (cause: unknown) {
+      setError(cause instanceof Error
+        ? `Impossible de télécharger les retours : ${cause.message}`
+        : 'Impossible de télécharger les retours.')
+    } finally {
+      link?.remove()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }
+
   async function closeCampaign() {
     if (!window.confirm('Clôturer cette campagne ? Les testeurs ne pourront plus envoyer de résultats.')) return
     try {
@@ -157,6 +190,9 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => void copyLink()} className="rounded-lg border border-(--studio-border) px-4 py-2 text-sm font-medium">
             Copier le lien testeur
+          </button>
+          <button type="button" onClick={downloadFeedback} className="rounded-lg border border-(--studio-border) px-4 py-2 text-sm font-medium">
+            Télécharger les retours (JSON)
           </button>
           {campaign.status === 'ACTIVE' && (
             <button type="button" onClick={() => void closeCampaign()} className="rounded-lg px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
