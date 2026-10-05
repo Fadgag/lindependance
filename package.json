@@ -16,6 +16,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "test:e2e:billing": "playwright test tests/e2e/billing-accuracy.spec.ts",
     "prepare": "husky"
   },
   "prisma": {

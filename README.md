@@ -50,6 +50,25 @@ pnpm dev
 Or via a .env file used by your local tooling. In most cases the default
 `A` mode is fine for local development.
 
+## Tests
+
+Run unit and component tests with:
+
+```bash
+pnpm test
+```
+
+The billing end-to-end test starts the Next.js development server through
+Playwright. It requires a non-production database with migrations applied and a
+test-only API key:
+
+```bash
+TEST_API_KEY=local-test-key pnpm test:e2e:billing
+```
+
+Do not use production database credentials or a production API key for this
+test.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
