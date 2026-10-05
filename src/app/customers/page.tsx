@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { isAbortError } from '@/lib/utils'
 import Link from 'next/link'
 import { Search, Plus } from 'lucide-react'
@@ -15,25 +15,27 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const load = async () => {
-      setLoading(true)
-      try {
-        const res = await fetch('/api/customers', { signal: controller.signal, credentials: 'include' })
-        if (res.ok) setClients(await res.json())
-          } catch (err: unknown) {
-                if (isAbortError(err)) return
-                import('../../lib/clientLogger').then(({ clientError }) => clientError('Erreur chargement clients', err))
-      } finally {
-        setLoading(false)
-      }
+  const loadClients = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const res = await fetch('/api/customers', {
+        signal,
+        cache: 'no-store',
+        credentials: 'include',
+      })
+      if (res.ok) setClients(await res.json())
+    } catch (err: unknown) {
+      if (isAbortError(err)) return
+      import('../../lib/clientLogger').then(({ clientError }) => clientError('Erreur chargement clients', err))
+    } finally {
+      setLoading(false)
     }
-    load()
-    return () => controller.abort()
   }, [])
 
-  // no global CustomEvent usage: rely on router.refresh() and server revalidation
+  useEffect(() => {
+    const controller = new AbortController()
+    void loadClients(controller.signal)
+    return () => controller.abort()
+  }, [loadClients])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -82,11 +84,13 @@ export default function ClientsPage() {
         {modalOpen && (
           // import dynamique pour éviter problèmes SSR
           <React.Suspense>
-              <CustomerModal isOpen={modalOpen} onCloseAction={() => setModalOpen(false)} />
+              <CustomerModal
+                isOpen={modalOpen}
+                onCloseAction={() => setModalOpen(false)}
+                onCreatedAction={() => { void loadClients() }}
+              />
           </React.Suspense>
         )}
     </div>
   )
 }
-
-
