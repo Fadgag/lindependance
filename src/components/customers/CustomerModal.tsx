@@ -2,15 +2,14 @@
 
 import React, { useState } from 'react'
 import BaseModal from '@/components/ui/BaseModal'
-import { useRouter } from 'next/navigation'
 import { showToast } from '@/lib/toast'
 
 type Props = {
   isOpen: boolean
   onCloseAction: () => void
+  onCreatedAction: () => void
 }
-export default function CustomerModal({ isOpen, onCloseAction }: Props) {
-  const router = useRouter()
+export default function CustomerModal({ isOpen, onCloseAction, onCreatedAction }: Props) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
@@ -48,9 +47,8 @@ export default function CustomerModal({ isOpen, onCloseAction }: Props) {
         // success
         showToast(`Cliente ${j.firstName} ${j.lastName} ajoutée avec succès`)
         reset()
+        onCreatedAction()
         onCloseAction()
-        // request server-side revalidation (or refresh Server Components)
-        try { router.refresh() } catch (_e: unknown) { /* ignore */ }
       }
     } catch (err: unknown) {
       setError(String(err))
@@ -101,4 +99,3 @@ export default function CustomerModal({ isOpen, onCloseAction }: Props) {
     </BaseModal>
   )
 }
-
