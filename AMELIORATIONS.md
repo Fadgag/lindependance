@@ -9,28 +9,7 @@ livré en une seule fois.
 
 ## À traiter
 
-### Portail client — personnalisation
-
-Ces deux améliorations concernent la configuration du portail, mais restent des
-sous-chantiers distincts : le domaine personnalisé implique aussi le support et
-la facturation, tandis que les modèles d'e-mail portent sur la communication.
-
-#### Proposer un nom de domaine personnalisé en option payante
-
-- **Statut :** À préciser
-- **Priorité :** À définir
-- **Constat :** Le portail du salon utilise une adresse en `vercel.app`, et sa configuration sur Vercel et dans le DNS peut nécessiter l'intervention du support.
-- **Amélioration souhaitée :** Permettre à chaque organisation de demander l'activation de son domaine personnalisé depuis Configuration → Portail. La demande crée un ticket au support ; le support accompagne ou effectue la configuration Vercel et DNS selon les accès disponibles. Prévoir une solution générique pour plusieurs salons, sans dépendre d'un domaine codé en dur.
-- **Critères d'acceptation :**
-    - Un membre autorisé peut saisir le domaine souhaité et soumettre une demande depuis Configuration → Portail.
-    - Le ticket contient l'organisation concernée, le domaine demandé et les coordonnées utiles au suivi, sans exposer de secrets.
-    - Le support peut suivre la demande et communiquer les enregistrements DNS à ajouter lorsque la gestion DNS n'est pas déléguée.
-    - Le domaine est vérifié et associé à une seule organisation avant activation.
-    - Le lien actuel avec slug reste utilisable jusqu'à l'activation du domaine personnalisé.
-    - Le portail peut être résolu à partir du domaine personnalisé de chaque organisation, sans logique spécifique à un salon.
-    - Le prix et les modalités de facturation éventuels sont définis.
-
-#### Personnaliser les messages envoyés par e-mail
+### Vérifier qu'un praticien existe à l'ouverture du portail
 
 - **Statut :** À préciser
 - **Priorité :** À définir
@@ -159,6 +138,13 @@ séparément.
 - **Statut :** Réalisée
 - **Constat :** La page de réservation n'affichait ni le logo ni le nom du salon.
 - **Résultat :** Le nom du salon et son logo configuré sont maintenant affichés sur la page de réservation.
+
+## Traités
+
+### Afficher des erreurs explicites dans les popups
+
+- **Parcours couverts :** Rendez-vous (création, modification, déplacement, suppression), encaissement, indisponibilités et paramètres d’horaires et d’objectif financier.
+- **Résultat :** Les erreurs réseau et réponses d’échec indiquent une action utile ; les détails techniques du serveur ne sont pas affichés. Les erreurs de formulaire conservent leurs messages de validation.
 
 ## Modèle pour ajouter une tâche
 

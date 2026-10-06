@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, CreditCard, Banknote, Landmark, Save, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CheckoutAppointment } from '@/types/models'
+import { getUserFacingMutationError, getUserFacingNetworkError } from '@/lib/userFacingMutationError'
 
 const PAYMENT_METHODS = [
   { id: 'CB',    label: 'Carte',    icon: CreditCard },
@@ -37,23 +38,26 @@ export default function EditPaymentModal({ appointment, onClose, onSuccess }: Ed
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/appointments/${appointment.id}/checkout`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ paymentMethod, note }),
-      })
-
-      if (res.ok) {
-        toast.success('Règlement mis à jour ✓')
-        onSuccess()
-        onClose()
-      } else {
-        const data = await res.json().catch(() => ({}))
-        toast.error(data?.error ?? 'Erreur lors de la mise à jour')
+      let res: Response
+      try {
+        res = await fetch(`/api/appointments/${appointment.id}/checkout`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ paymentMethod, note }),
+        })
+      } catch {
+        toast.error(getUserFacingNetworkError('payment-update'))
+        return
       }
-    } catch {
-      toast.error('Erreur réseau')
+
+      if (!res.ok) {
+        toast.error(getUserFacingMutationError('payment-update', res.status))
+        return
+      }
+      toast.success('Règlement mis à jour ✓')
+      onSuccess()
+      onClose()
     } finally {
       setSaving(false)
     }
@@ -139,4 +143,3 @@ export default function EditPaymentModal({ appointment, onClose, onSuccess }: Ed
     </div>
   )
 }
-
