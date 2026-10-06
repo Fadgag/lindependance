@@ -111,6 +111,20 @@ séparément.
     - Les données collectées sont limitées à ce qui est utile et n'incluent pas de données sensibles.
     - L'utilisateur est informé des informations transmises.
 
+#### Vérifier les e-mails personnalisés dans les campagnes de recette
+
+- **Type :** Amélioration
+- **Statut :** Guides mis à jour — exécution manuelle en campagne bêta à planifier.
+- **Priorité proposée :** P2
+- **Constat :** Les scénarios client `CUS-05` et `CUS-10` vérifient l'envoi du code et de la confirmation, mais pas les modèles personnalisés. Le guide staff ne vérifie pas encore leur configuration.
+- **Amélioration souhaitée :** Compléter les scénarios existants côté client et ajouter un contrôle côté staff pour la configuration et la réinitialisation des messages. Garder les profils `USER` (client) et `ADMIN` (staff/admin) de la campagne ; une catégorie distincte « STAFF » n'est pas nécessaire si les cas restent dans le groupe d'administration du personnel.
+- **Critères d'acceptation :**
+    - Le staff peut enregistrer puis rétablir les deux messages, et l'interface bloque les variables obligatoires manquantes.
+    - Le client reçoit le code et la confirmation personnalisés de la bonne organisation, avec les bonnes informations de rendez-vous.
+    - Le retour au modèle par défaut est vérifié pour les deux e-mails ; la confirmation conserve sa pièce jointe calendrier.
+    - Les scénarios sont inclus dans les groupes de campagne correspondant aux profils client et staff/admin.
+- **Mise à jour :** `CUS-05`, `CUS-10` et `ADM-13` couvrent maintenant ces vérifications ; `ADM-13` est inclus dans le groupe « Administration staff ». Les résultats réels restent à renseigner pendant la campagne bêta.
+
 ## Réalisées
 
 ### Personnaliser les messages envoyés par e-mail

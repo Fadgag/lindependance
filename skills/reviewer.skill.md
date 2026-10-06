@@ -33,6 +33,23 @@ Avant d'analyser le code, tu DOIS charger :
 - **Concurrence :** Détection des "Race Conditions" (incrémentations JS au lieu d'atomiques).
 - **Architecture :** Séparation Server/Client, complexité et responsabilité des composants, logique métier hors de l'UI.
 - **Tests :** Présence et pertinence des tests Vitest et Playwright (TNR).
+- **Recette manuelle :** Pour un diff qui change un parcours client ou staff, vérifier que `skills/quality-guide-updater.skill.md` a été appliqué aux guides et groupes de campagne concernés avant la revue finale. Ce skill spécialisé adapte les scénarios existants en priorité et n'en ajoute que pour un résultat distinct ; le reviewer ne réécrit pas lui-même les guides.
+
+### 3. 🧭 Synchronisation des guides après développement
+
+Après que les contrôles ciblés du développement sont verts et avant de produire
+la revue finale :
+
+1. Pour un changement fonctionnel client/staff, exécuter
+   `skills/quality-guide-updater.skill.md` à partir de la spec et du diff.
+2. Adapter un scénario CUS/ADM existant si le comportement appartient au même
+   parcours ; ajouter un scénario et étendre le groupe uniquement si le résultat
+   doit être suivi séparément.
+3. Si un identifiant ou un groupe change, mettre à jour le parseur, le mapping,
+   la spec des campagnes et leurs tests. Relancer les contrôles concernés.
+4. Inclure les guides et mappings dans le diff que la revue finale examine. Si
+   aucun parcours humain n'est touché, consigner cette conclusion sans éditer
+   les guides.
 
 ---
 

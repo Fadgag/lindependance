@@ -39,6 +39,7 @@ Créer ou demander les données de test suivantes dans l'interface staff :
 | `RDV-FAR` / `RDV-NEAR` | Rendez-vous de test à plus de 24 h, puis à 24 h ou moins de l'heure courante de l'organisation. |
 | `RDV-PACKAGE` | Rendez-vous futur relié à un forfait avec un nombre de séances restant relevé avant le test. |
 | Créneaux de contrôle | Un créneau libre, un créneau occupé par chaque praticien et une indisponibilité globale. |
+| Messages e-mail | Dans `ORG-A`, préparer les deux messages personnalisés en incluant le nom du salon et les informations indispensables ; laisser les valeurs par défaut dans `ORG-B`. |
 
 Utiliser une boîte e-mail contrôlée par l'équipe bêta pour recevoir les OTP et
 confirmations. Garder les scénarios de quota sur une adresse et une IP dédiées ;
@@ -97,13 +98,17 @@ de fuseau et DST ; le parcours réel sur appareil reste à valider.
 #### [ ] CUS-05 — Recevoir un code de connexion par e-mail
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §2]
 
-**Étapes :** demandez un code avec votre adresse e-mail habituelle, puis
-recommencez avec une autre adresse de test si l'équipe vous en a fourni une.
+**Étapes :** demandez un code pour `ORG-A`, puis recommencez pour `ORG-B` avec
+une adresse de test qui peut recevoir les messages.
 
 **Attendu :** le message affiché reste simple et ne révèle pas si une adresse
-est déjà connue du salon. Le code est envoyé à l'adresse enregistrée.
+est déjà connue du salon. Le message de `ORG-A` reprend le texte choisi par
+le salon et contient son nom ainsi que le code reçu. Le message de `ORG-B`
+utilise le texte par défaut ; le code fonctionne dans les deux cas.
 
-**Automatisé :** `test/api/customer-portal-request-code.spec.ts`.
+**Automatisé :** `test/api/customer-portal-request-code.spec.ts`,
+`test/services/customerPortalEmail.spec.ts`,
+`test/domain/customer-portal/emailTemplates.spec.ts`.
 **Résultat / preuve :** `________`
 
 #### [ ] CUS-06 — Utiliser le code de connexion
@@ -169,18 +174,20 @@ bêta manuelle.
 #### [ ] CUS-10 — Recevoir la confirmation de réservation
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, confirmation e-mail]
 
-**Étapes :** effectuez une réservation et vérifiez l'e-mail de confirmation.
-Ouvrez également le lien permettant d'ajouter le rendez-vous à votre agenda,
-si cette option est proposée.
+**Étapes :** effectuez une réservation dans `ORG-A`, puis une autre dans
+`ORG-B`. Vérifiez les deux e-mails de confirmation. Ouvrez la pièce jointe
+calendrier du message de `ORG-A` dans votre application d'agenda.
 
-**Attendu :** l'e-mail indique le bon salon, la bonne prestation et le bon
-horaire. Ajouter le rendez-vous à votre agenda ne crée pas de réservation
-supplémentaire.
+**Attendu :** le message de `ORG-A` reprend le texte choisi par le salon et
+indique la bonne prestation, la date et l'horaire. `ORG-B` utilise le texte
+par défaut. La pièce jointe contient le bon rendez-vous et son import ne crée
+pas de réservation supplémentaire.
 
 **Automatisé :** `test/api/customer-portal-confirmation.spec.ts`,
 `test/services/customerPortalEmail.spec.ts`,
-`test/api/customer-portal-booking.spec.ts`. Le fournisseur réel et l'import
-dans une application calendrier sont à vérifier manuellement.
+`test/api/customer-portal-booking.spec.ts`,
+`test/domain/customer-portal/emailTemplates.spec.ts`. Le fournisseur réel et
+l'import dans une application calendrier sont à vérifier manuellement.
 **Résultat / preuve :** `________`
 
 #### [ ] CUS-11 — Retrouver vos prochains rendez-vous
@@ -290,11 +297,11 @@ aucun parcours navigateur mobile complet n'est remplacé par ces tests.
 
 ## Couverture automatisée relue
 
-Le 1er octobre 2026, les tests ciblés portail client/admin ont réussi :
-**26 fichiers, 87 tests**. Ils couvrent les règles de domaine, les services,
-les routes avec doubles/mocks et plusieurs composants UI. Ils ne constituent
-pas une E2E complète contre une base bêta et le fournisseur e-mail réel.
-Les cas identifiés comme recette manuelle ci-dessus restent donc nécessaires.
+Les suites automatisées pertinentes sont indiquées sous chaque scénario. Elles
+couvrent les règles de domaine, services, routes et composants UI, parfois avec
+des doubles ou des mocks ; elles ne remplacent pas une vérification complète
+sur la base bêta et avec le fournisseur e-mail réel. Les cas identifiés comme
+recette manuelle ci-dessus restent donc nécessaires.
 
 ## Décision de sortie bêta
 

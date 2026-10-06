@@ -30,7 +30,9 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
 - Lors d'une revue ou d'un travail, inscrire dans `AMELIORATIONS.md` tout finding confirmé qui reste à corriger ou nécessite une décision ; si le finding est corrigé dans la même tâche, mettre à jour l'entrée correspondante après validation.
 
 ## 🔍 Revue après développement
-- Après toute tâche de développement qui modifie du code ou de la configuration, lancer `skills/reviewer.skill.md` une fois les tests et contrôles ciblés terminés, avant le compte rendu final. Cette revue est automatique : ne pas attendre une demande `/review`.
+- Après toute tâche de développement qui modifie du code ou de la configuration, si le comportement d'un parcours client ou staff change, lancer `skills/quality-guide-updater.skill.md` après les contrôles ciblés initiaux et avant la revue finale.
+- Ensuite, lancer `skills/reviewer.skill.md` sur le diff complet avant le compte rendu final. Cette revue est automatique : ne pas attendre une demande `/review`.
+- Si le guide updater modifie les guides, les scénarios de campagne ou leur mapping, relancer les tests concernés avant la revue finale. Si aucun parcours manuel n'est affecté, ne pas modifier les guides et documenter brièvement pourquoi.
 - Examiner le diff complet de la branche par rapport à `preprod` (ou à la base réelle de la PR), en incluant les modifications staged, unstaged et les nouveaux fichiers non suivis. Exclure le rapport de revue lui-même. Les tâches strictement documentaires ne nécessitent pas cette revue automatique.
 - Enregistrer le rapport daté dans `quality/review_report/`. Corriger dans la tâche les constats confirmés liés aux changements effectués, relancer les contrôles et la revue ; signaler séparément tout constat hors périmètre ou nécessitant une décision.
 
