@@ -54,10 +54,10 @@ export default function PractitionerManager() {
 
   const loadPractitioners = useCallback(async () => {
     const response = await fetch('/api/staff', { credentials: 'include' })
-    if (!response.ok) throw new Error(await responseError(response, 'Impossible de charger les praticiens.'))
+    if (!response.ok) throw new Error(await responseError(response, 'Impossible de charger les membres de l’équipe.'))
     const body: unknown = await response.json()
     const parsed = StaffListSchema.safeParse(body)
-    if (!parsed.success) throw new Error('La réponse des praticiens est invalide.')
+    if (!parsed.success) throw new Error('Impossible de lire la liste de l’équipe.')
     return parsed.data.map(({ id, firstName: personFirstName, lastName: personLastName, active }) => ({
       id,
       firstName: personFirstName,
@@ -73,7 +73,7 @@ export default function PractitionerManager() {
         if (active) setPractitioners(sortPractitioners(data))
       })
       .catch((loadError: unknown) => {
-        if (active) setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les praticiens.')
+        if (active) setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les membres de l’équipe.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -114,7 +114,7 @@ export default function PractitionerManager() {
       if (!response.ok) {
         throw new Error(await responseError(
           response,
-          currentEditingId ? 'Impossible de modifier le praticien.' : 'Impossible de créer le praticien.',
+          currentEditingId ? 'Impossible de modifier ce profil.' : 'Impossible d’ajouter cette personne à l’équipe.',
         ))
       }
 
@@ -124,7 +124,7 @@ export default function PractitionerManager() {
             ? { ...practitioner, firstName: firstName.trim(), lastName: lastName.trim() }
             : practitioner
         ))))
-        setMessage('Les informations du praticien ont été mises à jour.')
+        setMessage('Les informations ont été mises à jour.')
       } else {
         const body: unknown = await response.json()
         const parsed = StaffSchema.safeParse(body)
@@ -137,7 +137,7 @@ export default function PractitionerManager() {
     } catch (saveError: unknown) {
       setError(saveError instanceof Error
         ? saveError.message
-        : currentEditingId ? 'Impossible de modifier le praticien.' : 'Impossible de créer le praticien.')
+        : currentEditingId ? 'Impossible de modifier ce profil.' : 'Impossible d’ajouter cette personne à l’équipe.')
     } finally {
       setSaving(false)
     }
@@ -162,13 +162,13 @@ export default function PractitionerManager() {
         const body: unknown = await response.json().catch(() => null)
         const appointmentCount = appointmentCountFromBody(body)
         if (appointmentCount === null) {
-          throw new Error('Impossible de vérifier les rendez-vous liés au praticien.')
+          throw new Error('Impossible de vérifier les rendez-vous de cette personne.')
         }
         setArchiveTarget(practitioner)
         setArchiveAppointmentCount(appointmentCount)
         return
       }
-      if (!response.ok) throw new Error(await responseError(response, 'Impossible d’archiver le praticien.'))
+      if (!response.ok) throw new Error(await responseError(response, 'Impossible de retirer cette personne de l’équipe.'))
       const body: unknown = await response.json()
       const portalDisabled = body && typeof body === 'object'
         && 'portalDisabled' in body
@@ -180,14 +180,14 @@ export default function PractitionerManager() {
         entry.id === practitioner.id ? { ...entry, active: false } : entry
       )))
       if (editingId === practitioner.id) resetForm()
-      const archiveMessage = `${practitioner.firstName} ${practitioner.lastName} a été archivé. Ses rendez-vous sont conservés.`
+      const archiveMessage = `Les nouveaux rendez-vous ne seront plus attribués à ${practitioner.firstName} ${practitioner.lastName}. Les rendez-vous existants sont conservés.`
       setMessage(portalDisabled
         ? `${archiveMessage} Le portail a été désactivé${notificationSent ? ' et les administrateurs ont été avertis par e-mail' : ' ; l’e-mail d’information n’a pas pu être envoyé'}.`
         : archiveMessage)
       setArchiveTarget(null)
       setArchiveAppointmentCount(null)
     } catch (archiveError: unknown) {
-      setError(archiveError instanceof Error ? archiveError.message : 'Impossible d’archiver le praticien.')
+      setError(archiveError instanceof Error ? archiveError.message : 'Impossible de retirer cette personne de l’équipe.')
     } finally {
       setStatusChangeId(null)
       setArchiveTarget(null)
@@ -209,13 +209,13 @@ export default function PractitionerManager() {
           active: true,
         }),
       })
-      if (!response.ok) throw new Error(await responseError(response, 'Impossible de réactiver le praticien.'))
+      if (!response.ok) throw new Error(await responseError(response, 'Impossible de réactiver ce profil.'))
       setPractitioners((current) => sortPractitioners(current.map((entry) => (
         entry.id === practitioner.id ? { ...entry, active: true } : entry
       ))))
-      setMessage(`${practitioner.firstName} ${practitioner.lastName} a été réactivé.`)
+      setMessage(`${practitioner.firstName} ${practitioner.lastName} peut de nouveau être choisi pour les rendez-vous.`)
     } catch (restoreError: unknown) {
-      setError(restoreError instanceof Error ? restoreError.message : 'Impossible de réactiver le praticien.')
+      setError(restoreError instanceof Error ? restoreError.message : 'Impossible de réactiver ce profil.')
     } finally {
       setStatusChangeId(null)
     }
@@ -229,10 +229,10 @@ export default function PractitionerManager() {
       <div className="mx-auto max-w-4xl space-y-6">
         <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold text-slate-800">
-            {editingId ? 'Modifier un praticien' : 'Ajouter un praticien'}
+            {editingId ? 'Modifier une personne de l’équipe' : 'Ajouter une personne à l’équipe'}
           </h2>
           <p className="mt-2 text-sm text-slate-500">
-            Les praticiens actifs de votre équipe pourront être choisis pour les rendez-vous du portail client.
+            Les personnes actives de votre équipe pourront être choisies pour les rendez-vous en ligne.
           </p>
           <form
             data-testid="practitioner-form"
@@ -288,10 +288,10 @@ export default function PractitionerManager() {
         <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold text-slate-800">Équipe active</h2>
           {loading ? (
-            <p className="mt-4 text-sm text-slate-500">Chargement des praticiens…</p>
+            <p className="mt-4 text-sm text-slate-500">Chargement de l’équipe…</p>
           ) : activePractitioners.length === 0 ? (
             <p className="mt-4 rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-500">
-              Aucun praticien actif. Ajoutez-en un pour proposer des créneaux de réservation.
+              Aucune personne dans l’équipe. Ajoutez-en une pour proposer des créneaux de réservation.
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-slate-100">
@@ -322,7 +322,7 @@ export default function PractitionerManager() {
                       disabled={statusChangeId === practitioner.id}
                       className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
                     >
-                      {statusChangeId === practitioner.id ? 'Vérification…' : 'Archiver'}
+                      {statusChangeId === practitioner.id ? 'Vérification…' : 'Retirer de l’équipe'}
                     </button>
                   </span>
                 </li>
@@ -333,9 +333,9 @@ export default function PractitionerManager() {
 
         {archivedPractitioners.length > 0 && (
           <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800">Praticiens archivés</h2>
+            <h2 className="text-xl font-bold text-slate-800">Membres désactivés</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Ils ne sont plus proposés pour les nouveaux rendez-vous ; les rendez-vous existants sont conservés.
+              Ces personnes ne sont plus proposées pour les nouveaux rendez-vous ; les rendez-vous existants sont conservés.
             </p>
             <ul className="mt-4 divide-y divide-slate-100">
               {archivedPractitioners.map((practitioner) => (
@@ -363,11 +363,11 @@ export default function PractitionerManager() {
 
       <ConfirmDialog
         isOpen={archiveTarget !== null && archiveAppointmentCount !== null}
-        title="Des rendez-vous sont liés à ce praticien"
+        title="Des rendez-vous sont liés à cette personne"
         message={`${archiveAppointmentCount ?? 0} rendez-vous ${
           archiveAppointmentCount === 1 ? 'est lié' : 'sont liés'
-        } à ${archiveTarget?.firstName ?? ''} ${archiveTarget?.lastName ?? ''}. Ils seront conservés après l’archivage. Voulez-vous continuer ?`}
-        confirmLabel={statusChangeId === archiveTarget?.id ? 'Vérification…' : 'Archiver quand même'}
+        } à ${archiveTarget?.firstName ?? ''} ${archiveTarget?.lastName ?? ''}. Ils seront conservés après son retrait de l’équipe. Voulez-vous continuer ?`}
+        confirmLabel={statusChangeId === archiveTarget?.id ? 'Vérification…' : 'Retirer de l’équipe'}
         onConfirm={() => {
           if (archiveTarget && archiveAppointmentCount !== null) {
             void requestArchive(archiveTarget, archiveAppointmentCount)

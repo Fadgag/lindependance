@@ -19,15 +19,17 @@ organisation ; il ne donne pas accès aux autres organisations.
 
 ## Préparation — environnement bêta uniquement
 
-Ne pas tester sur la production. L'équipe technique doit confirmer que la
-migration `20261001120000_customer_portal_phase_3` est appliquée à la base
-bêta ; les testeurs ne doivent pas exécuter de migration.
+Ne pas tester sur la production. L'équipe technique doit confirmer que les
+migrations `20261001120000_customer_portal_phase_3` et
+`20261006182000_issue_reports` sont appliquées à la base bêta ; les testeurs
+ne doivent pas exécuter de migration.
 
-Préparer dans l'interface staff :
+Préparer dans l'interface staff et avec l'équipe technique :
 
 | Alias | Préparation |
 |---|---|
 | `ORG-A` / `ORG-B` | Deux organisations actives distinctes ; compte staff dédié dans chacune. |
+| `TECH-ADMIN` | Compte technique habilité à consulter et traiter les signalements de toutes les organisations. |
 | Portail `ORG-A` | Activé avec slug et fuseau connus ; préparer aussi `ORG-SOLO` si le test des praticiens mono-staff est nécessaire. |
 | Praticiens et services | Deux praticiens actifs, un inactif, services de 30 et 60 minutes, horaires connus. |
 | Demandes | Plusieurs demandes `PENDING`, une demande déjà rejetée et une demande approuvée. |
@@ -206,19 +208,24 @@ qu'une fois et la première réponse reste affichée.
 `PENDING` ; la concurrence réelle de deux sessions reste à valider.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-12 — Comprendre les messages et utiliser la page sur téléphone
-**Priorité : P2 · Exigence :** [Req: formal — spec Phase 3, écran de revue]
+#### [ ] ADM-12 — Comprendre les messages et signaler un problème
+**Priorité : P2 · Exigence :** [Req: formal — spec Phase 3, écran de revue et `issue-reporting.md`]
 
 **Étapes :** sur un téléphone, ouvrez des demandes avec et sans commentaire.
-Essayez d'accepter une demande dont l'horaire vient d'être pris.
+Essayez d'accepter une demande dont l'horaire vient d'être pris. Depuis
+l'espace du personnel, ouvrez « Signaler un problème », lisez les informations
+transmises et envoyez un signalement de test sans donnée personnelle. Demandez
+à l'équipe technique de vérifier le signalement et de le marquer comme résolu.
 
 **Attendu :** les commentaires et boutons restent lisibles. Si l'horaire n'est
 plus disponible, un message clair s'affiche et la demande reste visible tant
-qu'elle n'a pas été traitée.
+qu'elle n'a pas été traitée. Le formulaire confirme l'envoi et l'équipe
+technique retrouve le signalement et peut suivre son état.
 
 **Automatisé :** `test/ui/appointmentChangeRequests.spec.tsx` vérifie le rendu
-et l'envoi des actions ; les états d'erreur réels doivent être vérifiés
-manuellement.
+et l'envoi des actions ; `test/ui/IssueReportLauncher.spec.tsx` vérifie le
+formulaire et son envoi. Les parcours complets sur téléphone et la réception
+dans le tableau technique restent à vérifier en bêta.
 **Résultat / preuve :** `________`
 
 #### [ ] ADM-13 — Personnaliser les e-mails du portail client

@@ -77,7 +77,7 @@ export default function AppointmentScheduler() {
                     }}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold transition-colors border border-slate-200"
                 >
-                    <BanIcon size={15} /> Indisponibilité
+                    <BanIcon size={15} /> Bloquer un créneau
                 </button>
             </div>
 
@@ -120,7 +120,7 @@ export default function AppointmentScheduler() {
 
                         select={(info: DateSelectArg) => {
                             const conflict = checkUnavailabilityConflict(info.start, info.end)
-                            if (conflict) { toast.warning(`⚠️ Ce créneau est bloqué : "${conflict.title ?? 'Indisponibilité'}"`); return }
+                            if (conflict) { toast.warning(`⚠️ Ce créneau est bloqué : "${conflict.title ?? 'Créneau bloqué'}"`); return }
                             setSelectedRange(info); setEditingEvent(null); setIsModalOpen(true);
                         }}
 

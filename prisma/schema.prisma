@@ -9,35 +9,36 @@ datasource db {
 }
 
 model Organization {
-  id                String             @id @default(cuid())
-  name              String
-  dailyTarget       Float              @default(0)
-  openingTime       String             @default("08:00")
-  closingTime       String             @default("20:00")
-  logoDataUrl       String?
-  logoShape         String             @default("circle")
-  logoSize          String             @default("medium")
-  showNameWithLogo  Boolean            @default(false)
-  slug              String?            @unique
-  portalEnabled     Boolean            @default(false)
-  timezone          String             @default("Europe/Paris")
-  portalContactPhone String?
-  portalContactEmail String?
-  portalOtpEmailTemplate String?
+  id                              String                     @id @default(cuid())
+  name                            String
+  dailyTarget                     Float                      @default(0)
+  openingTime                     String                     @default("08:00")
+  closingTime                     String                     @default("20:00")
+  logoDataUrl                     String?
+  logoShape                       String                     @default("circle")
+  logoSize                        String                     @default("medium")
+  showNameWithLogo                Boolean                    @default(false)
+  slug                            String?                    @unique
+  portalEnabled                   Boolean                    @default(false)
+  timezone                        String                     @default("Europe/Paris")
+  portalContactPhone              String?
+  portalContactEmail              String?
+  portalOtpEmailTemplate          String?
   portalConfirmationEmailTemplate String?
-  services          Service[]
-  customers         Customer[]
-  staff             Staff[]
-  users             User[]
-  appointments      Appointment[]
-  changeRequests    AppointmentChangeRequest[]
-  testCampaigns     TestCampaign[]
-  testFeedback      TestFeedback[]
-  testCampaignReviews TestCampaignReview[]
-  Package           Package[]
-  products          Product[]
-  unavailabilities  Unavailability[]
-  customerEmailOtps CustomerEmailOtp[]
+  services                        Service[]
+  customers                       Customer[]
+  staff                           Staff[]
+  users                           User[]
+  appointments                    Appointment[]
+  changeRequests                  AppointmentChangeRequest[]
+  testCampaigns                   TestCampaign[]
+  testFeedback                    TestFeedback[]
+  testCampaignReviews             TestCampaignReview[]
+  issueReports                    IssueReport[]
+  Package                         Package[]
+  products                        Product[]
+  unavailabilities                Unavailability[]
+  customerEmailOtps               CustomerEmailOtp[]
 }
 
 /// Unavailability: blocs d'indisponibilité (congés, RDV perso, etc.)
@@ -86,19 +87,19 @@ model Service {
 }
 
 model Customer {
-  id              String            @id @default(cuid())
+  id              String                     @id @default(cuid())
   firstName       String
   lastName        String
   email           String?
   Note            String?
   phone           String?
   organizationId  String
-  organization    Organization      @relation(fields: [organizationId], references: [id])
+  organization    Organization               @relation(fields: [organizationId], references: [id])
   appointments    Appointment[]
   CustomerPackage CustomerPackage[]
   changeRequests  AppointmentChangeRequest[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @default(now()) @updatedAt
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @default(now()) @updatedAt
 }
 
 model Staff {
@@ -113,16 +114,16 @@ model Staff {
 
 /// Appointment: startTime, endTime (calculé), relations obligatoires et organizationId pour isolation
 model Appointment {
-  id                String           @id @default(cuid())
+  id                String                     @id @default(cuid())
   title             String?
   startTime         DateTime
   endTime           DateTime
   duration          Int
   note              String?
-  status            String           @default("CONFIRMED") // CONFIRMED, PAID, CANCELLED
-  bookingSource     String           @default("STAFF")
+  status            String                     @default("CONFIRMED") // CONFIRMED, PAID, CANCELLED
+  bookingSource     String                     @default("STAFF")
   finalPrice        Float? // Le prix total payé (Base + Extras)
-  price             Decimal          @default(0)
+  price             Decimal                    @default(0)
   startDate         String?
   paymentMethod     String? // CB, Espèces, Chèque
   extras            String?
@@ -130,18 +131,18 @@ model Appointment {
   soldProductsJson  Json? // New safe jsonb column (migrate safely and backfill)
   productsTotal     Float? // Aggregated total price of products for quick queries
   customerPackageId String?
-  customerPackage   CustomerPackage? @relation(fields: [customerPackageId], references: [id])
+  customerPackage   CustomerPackage?           @relation(fields: [customerPackageId], references: [id])
   changeRequests    AppointmentChangeRequest[]
   serviceId         String
-  service           Service          @relation(fields: [serviceId], references: [id])
+  service           Service                    @relation(fields: [serviceId], references: [id])
   customerId        String
-  customer          Customer         @relation(fields: [customerId], references: [id])
+  customer          Customer                   @relation(fields: [customerId], references: [id])
   staffId           String?
-  staff             Staff?           @relation(fields: [staffId], references: [id])
+  staff             Staff?                     @relation(fields: [staffId], references: [id])
   organizationId    String
-  organization      Organization     @relation(fields: [organizationId], references: [id])
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  organization      Organization               @relation(fields: [organizationId], references: [id])
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
 
   @@index([organizationId, startTime])
 }
@@ -195,19 +196,19 @@ model CustomerPortalRateLimitEvent {
 }
 
 model TestCampaign {
-  id             String       @id @default(cuid())
-  name           String
-  build          String?
-  scenarioGroups String[]     @default([])
-  profiles       String[]
-  status         String       @default("ACTIVE")
-  publicToken    String       @unique
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  feedback       TestFeedback[]
+  id              String               @id @default(cuid())
+  name            String
+  build           String?
+  scenarioGroups  String[]             @default([])
+  profiles        String[]
+  status          String               @default("ACTIVE")
+  publicToken     String               @unique
+  organizationId  String
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  feedback        TestFeedback[]
   campaignReviews TestCampaignReview[]
-  createdAt      DateTime     @default(now())
-  closedAt       DateTime?
+  createdAt       DateTime             @default(now())
+  closedAt        DateTime?
 
   @@index([organizationId, status, createdAt])
 }
@@ -247,6 +248,28 @@ model TestCampaignReview {
 
   @@index([campaignId, createdAt])
   @@index([organizationId, createdAt])
+}
+
+model IssueReport {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reporterType   String
+  reporterName   String?
+  reporterEmail  String
+  title          String
+  description    String
+  steps          String
+  pathname       String
+  appVersion     String
+  errors         Json          @default("[]")
+  status         String        @default("NEW")
+  createdAt      DateTime      @default(now())
+  resolvedAt     DateTime?
+
+  @@index([status, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([resolvedAt])
 }
 
 model Package {

@@ -68,7 +68,7 @@ export async function PATCH(request: Request) {
     }
     if (result.status === 'practitioner_required') {
       return NextResponse.json({
-        error: 'Ajoutez au moins un praticien actif avant d’activer le portail.',
+        error: 'Ajoutez au moins une personne dans l’équipe avant d’activer les réservations en ligne.',
       }, { status: 400 })
     }
     if (result.status === 'contact_required') {

@@ -58,7 +58,7 @@ export default function ClientsPage() {
         </div>
         <div className="ml-4">
           <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-3xl bg-studio-primary text-white">
-            <Plus size={14} /> Nouveau Client
+            <Plus size={14} /> Nouveau client
           </button>
         </div>
       </header>

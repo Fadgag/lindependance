@@ -62,7 +62,7 @@ describe('PortalAppointments', () => {
     expect(await screen.findByText('Camille Martin')).toBeInTheDocument()
     expect(screen.getByText('Noé Martin')).toBeInTheDocument()
     expect(screen.getByText('Coupe')).toBeInTheDocument()
-    expect(screen.getByText('Praticien : Alex Durand')).toBeInTheDocument()
+    expect(screen.getByText('Avec Alex Durand')).toBeInTheDocument()
     expect(screen.getByText('Contactez votre établissement pour modifier ou annuler ce rendez-vous.')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Annuler' })).toHaveLength(1)
   })

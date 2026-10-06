@@ -111,11 +111,11 @@ function scenarioGroupLabel(id: TestScenarioGroupId): string {
 const guideTokenPattern = /(ORG-A|ORG-B|ORG-SOLO|SVC-30|SVC-60|STAFF-A1|STAFF-A2|EMAIL-SINGLE|EMAIL-FAMILY|EMAIL-OTHER|RDV-FAR|RDV-NEAR|RDV-PACKAGE|\/change-requests)/g
 const guideAliases: Record<string, string> = {
   'ORG-B': 'une autre organisation',
-  'ORG-SOLO': 'l’organisation de test avec un seul praticien actif',
+  'ORG-SOLO': 'l’organisation de test avec une seule personne active dans l’équipe',
   'SVC-30': 'la prestation de 30 minutes',
   'SVC-60': 'la prestation de 60 minutes',
-  'STAFF-A1': 'le premier praticien actif',
-  'STAFF-A2': 'le deuxième praticien actif',
+  'STAFF-A1': 'la première personne active dans l’équipe',
+  'STAFF-A2': 'la deuxième personne active dans l’équipe',
   'EMAIL-SINGLE': 'l’adresse liée à une seule fiche client',
   'EMAIL-FAMILY': 'l’adresse partagée par plusieurs fiches client',
   'EMAIL-OTHER': 'l’adresse sans fiche client dans cette organisation',

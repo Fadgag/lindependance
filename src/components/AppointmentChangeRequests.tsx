@@ -105,7 +105,7 @@ export default function AppointmentChangeRequests() {
                 </h2>
                 <p className="mt-1 text-sm text-gray-700">{request.appointment.service.name}</p>
                 <p className="text-sm text-gray-600">
-                  Praticien : {request.appointment.staff
+                  Avec {request.appointment.staff
                     ? `${request.appointment.staff.firstName} ${request.appointment.staff.lastName}`
                     : 'Non renseigné'}
                 </p>

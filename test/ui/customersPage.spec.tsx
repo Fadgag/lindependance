@@ -94,7 +94,7 @@ describe('CustomerModal', () => {
     fireEvent.change(firstName, { target: { value: 'Anaïs' } })
     fireEvent.change(lastName, { target: { value: 'Martin' } })
     fireEvent.change(phone, { target: { value: '0611111111' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Créer la cliente' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le client' }))
 
     await waitFor(() => expect(onCreatedAction).toHaveBeenCalledOnce())
     expect(onCloseAction).toHaveBeenCalledOnce()

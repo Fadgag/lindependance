@@ -44,7 +44,7 @@ export async function createAppointmentAction(input: CreateAppointmentInput) {
     select: { id: true },
   })
   if (!assignedStaff) {
-    return { error: assignedStaffId ? 'Praticien introuvable' : 'No staff available to assign' }
+    return { error: assignedStaffId ? 'Personne de l’équipe introuvable' : 'Aucune personne de l’équipe disponible' }
   }
   assignedStaffId = assignedStaff.id
 
