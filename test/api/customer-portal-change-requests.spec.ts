@@ -36,7 +36,7 @@ function request(body: Record<string, unknown>) {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(getCustomerPortalSession).mockReturnValue(session)
+  vi.mocked(getCustomerPortalSession).mockResolvedValue(session)
   vi.mocked(createCustomerPortalChangeRequest).mockResolvedValue({ id: 'request-1', status: 'PENDING' })
 })
 
@@ -71,7 +71,7 @@ describe('POST /api/portail/rdv/[id]/demande-modification', () => {
   })
 
   it('requires a customer portal session and rejects cross-origin mutation', async () => {
-    vi.mocked(getCustomerPortalSession).mockReturnValueOnce(null)
+    vi.mocked(getCustomerPortalSession).mockResolvedValueOnce(null)
     const unauthenticated = await POST(request({
       requestedStart: '2026-10-04T08:30:00.000Z',
     }), context)

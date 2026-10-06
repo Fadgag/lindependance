@@ -32,7 +32,7 @@ const routeContext = { params: Promise.resolve({ id: 'appointment-1' }) }
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(getCustomerPortalSession).mockReturnValue(session)
+  vi.mocked(getCustomerPortalSession).mockResolvedValue(session)
   vi.mocked(getCustomerPortalAppointments).mockResolvedValue({
     timezone: 'Europe/Paris',
     appointments: [{
@@ -79,7 +79,7 @@ describe('GET /api/portail/rdv', () => {
   })
 
   it('requires a customer-only session', async () => {
-    vi.mocked(getCustomerPortalSession).mockReturnValueOnce(null)
+    vi.mocked(getCustomerPortalSession).mockResolvedValueOnce(null)
 
     const response = await GET(new Request('https://example.test/api/portail/rdv'))
 
@@ -118,7 +118,7 @@ describe('DELETE /api/portail/rdv/[id]', () => {
   })
 
   it('requires a customer-only session', async () => {
-    vi.mocked(getCustomerPortalSession).mockReturnValueOnce(null)
+    vi.mocked(getCustomerPortalSession).mockResolvedValueOnce(null)
 
     const response = await DELETE(
       new Request('https://example.test/api/portail/rdv/appointment-1', { method: 'DELETE' }),

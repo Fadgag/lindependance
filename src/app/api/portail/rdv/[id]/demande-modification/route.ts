@@ -27,7 +27,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
   }
 
-  const session = getCustomerPortalSession(request)
+  const session = await getCustomerPortalSession(request)
   if (!session || session.accountType !== 'CUSTOMER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

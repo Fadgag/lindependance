@@ -16,7 +16,7 @@ export async function GET(request: Request, context: RouteContext) {
     const organization = await findEnabledPortalOrganization(organizationSlug)
     if (!organization) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const session = getCustomerPortalSession(request)
+    const session = await getCustomerPortalSession(request)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (session.accountType !== 'CUSTOMER' || session.organizationId !== organization.id) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
