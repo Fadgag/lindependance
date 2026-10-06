@@ -73,7 +73,7 @@ de journée sont à confirmer dans le navigateur.
 **Résultat / preuve :** `________`
 
 #### [ ] ADM-03 — Consulter les demandes en attente
-**Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3ter]
+**Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3bis]
 
 **Étapes :** ouvrez la liste des demandes et choisissez une demande en attente.
 

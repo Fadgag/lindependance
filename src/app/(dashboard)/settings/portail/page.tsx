@@ -6,6 +6,9 @@ type PortalSettings = {
   slug: string | null
   portalEnabled: boolean
   timezone: string
+  portalContactPhone: string | null
+  portalContactEmail: string | null
+  activePractitionerCount: number
 }
 
 function isPortalSettings(value: unknown): value is PortalSettings {
@@ -14,6 +17,9 @@ function isPortalSettings(value: unknown): value is PortalSettings {
   return (typeof settings.slug === 'string' || settings.slug === null)
     && typeof settings.portalEnabled === 'boolean'
     && typeof settings.timezone === 'string'
+    && (typeof settings.portalContactPhone === 'string' || settings.portalContactPhone === null)
+    && (typeof settings.portalContactEmail === 'string' || settings.portalContactEmail === null)
+    && typeof settings.activePractitionerCount === 'number'
 }
 
 export default function CustomerPortalSettingsPage() {
@@ -21,6 +27,9 @@ export default function CustomerPortalSettingsPage() {
     slug: null,
     portalEnabled: false,
     timezone: 'Europe/Paris',
+    portalContactPhone: null,
+    portalContactEmail: null,
+    activePractitionerCount: 0,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -55,8 +64,11 @@ export default function CustomerPortalSettingsPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...settings,
+          portalEnabled: settings.portalEnabled,
+          timezone: settings.timezone,
           slug: settings.slug?.trim().toLowerCase() || null,
+          portalContactPhone: settings.portalContactPhone?.trim() || null,
+          portalContactEmail: settings.portalContactEmail?.trim() || null,
         }),
       })
       const data: unknown = await response.json()
@@ -118,16 +130,51 @@ export default function CustomerPortalSettingsPage() {
           <p className="mt-1 text-xs text-gray-500">Utilisé pour afficher les créneaux et les emails de confirmation (ex. Europe/Paris).</p>
         </div>
 
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-medium text-gray-700">Coordonnées publiques du salon</legend>
+          <label htmlFor="portal-contact-phone" className="block text-sm text-gray-600">
+            Téléphone
+            <input
+              id="portal-contact-phone"
+              type="tel"
+              autoComplete="tel"
+              value={settings.portalContactPhone ?? ''}
+              onChange={(event) => setSettings({ ...settings, portalContactPhone: event.target.value || null })}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </label>
+          <label htmlFor="portal-contact-email" className="block text-sm text-gray-600">
+            E-mail
+            <input
+              id="portal-contact-email"
+              type="email"
+              autoComplete="email"
+              value={settings.portalContactEmail ?? ''}
+              onChange={(event) => setSettings({ ...settings, portalContactEmail: event.target.value || null })}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </label>
+          <p className="text-xs text-gray-500">
+            Ces coordonnées sont visibles par les clients sur le portail. Au moins un moyen de contact est requis pour activer les réservations.
+          </p>
+        </fieldset>
+
         <label className="flex items-center gap-3 rounded-xl bg-gray-50 p-4">
           <input
             type="checkbox"
             checked={settings.portalEnabled}
             onChange={(event) => setSettings({ ...settings, portalEnabled: event.target.checked })}
+            disabled={saving || (!settings.portalEnabled && settings.activePractitionerCount === 0)}
             className="size-4 accent-indigo-600"
           />
           <span>
             <span className="block font-medium text-gray-900">Activer les réservations en ligne</span>
             <span className="mt-1 block text-sm text-gray-500">Le portail reste inaccessible tant que cette option est désactivée.</span>
+            {settings.activePractitionerCount === 0 && (
+              <span className="mt-1 block text-sm text-amber-700">
+                Ajoutez au moins un praticien actif pour pouvoir activer le portail.
+              </span>
+            )}
           </span>
         </label>
 

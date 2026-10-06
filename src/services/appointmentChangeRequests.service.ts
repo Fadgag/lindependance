@@ -39,7 +39,11 @@ export async function createCustomerPortalChangeRequest(input: {
   try {
     return await withSerializableRetry(async (transaction: PrismaTypes.TransactionClient) => {
       const organization = await transaction.organization.findFirst({
-        where: { id: input.organizationId, portalEnabled: true },
+        where: {
+          id: input.organizationId,
+          portalEnabled: true,
+          staff: { some: { active: true } },
+        },
         select: { id: true },
       })
       if (!organization) throw new CustomerPortalHttpError(404, 'Portal not found')

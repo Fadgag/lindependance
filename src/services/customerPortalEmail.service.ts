@@ -78,6 +78,29 @@ export async function sendCustomerPortalOtpEmail(input: {
   if (result.error) throw new Error(`Resend failed to send customer portal OTP: ${result.error.message}`)
 }
 
+export async function sendCustomerPortalDisabledEmail(input: {
+  to: string
+  organizationName: string
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured')
+
+  const result = await new Resend(apiKey).emails.send({
+    from: process.env.RESEND_FROM || 'no-reply@studio.test',
+    to: input.to,
+    subject: `Portail client désactivé pour ${input.organizationName}`,
+    html: [
+      '<div style="font-family:system-ui,sans-serif;line-height:1.6">',
+      `<h2>Le portail client de ${escapeHtml(input.organizationName)} a été désactivé</h2>`,
+      '<p>Aucun praticien actif n’est actuellement configuré.</p>',
+      '<p>Après avoir ajouté ou réactivé un praticien, un administrateur peut réactiver le portail depuis Configuration → Portail.</p>',
+      '</div>',
+    ].join(''),
+  })
+
+  if (result.error) throw new Error(`Resend failed to send portal disabled notification: ${result.error.message}`)
+}
+
 export async function sendAppointmentConfirmation(input: {
   to: string
   appointment: AppointmentConfirmation

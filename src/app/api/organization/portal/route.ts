@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import apiErrorResponse from '@/lib/api'
-import { prisma } from '@/lib/prisma'
 import { CustomerPortalSettingsSchema } from '@/schemas/customerPortal'
+import {
+  getOrganizationPortalSettings,
+  updateOrganizationPortalSettings,
+} from '@/services/customerPortalSettings.service'
 
 async function getStaffOrganizationId(): Promise<{ id: string } | Response> {
   const session = await auth()
@@ -31,10 +34,7 @@ export async function GET(_request?: Request) {
     const organization = await getStaffOrganizationId()
     if (organization instanceof Response) return organization
 
-    const settings = await prisma.organization.findUnique({
-      where: { id: organization.id },
-      select: { slug: true, portalEnabled: true, timezone: true },
-    })
+    const settings = await getOrganizationPortalSettings(organization.id)
     if (!settings) return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
     return NextResponse.json(settings)
   } catch (error: unknown) {
@@ -59,12 +59,27 @@ export async function PATCH(request: Request) {
     const organization = await getStaffOrganizationId()
     if (organization instanceof Response) return organization
 
-    const updated = await prisma.organization.update({
-      where: { id: organization.id },
-      data: parsed.data,
-      select: { slug: true, portalEnabled: true, timezone: true },
+    const result = await updateOrganizationPortalSettings({
+      organizationId: organization.id,
+      settings: parsed.data,
     })
-    return NextResponse.json(updated)
+    if (result.status === 'not_found') {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+    }
+    if (result.status === 'practitioner_required') {
+      return NextResponse.json({
+        error: 'Ajoutez au moins un praticien actif avant d’activer le portail.',
+      }, { status: 400 })
+    }
+    if (result.status === 'contact_required') {
+      return NextResponse.json({
+        error: 'Renseignez un téléphone ou un e-mail public avant d’activer le portail.',
+      }, { status: 400 })
+    }
+    if (result.status !== 'updated') {
+      return NextResponse.json({ error: 'Impossible d’activer le portail.' }, { status: 400 })
+    }
+    return NextResponse.json(result.settings)
   } catch (error: unknown) {
     if (isSlugConflict(error)) {
       return NextResponse.json({ error: 'Ce slug est déjà utilisé' }, { status: 409 })

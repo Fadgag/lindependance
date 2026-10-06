@@ -18,6 +18,7 @@ const brandingRecord = {
   name: 'Studio Étoile',
   logoDataUrl: null,
   logoShape: 'circle',
+  logoSize: 'medium',
   showNameWithLogo: false,
 }
 
@@ -33,11 +34,12 @@ describe('organizationBranding.service', () => {
       organizationName: 'Studio Étoile',
       logoDataUrl: null,
       logoShape: 'circle',
+      logoSize: 'medium',
       showNameWithLogo: false,
     })
     expect(findUniqueMock).toHaveBeenCalledWith({
       where: { id: 'org-1' },
-      select: { name: true, logoDataUrl: true, logoShape: true, showNameWithLogo: true },
+      select: { name: true, logoDataUrl: true, logoShape: true, logoSize: true, showNameWithLogo: true },
     })
   })
 
@@ -45,22 +47,25 @@ describe('organizationBranding.service', () => {
     updateMock.mockResolvedValue({
       ...brandingRecord,
       name: 'Nouveau salon',
+      logoSize: 'large',
       showNameWithLogo: true,
     })
 
     await expect(updateOrganizationBranding('org-1', {
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
+      logoSize: 'large',
     })).resolves.toEqual({
       organizationName: 'Nouveau salon',
       logoDataUrl: null,
       logoShape: 'circle',
+      logoSize: 'large',
       showNameWithLogo: true,
     })
     expect(updateMock).toHaveBeenCalledWith({
       where: { id: 'org-1' },
-      data: { showNameWithLogo: true, name: 'Nouveau salon' },
-      select: { name: true, logoDataUrl: true, logoShape: true, showNameWithLogo: true },
+      data: { showNameWithLogo: true, logoSize: 'large', name: 'Nouveau salon' },
+      select: { name: true, logoDataUrl: true, logoShape: true, logoSize: true, showNameWithLogo: true },
     })
   })
 })

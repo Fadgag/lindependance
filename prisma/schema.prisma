@@ -16,10 +16,13 @@ model Organization {
   closingTime       String             @default("20:00")
   logoDataUrl       String?
   logoShape         String             @default("circle")
+  logoSize          String             @default("medium")
   showNameWithLogo  Boolean            @default(false)
   slug              String?            @unique
   portalEnabled     Boolean            @default(false)
   timezone          String             @default("Europe/Paris")
+  portalContactPhone String?
+  portalContactEmail String?
   services          Service[]
   customers         Customer[]
   staff             Staff[]

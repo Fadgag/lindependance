@@ -58,7 +58,7 @@ describe('parseScenarioGuide', () => {
     const userGuide = readFileSync(join(process.cwd(), 'quality/recette-beta-customer.md'), 'utf8')
 
     expect(parseScenarioGuide(adminGuide, 'ADMIN')).toHaveLength(12)
-    expect(parseScenarioGuide(userGuide, 'USER')).toHaveLength(17)
+    expect(parseScenarioGuide(userGuide, 'USER')).toHaveLength(16)
   })
 })
 
@@ -80,7 +80,9 @@ describe('test scenario groups', () => {
       'STAFF_ADMINISTRATION',
     ])
     expect(filterScenariosByGroups(userScenarios, ['ONLINE_BOOKING']).map(({ id }) => id)).toEqual(
-      userScenarios.slice(0, 10).map(({ id }) => id),
+      userScenarios
+        .filter(({ id }) => Number(id.slice(-2)) <= 10)
+        .map(({ id }) => id),
     )
     expect(filterScenariosByGroups(adminScenarios, ['STAFF_ADMINISTRATION'])).toEqual(adminScenarios)
   })

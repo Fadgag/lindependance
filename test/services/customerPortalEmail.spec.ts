@@ -1,5 +1,28 @@
-import { describe, expect, it } from 'vitest'
-import { createAppointmentIcs } from '@/services/customerPortalEmail.service'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { resendSendMock } = vi.hoisted(() => ({
+  resendSendMock: vi.fn(),
+}))
+
+vi.mock('resend', () => ({
+  Resend: class {
+    emails = { send: resendSendMock }
+  },
+}))
+
+import {
+  createAppointmentIcs,
+  sendCustomerPortalDisabledEmail,
+} from '@/services/customerPortalEmail.service'
+
+beforeEach(() => {
+  vi.stubEnv('RESEND_API_KEY', 'resend-test-key')
+  vi.mocked(resendSendMock).mockResolvedValue({ error: null })
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 describe('createAppointmentIcs', () => {
   it('uses persisted UTC instants, the organization timezone and a stable event id', () => {
@@ -24,5 +47,20 @@ describe('createAppointmentIcs', () => {
     expect(first).toContain('X-WR-TIMEZONE:Europe/Paris')
     expect(first).toContain('SUMMARY:Coupe\\; soin\\, finition')
     expect(first).not.toContain('customerId')
+  })
+
+  describe('sendCustomerPortalDisabledEmail', () => {
+    it('sends a notification to the requested organization administrator', async () => {
+      await sendCustomerPortalDisabledEmail({
+        to: 'admin@atelier.fr',
+        organizationName: 'Atelier',
+      })
+
+      expect(resendSendMock).toHaveBeenCalledWith(expect.objectContaining({
+        to: 'admin@atelier.fr',
+        subject: 'Portail client désactivé pour Atelier',
+        html: expect.stringContaining('Aucun praticien actif'),
+      }))
+    })
   })
 })
