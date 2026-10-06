@@ -19,16 +19,19 @@ livré en une seule fois.
 
 ### Ordre recommandé
 
-Les P1 sont terminées. Pour les sujets P2 encore ouverts :
+Les sujets P2 de développement ci-dessous sont implémentés. Il reste à
+effectuer les vérifications manuelles en bêta indiquées dans les guides de
+recette.
 
-1. Simplifier le vocabulaire et revoir les formulations.
-2. Permettre à l'utilisateur de signaler un problème ou un bug.
+1. Vérifier les e-mails personnalisés pendant une campagne de recette bêta.
+2. Vérifier les parcours de signalement sur les espaces client et staff.
 
 Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiquées ci-dessous.
 
 ### Simplifier le vocabulaire et revoir les formulations au féminin
 
-- **Statut :** À traiter
+- **Type :** Amélioration
+- **Statut :** Réalisée — passe de clarté effectuée sur les parcours client et personnel ; tests UI ciblés réussis le 6 octobre 2026.
 - **Priorité proposée :** P2
 - **Constat :** Certains termes de l'interface sont jargonneux et les formulations sont au féminin partout.
 - **Amélioration souhaitée :** Employer des termes accessibles et revoir les accords de genre selon les personnes et le contexte concernés.
@@ -50,6 +53,21 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
   - Le lien actuel avec slug reste utilisable jusqu'à l'activation du domaine personnalisé.
   - Le portail peut être résolu à partir du domaine personnalisé de chaque organisation, sans logique spécifique à un salon.
   - Le prix et les modalités de facturation éventuels sont définis.
+
+### Portail client — identité visuelle
+
+#### Personnaliser l'apparence du nom et du logo du salon
+
+- **Type :** Amélioration
+- **Statut :** À préciser
+- **Priorité :** À définir
+- **Constat / comportement observé :** L'identité du salon apparaît sur la page de réservation, mais la taille du logo ne se règle qu'avec trois choix prédéfinis et l'apparence du nom du salon n'est pas personnalisable.
+- **Comportement attendu / résultat souhaité :** Permettre à chaque organisation de choisir la police et la taille du nom du salon, ainsi que d'ajuster plus finement la taille du logo selon son besoin.
+- **Impact :** Les organisations peuvent adapter l'identité affichée sur leur page de réservation à leur image.
+- **Critères d'acceptation :**
+  - Un membre autorisé peut choisir une police et régler la taille du nom du salon.
+  - Un membre autorisé peut agrandir ou réduire le logo avec plus de granularité que les trois tailles prédéfinies actuelles, sans déformer l'image.
+  - Les réglages sont enregistrés et appliqués sur la page de réservation.
 
 ### Fiches client — gestion et coordonnées
 
@@ -85,7 +103,8 @@ actuellement l'accès à l'e-mail au moment de la connexion.
 
 #### Simplifier le vocabulaire et revoir les formulations au féminin
 
-- **Statut :** À préciser
+- **Type :** Amélioration
+- **Statut :** Réalisée — passe de clarté effectuée sur les parcours client et personnel ; tests UI ciblés réussis le 6 octobre 2026.
 - **Priorité :** À définir
 - **Constat :** Certains termes de l'interface sont jargonneux et les formulations sont au féminin partout.
 - **Amélioration souhaitée :** Employer des termes accessibles et revoir les accords de genre selon les personnes et le contexte concernés.
@@ -101,7 +120,8 @@ séparément.
 
 #### Permettre à l'utilisateur de signaler un problème ou un bug
 
-- **Statut :** À cadrer — définir le canal de traitement et les limites des données de diagnostic.
+- **Type :** Amélioration
+- **Statut :** Implémentée — la migration doit être appliquée et le parcours vérifié en bêta.
 - **Priorité proposée :** P2
 - **Constat :** L'utilisateur ne dispose pas d'un endroit dédié pour signaler un problème rencontré dans l'application.
 - **Amélioration souhaitée :** Ajouter un formulaire de signalement qui demande ce qui s'est passé et les étapes ayant mené au problème. Joindre automatiquement les informations techniques utiles pour reproduire et analyser le bug.
@@ -110,6 +130,9 @@ séparément.
     - Les informations de diagnostic utiles (par exemple la page concernée, la date, la version de l'application et les erreurs techniques) sont enregistrées avec le signalement.
     - Les données collectées sont limitées à ce qui est utile et n'incluent pas de données sensibles.
     - L'utilisateur est informé des informations transmises.
+    - Le personnel et les clients connectés peuvent envoyer un signalement ; seuls les administrateurs techniques peuvent le consulter et le traiter.
+    - Les signalements résolus sont supprimés après 90 jours.
+- **Mise à jour :** Le formulaire, les diagnostics expurgés, les contrôles d'accès `TECH_ADMIN`, le tableau de suivi et la migration additive sont implémentés. Les scénarios `CUS-17` et `ADM-12` couvrent la recette manuelle ; la migration n'a pas été appliquée à une base.
 
 #### Vérifier les e-mails personnalisés dans les campagnes de recette
 

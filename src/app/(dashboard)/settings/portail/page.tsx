@@ -244,7 +244,7 @@ export default function CustomerPortalSettingsPage() {
             <span className="mt-1 block text-sm text-gray-500">Le portail reste inaccessible tant que cette option est désactivée.</span>
             {settings.activePractitionerCount === 0 && (
               <span className="mt-1 block text-sm text-amber-700">
-                Ajoutez au moins un praticien actif pour pouvoir activer le portail.
+                Ajoutez au moins une personne dans l’équipe pour activer les réservations en ligne.
               </span>
             )}
           </span>

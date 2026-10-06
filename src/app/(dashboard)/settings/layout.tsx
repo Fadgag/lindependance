@@ -11,7 +11,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         { name: "General & CA", href: "/settings", icon: Landmark, disabled: false },
         { name: "Agenda", href: "/settings/schedule", icon: CalendarDays, disabled: false },
         { name: "Prestations", href: "/settings/services", icon: Scissors, disabled: false },
-        { name: "Praticiens", href: "/settings/praticiens", icon: Users, disabled: false },
+        { name: "Équipe", href: "/settings/praticiens", icon: Users, disabled: false },
         { name: "Portail client", href: "/settings/portail", icon: Globe, disabled: false },
         { name: "Produits", href: "/settings/products", icon: Package, disabled: false },
         { name: "Mon Compte", href: "/settings/account", icon: User, disabled: false },
@@ -21,7 +21,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         <div className="p-8 max-w-7xl mx-auto">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>
-                <p className="text-gray-500 mt-1">Gérez la configuration de votre salon et vos objectifs.</p>
+                <p className="text-gray-500 mt-1">Gérez les réglages de votre salon et ses objectifs.</p>
             </div>
 
             {/* Navigation par onglets en haut */}

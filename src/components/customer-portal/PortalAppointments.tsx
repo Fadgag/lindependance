@@ -178,7 +178,7 @@ export default function PortalAppointments({
               {formatDateTime(appointment.startTime)} – {formatEndTime(appointment.endTime)}
             </p>
             <p className="text-sm text-gray-600">
-              Praticien : {appointment.staff
+              Avec {appointment.staff
                 ? `${appointment.staff.firstName} ${appointment.staff.lastName}`
                 : 'Non renseigné'}
             </p>

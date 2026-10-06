@@ -20,9 +20,10 @@ Il complète les tests Vitest ; il ne les remplace pas.
 ## Préparation — environnement bêta uniquement
 
 Ne pas effectuer cette recette sur la production ni avec de vrais clients.
-Vérifier auprès de l'équipe technique que la migration
-`20261001120000_customer_portal_phase_3` est appliquée dans l'environnement
-bêta. Ne pas appliquer de migration depuis ce guide.
+Vérifier auprès de l'équipe technique que les migrations
+`20261001120000_customer_portal_phase_3` et
+`20261006182000_issue_reports` sont appliquées dans l'environnement bêta. Ne
+pas appliquer de migration depuis ce guide.
 
 Créer ou demander les données de test suivantes dans l'interface staff :
 
@@ -281,18 +282,25 @@ espace client et les informations des autres clients restent privées.
 `test/api/customer-portal-change-requests.spec.ts`.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-17 — Utiliser le service sur un téléphone
-**Priorité : P2 · Exigence :** [Req: formal — `customer-portal.md`, UX]
+#### [ ] CUS-17 — Utiliser le service sur un téléphone et signaler un problème
+**Priorité : P2 · Exigence :** [Req: formal — `customer-portal.md`, UX et `issue-reporting.md`]
 
 **Étapes :** sur un téléphone, connectez-vous, choisissez un horaire, consultez
-vos rendez-vous et essayez de demander un changement.
+vos rendez-vous et essayez de demander un changement. Ouvrez aussi « Signaler
+un problème », lisez les informations transmises, puis envoyez un signalement
+de test sans donnée personnelle.
 
 **Attendu :** les boutons et les messages sont faciles à lire et à utiliser.
 Vous comprenez si le rendez-vous est confirmé, si le salon doit répondre ou
-s'il faut le contacter.
+s'il faut le contacter. Le formulaire précise les informations techniques
+jointes et confirme l'envoi ; l'équipe technique retrouve le signalement dans
+son tableau de suivi.
 
-**Automatisé :** composants couverts par les tests UI Vitest cités ci-dessus ;
-aucun parcours navigateur mobile complet n'est remplacé par ces tests.
+**Automatisé :** `test/ui/IssueReportLauncher.spec.tsx`,
+`test/lib/clientIssueErrors.spec.ts` et composants couverts par les tests UI
+Vitest cités ci-dessus ; aucun parcours navigateur mobile complet n'est
+remplacé par ces tests. La réception réelle est à vérifier en bêta avec l'équipe
+technique.
 **Résultat / preuve :** `________`
 
 ## Couverture automatisée relue

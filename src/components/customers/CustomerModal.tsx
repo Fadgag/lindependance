@@ -45,7 +45,7 @@ export default function CustomerModal({ isOpen, onCloseAction, onCreatedAction }
         setError(j.error || 'Une erreur est survenue')
       } else {
         // success
-        showToast(`Cliente ${j.firstName} ${j.lastName} ajoutée avec succès`)
+        showToast(`La fiche de ${j.firstName} ${j.lastName} a été ajoutée.`)
         reset()
         onCreatedAction()
         onCloseAction()
@@ -58,7 +58,7 @@ export default function CustomerModal({ isOpen, onCloseAction, onCreatedAction }
   }
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onCloseAction} title="Nouveau Client" maxWidth="36rem">
+    <BaseModal isOpen={isOpen} onClose={onCloseAction} title="Nouveau client" maxWidth="36rem">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="text-red-600">{error}</div>}
 
@@ -78,18 +78,18 @@ export default function CustomerModal({ isOpen, onCloseAction, onCreatedAction }
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Email (optionnel)</label>
+          <label className="block text-sm mb-1">Adresse e-mail (facultative)</label>
           <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border rounded" />
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Notes / Préférences</label>
+          <label className="block text-sm mb-1">Notes utiles</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-3 border rounded h-28" />
         </div>
 
         <div className="flex flex-col">
           <button disabled={loading} className="w-full py-2 rounded bg-studio-primary text-white font-bold mb-2">
-            {loading ? 'Enregistrement...' : 'Créer la cliente'}
+            {loading ? 'Enregistrement…' : 'Créer le client'}
           </button>
           <button type="button" onClick={() => { reset(); onCloseAction() }} className="w-full py-2 rounded border border-gray-200 text-sm">
             Annuler

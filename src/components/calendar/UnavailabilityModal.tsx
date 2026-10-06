@@ -175,7 +175,7 @@ export default function UnavailabilityModal({
         toast.error(getUserFacingMutationError('unavailability-delete', res.status))
         return
       }
-      toast.success(deleteAll ? 'Série supprimée' : 'Occurrence supprimée')
+      toast.success(deleteAll ? 'Tous les créneaux répétés ont été supprimés.' : 'Le créneau a été supprimé.')
       onClose()
       onSuccess()
     } finally {
@@ -190,15 +190,15 @@ export default function UnavailabilityModal({
 
   return (
     <>
-      <BaseModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Indisponibilité bloquée' : 'Bloquer un créneau'}>
+      <BaseModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Créneau bloqué' : 'Bloquer un créneau'}>
       <form onSubmit={handleSave} className="flex flex-col gap-5">
 
         {/* Motif */}
         <div>
-          <label className="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Motif</label>
+          <label className="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Raison (facultative)</label>
           <input
             type="text"
-            placeholder="Ex: Rendez-vous Docteur, Congé, Formation..."
+            placeholder="Ex. : rendez-vous médical, congé, formation…"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={isEditing}
@@ -235,10 +235,10 @@ export default function UnavailabilityModal({
                </div>
              </div>
 
-            {/* Récurrence */}
+            {/* Répétition */}
             <div>
               <label className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1.5">
-                <RefreshCw size={11} /> Récurrence
+                <RefreshCw size={11} /> Répéter
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {(RECURRENCE_OPTIONS as readonly Recurrence[]).map((r) => (
@@ -264,8 +264,8 @@ export default function UnavailabilityModal({
         {isEditing && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
             {isSeries
-              ? '🔁 Cette indisponibilité fait partie d\'une série récurrente.'
-              : '🚫 Indisponibilité ponctuelle.'}
+              ? '🔁 Ce créneau se répète selon le rythme choisi.'
+              : '🚫 Ce créneau ne se répète pas.'}
           </div>
         )}
 
@@ -275,12 +275,12 @@ export default function UnavailabilityModal({
             <div className="flex gap-2">
               <button type="button" onClick={() => handleDelete(false)} disabled={isSaving}
                 className="text-red-500 text-[11px] font-bold flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-                <Trash2 size={13} /> Supprimer cette occurrence
+                <Trash2 size={13} /> Supprimer ce créneau
               </button>
               {isSeries && (
                 <button type="button" onClick={() => handleDelete(true)} disabled={isSaving}
                   className="text-red-600 text-[11px] font-bold flex items-center gap-1.5 hover:opacity-80 transition-opacity border-l border-red-200 pl-2">
-                  <Trash2 size={13} /> Toute la série
+                  <Trash2 size={13} /> Supprimer les créneaux répétés
                 </button>
               )}
             </div>
@@ -299,8 +299,8 @@ export default function UnavailabilityModal({
     </BaseModal>
     <ConfirmDialog
       isOpen={confirmState.open}
-      title={confirmState.deleteAll ? 'Supprimer toute la série ?' : 'Supprimer cette occurrence ?'}
-      message={confirmState.deleteAll ? 'Toutes les occurrences récurrentes seront supprimées.' : 'Cette occurrence sera supprimée définitivement.'}
+      title={confirmState.deleteAll ? 'Supprimer les créneaux répétés ?' : 'Supprimer ce créneau ?'}
+      message={confirmState.deleteAll ? 'Tous les créneaux de cette série seront supprimés.' : 'Ce créneau sera supprimé définitivement.'}
       confirmLabel="Supprimer"
       onConfirm={handleConfirmDelete}
       onCancel={() => setConfirmState({ open: false, deleteAll: false })}

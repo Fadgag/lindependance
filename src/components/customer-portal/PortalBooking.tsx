@@ -96,7 +96,7 @@ export default function PortalBooking({
         return response.json() as Promise<Service[]>
       }),
       fetch(`${basePath}/praticiens`).then(async (response) => {
-        if (!response.ok) throw new Error(await readError(response, 'Impossible de charger les praticiens.'))
+        if (!response.ok) throw new Error(await readError(response, 'Impossible de charger les personnes de l’équipe.'))
         return response.json() as Promise<Practitioner[]>
       }),
     ]).then(([loadedServices, loadedPractitioners]) => {
@@ -281,9 +281,9 @@ export default function PortalBooking({
             </label>
             {practitioners.length > 1 && (
               <label className="block text-sm font-medium">
-                Praticien
+                Personne de l’équipe
                 <select value={staffId} onChange={(event) => setStaffId(event.target.value)} className="mt-1 block w-full rounded-lg border border-gray-300 p-3">
-                  <option value="">Choisir un praticien</option>
+                  <option value="">Choisir une personne</option>
                   {practitioners.map((person) => <option key={person.id} value={person.id}>{person.firstName} {person.lastName}</option>)}
                 </select>
               </label>

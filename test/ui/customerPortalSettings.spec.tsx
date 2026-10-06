@@ -128,6 +128,6 @@ describe('CustomerPortalSettingsPage', () => {
 
     expect(await screen.findByRole('checkbox', { name: /activer les réservations en ligne/i }))
       .toBeDisabled()
-    expect(screen.getByText(/ajoutez au moins un praticien actif/i)).toBeInTheDocument()
+    expect(screen.getByText(/ajoutez au moins une personne dans l’équipe/i)).toBeInTheDocument()
   })
 })

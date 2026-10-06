@@ -7,6 +7,7 @@ import { Toaster } from 'sonner'
 import "./globals.css";
 import QuickAppointmentModal from '@/components/appointments/QuickAppointmentModal'
 import { ModalStackProvider } from '@/components/ui/ModalStackProvider'
+import IssueReportLauncher from '@/components/issue-reports/IssueReportLauncher'
 
 const notoSerif = Noto_Serif({ variable: "--font-noto-serif", subsets: ["latin"] });
 const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </main>
                 <Toaster position="top-right" richColors />
                 <QuickAppointmentModal />
+                <IssueReportLauncher />
                 <RegisterServiceWorker />
               </AuthProvider>
             </ModalStackProvider>
