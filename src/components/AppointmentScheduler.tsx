@@ -5,6 +5,7 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings'
 import { useCalendarData } from '@/hooks/useCalendarData'
 import { CalendarEventContent } from './calendar/CalendarEventContent'
 import { buildCalendarTooltip } from '@/lib/buildCalendarTooltip'
+import { getUserFacingMutationError, getUserFacingNetworkError } from '@/lib/userFacingMutationError'
 import type { InitialAppointmentData } from '@/types/models'
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -153,8 +154,14 @@ export default function AppointmentScheduler() {
                                         customerId: event.extendedProps?.customerId as string | undefined,
                                         staffId: event.extendedProps?.staffId as string | undefined }),
                                 })
-                                if (!res.ok) { revert(); if (res.status === 409) toast.error('Conflit horaire : ce créneau est déjà occupé.'); else toast.error('Erreur lors du déplacement du rendez-vous.') }
-                            } catch { revert(); toast.error('Erreur réseau lors du déplacement.') }
+                                if (!res.ok) {
+                                    revert()
+                                    toast.error(getUserFacingMutationError('appointment-move', res.status))
+                                }
+                            } catch {
+                                revert()
+                                toast.error(getUserFacingNetworkError('appointment-move'))
+                            }
                         }}
 
                         eventResize={async (info: { event: EventDropArg['event']; revert: () => void }) => {
@@ -169,8 +176,14 @@ export default function AppointmentScheduler() {
                                         customerId: event.extendedProps?.customerId as string | undefined,
                                         staffId: event.extendedProps?.staffId as string | undefined }),
                                 })
-                                if (!res.ok) { revert(); toast.error('Erreur lors du redimensionnement du rendez-vous.') }
-                            } catch { revert(); toast.error('Erreur réseau lors du redimensionnement.') }
+                                if (!res.ok) {
+                                    revert()
+                                    toast.error(getUserFacingMutationError('appointment-resize', res.status))
+                                }
+                            } catch {
+                                revert()
+                                toast.error(getUserFacingNetworkError('appointment-resize'))
+                            }
                         }}
                     />
                 ) : (

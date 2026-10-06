@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { CheckoutAppointment, Extra, AppointmentSummary, SoldProduct, Product } from "@/types/models";
 import { parseJsonField } from "@/lib/parseAppointmentJson";
+import { getCheckoutErrorMessage, getCheckoutNetworkErrorMessage } from "@/lib/checkoutErrorMessage";
 import { computeSoldProductLine } from "@/domain/billing/vat";
 import ProductPicker from "@/components/dashboard/ProductPicker";
 
@@ -200,36 +201,54 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
     const handleConfirm = async () => {
         if (!appointment) return;
         setLoading(true);
+        let res: Response;
         try {
-            const res = await fetch(`/api/appointments/${appointment.id}/checkout`, {
+            res = await fetch(`/api/appointments/${appointment.id}/checkout`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ totalPrice: displayPrice, extras, soldProducts, note, paymentMethod }),
             });
-            if (res.ok) { toast.success("Enregistré !"); onRefresh(); onClose(); }
-        } catch { toast.error("Erreur"); } finally { setLoading(false); }
+        } catch {
+            toast.error(getCheckoutNetworkErrorMessage("payment"));
+            return;
+        } finally {
+            setLoading(false);
+        }
+        if (!res.ok) {
+            const payload: unknown = await res.json().catch(() => null);
+            toast.error(getCheckoutErrorMessage("payment", res.status, payload, soldProducts));
+            return;
+        }
+        toast.success("Enregistré !");
+        onRefresh();
+        onClose();
     };
 
     const handleDeleteConfirm = async () => {
         if (!appointment) return;
         setDeleteLoading(true);
         try {
-            const res = await fetch(`/api/appointments?id=${encodeURIComponent(appointment.id)}&from=checkout&confirm=true`, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-                toast.success('RDV supprimé');
-                try { window.dispatchEvent(new CustomEvent('appointments:updated')) } catch {}
-                onRefresh();
-                onClose();
-            } else {
-                toast.error(data?.error || 'Impossible de supprimer le RDV');
+            let res: Response;
+            try {
+                res = await fetch(`/api/appointments?id=${encodeURIComponent(appointment.id)}&from=checkout&confirm=true`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch {
+                toast.error(getCheckoutNetworkErrorMessage("delete"));
+                return;
             }
-        } catch (e) {
-            toast.error('Erreur réseau');
+
+            const data: unknown = await res.json().catch(() => null);
+            if (!res.ok) {
+                toast.error(getCheckoutErrorMessage("delete", res.status, data));
+                return;
+            }
+            toast.success('RDV supprimé');
+            try { window.dispatchEvent(new CustomEvent('appointments:updated')) } catch {}
+            onRefresh();
+            onClose();
         } finally {
             setDeleteLoading(false);
             setShowDeleteConfirm(false);

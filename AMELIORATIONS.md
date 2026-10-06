@@ -4,17 +4,6 @@ Ce fichier sert à noter les améliorations à traiter au fur et à mesure qu'el
 
 ## À traiter
 
-### Afficher des erreurs explicites dans les popups
-
-- **Statut :** À préciser
-- **Priorité :** À définir
-- **Constat :** Certaines erreurs affichent un message générique comme `internalError`.
-- **Amélioration souhaitée :** Afficher dans une popup un message clair qui explique le problème et, si possible, indique quoi faire ensuite.
-- **Critères d'acceptation :**
-  - Le message est compréhensible pour la personne qui utilise l'application.
-  - Le message aide à comprendre la prochaine étape ou à réessayer.
-  - Les détails techniques ou sensibles ne sont pas exposés.
-
 ### Vérifier qu'un praticien existe à l'ouverture du portail
 
 - **Statut :** À préciser
@@ -106,6 +95,13 @@ Ce fichier sert à noter les améliorations à traiter au fur et à mesure qu'el
   - La page est accessible aux beta-testeurs sur l'environnement preprod.
   - La page et ses fonctionnalités ne sont pas accessibles en production.
   - Le contenu et les scénarios à valider par les beta-testeurs sont définis.
+
+## Traités
+
+### Afficher des erreurs explicites dans les popups
+
+- **Parcours couverts :** Rendez-vous (création, modification, déplacement, suppression), encaissement, indisponibilités et paramètres d’horaires et d’objectif financier.
+- **Résultat :** Les erreurs réseau et réponses d’échec indiquent une action utile ; les détails techniques du serveur ne sont pas affichés. Les erreurs de formulaire conservent leurs messages de validation.
 
 ## Modèle pour ajouter une tâche
 
