@@ -35,6 +35,7 @@ export interface PortalOrganization {
   timezone: string
   openingTime: string
   closingTime: string
+  portalOtpEmailTemplate?: string | null
 }
 
 export async function findEnabledPortalOrganization(slug: string): Promise<PortalOrganization | null> {
@@ -46,6 +47,7 @@ export async function findEnabledPortalOrganization(slug: string): Promise<Porta
       timezone: true,
       openingTime: true,
       closingTime: true,
+      portalOtpEmailTemplate: true,
     },
   })
 }

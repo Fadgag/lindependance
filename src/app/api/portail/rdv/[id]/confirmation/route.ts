@@ -39,6 +39,7 @@ export async function POST(request: Request, context: RouteContext) {
     await sendAppointmentConfirmation({
       to: confirmation.email,
       appointment: { ...confirmation.appointment, portalUrl },
+      template: confirmation.appointment.confirmationEmailTemplate,
     })
   } catch (error: unknown) {
     logger.error('Customer portal confirmation resend failed', {

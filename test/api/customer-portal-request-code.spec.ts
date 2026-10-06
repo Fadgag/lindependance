@@ -34,6 +34,7 @@ const organization = {
   timezone: 'Europe/Paris',
   openingTime: '09:00',
   closingTime: '18:00',
+  portalOtpEmailTemplate: 'Code : {{code}}',
 }
 
 function requestCode() {
@@ -73,6 +74,9 @@ describe('POST /api/portail/auth/request-code', () => {
     expect(await knownAddressResponse.json()).toEqual({ ok: true })
     expect(issueCustomerOtp).toHaveBeenCalledOnce()
     expect(sendCustomerPortalOtpEmail).toHaveBeenCalledOnce()
+    expect(sendCustomerPortalOtpEmail).toHaveBeenCalledWith(expect.objectContaining({
+      template: 'Code : {{code}}',
+    }))
   })
 
   it('does not accept an organization id from the browser', async () => {

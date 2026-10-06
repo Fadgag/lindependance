@@ -30,6 +30,8 @@ describe('customer portal request schemas', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: '+33123456789',
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
     }).success).toBe(false)
     expect(CustomerPortalSettingsSchema.safeParse({
       slug: 'atelier-dupont',
@@ -37,6 +39,8 @@ describe('customer portal request schemas', () => {
       timezone: 'Not/A-Timezone',
       portalContactPhone: '+33123456789',
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
     }).success).toBe(false)
     expect(CustomerPortalSettingsSchema.safeParse({
       slug: 'atelier-dupont',
@@ -44,6 +48,8 @@ describe('customer portal request schemas', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: null,
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
     }).success).toBe(true)
     const validSettings = CustomerPortalSettingsSchema.safeParse({
       slug: 'atelier-dupont',
@@ -51,11 +57,34 @@ describe('customer portal request schemas', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: null,
       portalContactEmail: ' Contact@Example.com ',
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
     })
     expect(validSettings.success).toBe(true)
     if (validSettings.success) {
       expect(validSettings.data.portalContactEmail).toBe('contact@example.com')
     }
+  })
+
+  it('validates supported and required variables in custom email templates', () => {
+    expect(CustomerPortalSettingsSchema.safeParse({
+      slug: 'atelier-dupont',
+      portalEnabled: false,
+      timezone: 'Europe/Paris',
+      portalContactPhone: null,
+      portalContactEmail: null,
+      portalOtpEmailTemplate: 'Votre code : {{code}}',
+      portalConfirmationEmailTemplate: 'Rendez-vous {{serviceName}} le {{date}} à {{startTime}}-{{endTime}}',
+    }).success).toBe(true)
+    expect(CustomerPortalSettingsSchema.safeParse({
+      slug: 'atelier-dupont',
+      portalEnabled: false,
+      timezone: 'Europe/Paris',
+      portalContactPhone: null,
+      portalContactEmail: null,
+      portalOtpEmailTemplate: 'Votre code : {{unknown}}',
+      portalConfirmationEmailTemplate: null,
+    }).success).toBe(false)
   })
 
   it('rejects organization identifiers in OTP requests', () => {

@@ -1,6 +1,10 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from 'react'
+import {
+  CUSTOMER_PORTAL_EMAIL_TEMPLATE_DEFAULTS,
+  isCustomerPortalEmailTemplateValid,
+} from '@/domain/customer-portal/emailTemplates'
 
 type PortalSettings = {
   slug: string | null
@@ -8,6 +12,8 @@ type PortalSettings = {
   timezone: string
   portalContactPhone: string | null
   portalContactEmail: string | null
+  portalOtpEmailTemplate: string | null
+  portalConfirmationEmailTemplate: string | null
   activePractitionerCount: number
 }
 
@@ -19,6 +25,8 @@ function isPortalSettings(value: unknown): value is PortalSettings {
     && typeof settings.timezone === 'string'
     && (typeof settings.portalContactPhone === 'string' || settings.portalContactPhone === null)
     && (typeof settings.portalContactEmail === 'string' || settings.portalContactEmail === null)
+    && (typeof settings.portalOtpEmailTemplate === 'string' || settings.portalOtpEmailTemplate === null)
+    && (typeof settings.portalConfirmationEmailTemplate === 'string' || settings.portalConfirmationEmailTemplate === null)
     && typeof settings.activePractitionerCount === 'number'
 }
 
@@ -29,6 +37,8 @@ export default function CustomerPortalSettingsPage() {
     timezone: 'Europe/Paris',
     portalContactPhone: null,
     portalContactEmail: null,
+    portalOtpEmailTemplate: null,
+    portalConfirmationEmailTemplate: null,
     activePractitionerCount: 0,
   })
   const [loading, setLoading] = useState(true)
@@ -56,6 +66,14 @@ export default function CustomerPortalSettingsPage() {
 
   async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (
+      !isCustomerPortalEmailTemplateValid(settings.portalOtpEmailTemplate, 'otp')
+      || !isCustomerPortalEmailTemplateValid(settings.portalConfirmationEmailTemplate, 'appointmentConfirmation')
+    ) {
+      setMessage('')
+      setError('Vérifiez les variables obligatoires et les variables disponibles dans les e-mails.')
+      return
+    }
     setSaving(true)
     setError('')
     setMessage('')
@@ -69,6 +87,8 @@ export default function CustomerPortalSettingsPage() {
           slug: settings.slug?.trim().toLowerCase() || null,
           portalContactPhone: settings.portalContactPhone?.trim() || null,
           portalContactEmail: settings.portalContactEmail?.trim() || null,
+          portalOtpEmailTemplate: settings.portalOtpEmailTemplate,
+          portalConfirmationEmailTemplate: settings.portalConfirmationEmailTemplate,
         }),
       })
       const data: unknown = await response.json()
@@ -157,6 +177,58 @@ export default function CustomerPortalSettingsPage() {
           <p className="text-xs text-gray-500">
             Ces coordonnées sont visibles par les clients sur le portail. Au moins un moyen de contact est requis pour activer les réservations.
           </p>
+        </fieldset>
+
+        <fieldset className="space-y-4">
+          <legend className="text-sm font-medium text-gray-700">Messages envoyés par e-mail</legend>
+          <div>
+            <label htmlFor="portal-otp-email-template" className="mb-1 block text-sm text-gray-600">
+              Code de connexion
+            </label>
+            <textarea
+              id="portal-otp-email-template"
+              value={settings.portalOtpEmailTemplate ?? CUSTOMER_PORTAL_EMAIL_TEMPLATE_DEFAULTS.otp}
+              onChange={(event) => setSettings({ ...settings, portalOtpEmailTemplate: event.target.value })}
+              aria-describedby="portal-otp-template-help"
+              maxLength={5000}
+              rows={5}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+            <p id="portal-otp-template-help" className="mt-1 text-xs text-gray-500">
+              Variables disponibles : {'{{organizationName}}'}, {'{{code}}'} (code obligatoire). Texte brut uniquement.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSettings({ ...settings, portalOtpEmailTemplate: null })}
+              className="mt-1 text-sm text-indigo-700 underline"
+            >
+              Rétablir le message de code par défaut
+            </button>
+          </div>
+          <div>
+            <label htmlFor="portal-confirmation-email-template" className="mb-1 block text-sm text-gray-600">
+              Confirmation de rendez-vous
+            </label>
+            <textarea
+              id="portal-confirmation-email-template"
+              value={settings.portalConfirmationEmailTemplate ?? CUSTOMER_PORTAL_EMAIL_TEMPLATE_DEFAULTS.appointmentConfirmation}
+              onChange={(event) => setSettings({ ...settings, portalConfirmationEmailTemplate: event.target.value })}
+              aria-describedby="portal-confirmation-template-help"
+              maxLength={5000}
+              rows={7}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+            <p id="portal-confirmation-template-help" className="mt-1 text-xs text-gray-500">
+              Variables : {'{{organizationName}}'}, {'{{serviceName}}'}, {'{{date}}'}, {'{{startTime}}'}, {'{{endTime}}'}, {'{{timezone}}'}, {'{{portalUrl}}'}. Prestation, date et horaires obligatoires. Texte brut uniquement.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSettings({ ...settings, portalConfirmationEmailTemplate: null })}
+              className="mt-1 text-sm text-indigo-700 underline"
+            >
+              Rétablir la confirmation par défaut
+            </button>
+          </div>
         </fieldset>
 
         <label className="flex items-center gap-3 rounded-xl bg-gray-50 p-4">

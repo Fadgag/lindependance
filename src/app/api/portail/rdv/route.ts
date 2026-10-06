@@ -111,6 +111,7 @@ export async function POST(request: Request) {
           timezone: created.timezone,
           portalUrl,
         },
+        template: created.confirmationEmailTemplate,
       })
     } catch (error: unknown) {
       emailSent = false

@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { prismaMock } = vi.hoisted(() => ({
-  prismaMock: { $transaction: vi.fn() },
+  prismaMock: { $transaction: vi.fn(), appointment: { findFirst: vi.fn() } },
 }))
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }))
 
-import { createCustomerPortalAppointment } from '@/services/customerPortalBooking.service'
+import {
+  createCustomerPortalAppointment,
+  getAppointmentConfirmationForCustomer,
+} from '@/services/customerPortalBooking.service'
 import { prisma } from '@/lib/prisma'
 
 const organization = {
@@ -14,6 +17,7 @@ const organization = {
   name: 'Atelier',
   slug: 'atelier',
   timezone: 'Europe/Paris',
+  portalConfirmationEmailTemplate: 'Rendez-vous {{serviceName}} le {{date}} à {{startTime}}-{{endTime}}',
   openingTime: '09:00',
   closingTime: '18:00',
 }
@@ -118,5 +122,41 @@ describe('createCustomerPortalAppointment', () => {
     })).rejects.toMatchObject({ status: 409 })
 
     expect(transaction.appointment.create).not.toHaveBeenCalled()
+  })
+
+  it('loads the custom confirmation template only for the verified appointment organization', async () => {
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue({
+      id: 'appointment-1',
+      startTime: new Date('2026-10-01T08:00:00.000Z'),
+      endTime: new Date('2026-10-01T09:00:00.000Z'),
+      createdAt: new Date('2026-09-30T12:00:00.000Z'),
+      service: { name: 'Coupe' },
+      organization: {
+        name: 'Atelier',
+        slug: 'atelier',
+        timezone: 'Europe/Paris',
+        portalConfirmationEmailTemplate: 'Rendez-vous {{serviceName}} le {{date}} à {{startTime}}-{{endTime}}',
+      },
+    } as never)
+
+    await expect(getAppointmentConfirmationForCustomer({
+      appointmentId: 'appointment-1',
+      organizationId: 'org-1',
+      verifiedEmail: 'client@example.test',
+    })).resolves.toMatchObject({
+      organizationSlug: 'atelier',
+      appointment: {
+        confirmationEmailTemplate: 'Rendez-vous {{serviceName}} le {{date}} à {{startTime}}-{{endTime}}',
+      },
+    })
+    expect(prisma.appointment.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        id: 'appointment-1',
+        organizationId: 'org-1',
+      }),
+      select: expect.objectContaining({
+        organization: { select: expect.objectContaining({ portalConfirmationEmailTemplate: true }) },
+      }),
+    }))
   })
 })

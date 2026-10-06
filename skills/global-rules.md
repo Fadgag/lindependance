@@ -20,11 +20,14 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
 - Ne pas afficher aux testeurs les identifiants internes `CUS-*` / `ADM-*`, les priorités `P0` / `P1` / `P2`, ni les autres détails techniques de suivi. Les conserver dans les données et outils internes lorsque nécessaires au suivi.
 - Le code, les API, les tests, les rapports et les explications destinés à l'équipe technique peuvent rester techniques. Adapter le niveau de langage au public visé sans simplifier ni masquer les informations techniques utiles aux développeurs.
 
-## 🗂️ Classement des idées d'amélioration
-- Avant d'ajouter ou de réorganiser une idée dans `AMELIORATIONS.md`, lire la liste existante et repérer les sujets proches, les doublons et les dépendances.
-- Ranger chaque idée sous le thème ou le chantier qui correspond à son objectif utilisateur et à sa surface fonctionnelle. Regrouper les sujets pouvant avancer ensemble lorsqu'ils partagent un parcours, une configuration ou une dépendance concrète ; ne pas les rapprocher uniquement parce qu'ils utilisent la même technologie.
-- Un regroupement sert à planifier : conserver une entrée, un statut et des critères d'acceptation distincts pour chaque résultat livrable. Préciser les sous-chantiers ou dépendances lorsqu'un lot n'est pas entièrement indivisible.
-- Préserver les priorités et statuts existants ; ne déclarer une amélioration réalisée qu'après vérification de ses critères d'acceptation. Lorsqu'une mise en œuvre est demandée, cadrer le lot utile sans embarquer automatiquement les autres idées du même thème.
+## 🗂️ Suivi des idées et des bugs
+- `AMELIORATIONS.md`, à la racine du dépôt, est la source de vérité pour les nouvelles idées et les bugs. Lorsqu'un utilisateur propose une amélioration ou signale un bug, l'y consigner au lieu de laisser l'information uniquement dans la conversation.
+- Avant d'ajouter ou de réorganiser une entrée, lire la liste existante et repérer les sujets proches, les doublons et les dépendances. Compléter l'entrée existante si le signalement concerne le même résultat ; ne pas fusionner des résultats livrables distincts.
+- Identifier chaque entrée comme **Amélioration** ou **Bug**, puis la ranger selon l'objectif utilisateur et la surface fonctionnelle concernés. Regrouper les idées qui partagent un parcours ou une dépendance concrète, pas uniquement une technologie.
+- Pour une amélioration, décrire le constat, le résultat souhaité et des critères d'acceptation vérifiables. Pour un bug, consigner le comportement observé et attendu, les étapes de reproduction connues, l'impact et les critères permettant de confirmer la correction. Ne pas présenter une hypothèse comme un bug confirmé ; noter les informations manquantes ou l'incertitude.
+- Ne pas inclure de secrets ni de données personnelles dans les descriptions ou diagnostics.
+- Préserver les priorités et statuts existants. Lorsqu'une mise en œuvre est demandée, traiter uniquement l'entrée ciblée sans embarquer automatiquement les autres idées du thème. Mettre à jour son statut et ne la déclarer réalisée/traitée qu'après vérification de ses critères d'acceptation.
+- Lors d'une revue ou d'un travail, inscrire dans `AMELIORATIONS.md` tout finding confirmé qui reste à corriger ou nécessite une décision ; si le finding est corrigé dans la même tâche, mettre à jour l'entrée correspondante après validation.
 
 ## 🔍 Revue après développement
 - Après toute tâche de développement qui modifie du code ou de la configuration, lancer `skills/reviewer.skill.md` une fois les tests et contrôles ciblés terminés, avant le compte rendu final. Cette revue est automatique : ne pas attendre une demande `/review`.

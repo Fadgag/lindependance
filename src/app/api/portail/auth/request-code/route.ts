@@ -76,6 +76,7 @@ export async function POST(request: Request) {
         to: email,
         code,
         organizationName: organization.name,
+        template: organization.portalOtpEmailTemplate ?? null,
       })
     } catch (error: unknown) {
       logger.error('Customer portal OTP delivery failed', error)
