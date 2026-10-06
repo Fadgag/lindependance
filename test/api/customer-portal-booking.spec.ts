@@ -53,7 +53,7 @@ function request(body: Record<string, unknown>) {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(getCustomerPortalSession).mockReturnValue(session)
+  vi.mocked(getCustomerPortalSession).mockResolvedValue(session)
   vi.mocked(createCustomerPortalAppointment).mockResolvedValue(created)
   vi.mocked(sendAppointmentConfirmation).mockResolvedValue(undefined)
 })
@@ -98,7 +98,7 @@ describe('POST /api/portail/rdv', () => {
   })
 
   it('requires a customer-only session', async () => {
-    vi.mocked(getCustomerPortalSession).mockReturnValueOnce(null)
+    vi.mocked(getCustomerPortalSession).mockResolvedValueOnce(null)
 
     const response = await POST(request({
       customerId: 'customer-1',

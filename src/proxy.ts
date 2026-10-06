@@ -1,13 +1,43 @@
 // Middleware Next.js — seul point d'entrée pour l'auth.
 // Utilise auth() de next-auth v5 pour valider la session et rediriger si nécessaire.
 import { auth } from "./auth"
+import { NextResponse } from 'next/server'
 import type { NextAuthRequest } from 'next-auth'
+
+function isBetaCampaignPath(pathname: string): boolean {
+  return pathname === '/test-campaigns'
+    || pathname.startsWith('/test-campaigns/')
+    || pathname === '/retour-test'
+    || pathname.startsWith('/retour-test/')
+}
+
+function isBetaCampaignApiPath(pathname: string): boolean {
+  return pathname === '/api/test-campaigns'
+    || pathname.startsWith('/api/test-campaigns/')
+    || pathname === '/api/test-feedback'
+    || pathname.startsWith('/api/test-feedback/')
+}
+
+function isPreprodDeployment(): boolean {
+  return process.env.VERCEL_ENV === 'preview'
+    && process.env.VERCEL_GIT_COMMIT_REF === 'preprod'
+}
 
 // RAISON: NextAuthRequest étend NextRequest avec `auth: Session | null` (next-auth v5).
 // On utilise NextAuthRequest plutôt qu'un cast ou une augmentation de module pour avoir
 // un typage correct sans double cast unsafe.
 async function middlewareFn(req: NextAuthRequest) {
   const pathname = String(req.nextUrl?.pathname ?? '')
+  const isBetaApi = isBetaCampaignApiPath(pathname)
+  if (isBetaCampaignPath(pathname) || isBetaApi) {
+    if (!isPreprodDeployment()) {
+      return isBetaApi
+        ? NextResponse.json({ error: 'Not found' }, { status: 404 })
+        : new Response(null, { status: 404 })
+    }
+    if (isBetaApi) return
+  }
+
   if (pathname === '/portail' || pathname.startsWith('/portail/')) return
   if (pathname === '/retour-test' || pathname.startsWith('/retour-test/')) return
 
@@ -17,7 +47,9 @@ async function middlewareFn(req: NextAuthRequest) {
 
   if (pathname === '/') {
     if (authClaim?.user?.accountType === 'STAFF') {
-      const destination = authClaim.user.role === 'TECH_ADMIN' ? '/test-campaigns' : '/dashboard'
+      const destination = authClaim.user.role === 'TECH_ADMIN' && isPreprodDeployment()
+        ? '/test-campaigns'
+        : '/dashboard'
       return Response.redirect(new URL(destination, req.nextUrl))
     }
     return
@@ -38,5 +70,9 @@ export const middleware: MiddlewareHandler = auth(middlewareFn) as unknown as Mi
 export default middleware
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    '/api/test-campaigns/:path*',
+    '/api/test-feedback/:path*',
+  ],
 }

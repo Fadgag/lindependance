@@ -15,7 +15,7 @@ import { createCustomerPortalAppointment } from '@/services/customerPortalBookin
 import { sendAppointmentConfirmation } from '@/services/customerPortalEmail.service'
 
 export async function GET(request: Request) {
-  const session = getCustomerPortalSession(request)
+  const session = await getCustomerPortalSession(request)
   if (!session || session.accountType !== 'CUSTOMER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const session = getCustomerPortalSession(request)
+  const session = await getCustomerPortalSession(request)
   if (!session || session.accountType !== 'CUSTOMER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

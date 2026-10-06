@@ -50,7 +50,7 @@ const confirmation = {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(getCustomerPortalSession).mockReturnValue(session)
+  vi.mocked(getCustomerPortalSession).mockResolvedValue(session)
   vi.mocked(getAppointmentConfirmationForCustomer).mockResolvedValue(confirmation)
   vi.mocked(sendAppointmentConfirmation).mockResolvedValue(undefined)
 })

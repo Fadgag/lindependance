@@ -43,7 +43,7 @@ const routeContext = { params: Promise.resolve({ organizationSlug: 'atelier' }) 
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(findEnabledPortalOrganization).mockResolvedValue(organization)
-  vi.mocked(getCustomerPortalSession).mockReturnValue({
+  vi.mocked(getCustomerPortalSession).mockResolvedValue({
     accountType: 'CUSTOMER',
     organizationId: 'org-internal',
     verifiedEmail: 'parent@example.com',

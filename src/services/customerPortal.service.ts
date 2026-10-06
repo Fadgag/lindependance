@@ -38,7 +38,11 @@ export interface PortalOrganization {
 
 export async function findEnabledPortalOrganization(slug: string): Promise<PortalOrganization | null> {
   return prisma.organization.findFirst({
-    where: { slug, portalEnabled: true },
+    where: {
+      slug,
+      portalEnabled: true,
+      staff: { some: { active: true } },
+    },
     select: {
       id: true,
       name: true,
@@ -63,7 +67,11 @@ export async function findEnabledPortalOrganizationForSession(
   session: CustomerPortalSession,
 ): Promise<PortalOrganization | null> {
   return prisma.organization.findFirst({
-    where: { id: session.organizationId, portalEnabled: true },
+    where: {
+      id: session.organizationId,
+      portalEnabled: true,
+      staff: { some: { active: true } },
+    },
     select: {
       id: true,
       name: true,
@@ -88,11 +96,14 @@ function getCookieValue(cookieHeader: string | null, name: string): string | nul
   return null
 }
 
-export function getCustomerPortalSession(request: Request): CustomerPortalSession | null {
-  return verifyCustomerPortalSession(
+export async function getCustomerPortalSession(request: Request): Promise<CustomerPortalSession | null> {
+  const session = verifyCustomerPortalSession(
     getCookieValue(request.headers.get('cookie'), CUSTOMER_PORTAL_SESSION_COOKIE),
     getCustomerPortalSecret(),
   )
+  if (!session) return null
+  const organization = await findEnabledPortalOrganizationForSession(session)
+  return organization ? session : null
 }
 
 export function setCustomerPortalSessionCookie(response: Response, token: string): Response {
