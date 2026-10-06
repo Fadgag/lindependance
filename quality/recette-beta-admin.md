@@ -221,13 +221,32 @@ et l'envoi des actions ; les états d'erreur réels doivent être vérifiés
 manuellement.
 **Résultat / preuve :** `________`
 
+#### [ ] ADM-13 — Personnaliser les e-mails du portail client
+**Priorité : P2 · Exigence :** [Req: formal — `customer-portal-email-customization.md`, critères 1–3]
+
+**Étapes :** dans Configuration → Portail, modifiez le message du code de
+connexion et celui de confirmation. Conservez les informations indispensables
+indiquées sous chaque champ, enregistrez, puis ouvrez de nouveau les réglages.
+Retirez la variable du code dans le premier message et vérifiez que
+l'enregistrement est refusé. Rétablissez enfin les deux messages par défaut.
+
+**Attendu :** les deux textes restent enregistrés pour votre salon. Un message
+qui ne contient pas le code ne peut pas être enregistré. Après réinitialisation,
+les messages par défaut sont de nouveau utilisés.
+
+**Automatisé :** `test/ui/customerPortalSettings.spec.tsx`,
+`test/schemas/customerPortal.spec.ts`,
+`test/services/customerPortalSettings.spec.ts` et
+`test/services/customerPortalEmail.spec.ts`. L'enregistrement depuis l'interface
+staff doit aussi être essayé sur l'environnement bêta.
+**Résultat / preuve :** `________`
+
 ## Couverture automatisée relue
 
-Le 1er octobre 2026, la sélection de tests portail client/admin a réussi :
-**26 fichiers, 87 tests**. Elle comprend les services et routes de revue, le
-compteur, l'UI et les mutations directes staff. La suite utilise des mocks pour
-plusieurs couches ; elle ne prouve pas le comportement complet d'un navigateur
-connecté à la base et aux e-mails bêta.
+Les suites automatisées pertinentes sont indiquées sous chaque scénario. Elles
+couvrent les règles, services, routes et composants concernés, parfois avec des
+doubles ou des mocks ; elles ne prouvent pas à elles seules le parcours complet
+d'un navigateur connecté à la base et aux e-mails bêta.
 
 ## Décision de sortie bêta
 

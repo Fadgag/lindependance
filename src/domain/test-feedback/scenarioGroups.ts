@@ -45,10 +45,10 @@ export const testScenarioGroups: ReadonlyArray<{
   {
     id: 'STAFF_ADMINISTRATION',
     label: 'Administration staff',
-    range: 'ADM-01 à ADM-12',
+    range: 'ADM-01 à ADM-13',
     profile: 'ADMIN',
     firstScenario: 1,
-    lastScenario: 12,
+    lastScenario: 13,
   },
 ]
 

@@ -34,8 +34,9 @@ Dès la commande `/builder [feature|infrastructure] [name]`, analyse la spec et 
 - Respecte le typage TypeScript : tout usage de `as` doit être documenté par `// RAISON: ...`.
 
 ### 3. Finalisation et Livrables
-Une fois le code prêt localement, exécute les tests et contrôles ciblés, puis lance la revue automatique prévue dans `skills/global-rules.md` en suivant `skills/reviewer.skill.md`. Si elle révèle un constat confirmé lié au développement, corrige-le puis relance tests et revue. Ensuite, présente un **Résumé Local** incluant :
+Une fois le code prêt localement, exécute les tests et contrôles ciblés. Si un parcours client ou staff change, applique ensuite `skills/quality-guide-updater.skill.md`, puis relance les tests affectés par les modifications des guides ou groupes de campagne. Lance enfin la revue automatique prévue dans `skills/global-rules.md` en suivant `skills/reviewer.skill.md`. Si elle révèle un constat confirmé lié au développement, corrige-le puis relance tests, guide updater si le comportement a changé, et revue. Ensuite, présente un **Résumé Local** incluant :
 - Le statut des tests (Vitest/Playwright).
+- Les guides de recette et scénarios ajoutés ou adaptés, le cas échéant.
 - Le chemin du rapport de revue et ses constats éventuels.
 - La liste des fichiers modifiés.
 - Un **CHANGELOG** succinct.

@@ -55,7 +55,7 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
 - Les groupes sélectionnables dans la campagne sont : « Réservation en ligne »
   (CUS-01 à CUS-10), « Mes rendez-vous et changements » (CUS-11 à CUS-15),
   « Sécurité et mobile » (CUS-16 à CUS-17) et « Administration staff »
-  (ADM-01 à ADM-12). Dans la checklist publique, ils sont présentés comme
+  (ADM-01 à ADM-13). Dans la checklist publique, ils sont présentés comme
   « Prendre rendez-vous », « Gérer mes rendez-vous », « Confidentialité et
   téléphone » et « Gérer le salon ». Chaque profil activé doit avoir au moins
   un groupe correspondant.

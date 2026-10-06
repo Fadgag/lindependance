@@ -13,6 +13,8 @@ présentée dans `AGENTS.md` et `CLAUDE.md` est générée par
 
 - [Builder](builder.skill.md) — implémentation guidée par les spécifications et TDD.
 - [Reviewer](reviewer.skill.md) — revue du diff, constats étayés et rapports datés.
+- [Quality Guide Updater](quality-guide-updater.skill.md) — synchronisation des
+  guides de recette après un changement fonctionnel validé.
 - [AutoFixer](auto-fixer.skill.md) — correction des constats confirmés d’une revue.
 - [Quality Playbook](quality-playbook.skill.md) — création d’un dispositif qualité adapté au projet.
 

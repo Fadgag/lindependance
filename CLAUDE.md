@@ -14,6 +14,7 @@ Liste générée depuis `skills/`. Voir `skills/README.md` pour les rôles et l�
 - `skills/builder.skill.md`
 - `skills/draw-io-diagram-generator.skill.md`
 - `skills/global-rules.md`
+- `skills/quality-guide-updater.skill.md`
 - `skills/quality-playbook.skill.md`
 - `skills/reviewer.skill.md`
 <!-- END:skills-list -->
