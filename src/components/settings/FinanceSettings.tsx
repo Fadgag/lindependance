@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Target, Info } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFacingMutationError, getUserFacingNetworkError } from "@/lib/userFacingMutationError";
 
 export default function FinanceSettings() {
   const [target, setTarget] = useState<number>(0); // valeur initiale chargée depuis l'API
@@ -17,7 +18,7 @@ export default function FinanceSettings() {
         if (!res.ok) return
         const data = await res.json()
         if (mounted && typeof data?.dailyTarget === 'number') setTarget(data.dailyTarget)
-      } catch (_err: unknown) {
+      } catch {
         // silent failure: keep default 0
       }
     })()
@@ -32,8 +33,9 @@ export default function FinanceSettings() {
         body: JSON.stringify({ dailyTarget: Number(target) }),
       });
       if (res.ok) toast.success("Objectif de CA mis à jour !");
-    } catch (_error: unknown) {
-      toast.error("Erreur lors de la sauvegarde");
+      else toast.error(getUserFacingMutationError("finance-update", res.status));
+    } catch {
+      toast.error(getUserFacingNetworkError("finance-update"));
     } finally {
       setLoading(false);
     }
@@ -67,7 +69,7 @@ export default function FinanceSettings() {
 
         <div className="flex gap-3 p-4 bg-amber-50 rounded-xl text-amber-800 text-sm">
           <Info size={20} className="shrink-0" />
-          <p>Ce montant apparaîtra comme une ligne d'objectif sur votre graphique de bord principal.</p>
+          <p>Ce montant apparaîtra comme une ligne d&apos;objectif sur votre graphique de bord principal.</p>
         </div>
 
         <div className="flex justify-end">

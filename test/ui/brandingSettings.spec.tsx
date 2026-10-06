@@ -5,6 +5,7 @@ import BrandingSettings from '@/components/settings/BrandingSettings'
 const savedBranding = {
   logoDataUrl: null,
   logoShape: 'square',
+  logoSize: 'large',
   organizationName: 'Nouveau salon',
   showNameWithLogo: true,
 }
@@ -19,6 +20,7 @@ beforeEach(() => {
     return new Response(JSON.stringify({
       logoDataUrl: null,
       logoShape: 'circle',
+      logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
     }), { status: 200 })
@@ -38,7 +40,8 @@ describe('BrandingSettings', () => {
       target: { value: 'Nouveau salon' },
     })
     fireEvent.click(await screen.findByRole('radio', { name: 'Carré' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Afficher le nom à côté du logo' }))
+    fireEvent.click(await screen.findByRole('radio', { name: 'Grand' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Afficher le nom avec le logo/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer les modifications' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Personnalisation enregistrée.')
@@ -47,6 +50,7 @@ describe('BrandingSettings', () => {
     expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual({
       logoDataUrl: null,
       logoShape: 'square',
+      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
     })

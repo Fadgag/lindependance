@@ -23,17 +23,39 @@ describe('customer portal staff-managed contact email', () => {
 })
 
 describe('customer portal request schemas', () => {
-  it('requires a public slug when activating a portal and validates its timezone', () => {
+  it('requires a slug and valid timezone when activating a portal', () => {
     expect(CustomerPortalSettingsSchema.safeParse({
       slug: null,
       portalEnabled: true,
       timezone: 'Europe/Paris',
+      portalContactPhone: '+33123456789',
+      portalContactEmail: null,
     }).success).toBe(false)
     expect(CustomerPortalSettingsSchema.safeParse({
       slug: 'atelier-dupont',
       portalEnabled: true,
       timezone: 'Not/A-Timezone',
+      portalContactPhone: '+33123456789',
+      portalContactEmail: null,
     }).success).toBe(false)
+    expect(CustomerPortalSettingsSchema.safeParse({
+      slug: 'atelier-dupont',
+      portalEnabled: true,
+      timezone: 'Europe/Paris',
+      portalContactPhone: null,
+      portalContactEmail: null,
+    }).success).toBe(true)
+    const validSettings = CustomerPortalSettingsSchema.safeParse({
+      slug: 'atelier-dupont',
+      portalEnabled: true,
+      timezone: 'Europe/Paris',
+      portalContactPhone: null,
+      portalContactEmail: ' Contact@Example.com ',
+    })
+    expect(validSettings.success).toBe(true)
+    if (validSettings.success) {
+      expect(validSettings.data.portalContactEmail).toBe('contact@example.com')
+    }
   })
 
   it('rejects organization identifiers in OTP requests', () => {

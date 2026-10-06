@@ -1,19 +1,45 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 
 const { sessionState, fetchMock } = vi.hoisted(() => ({
   sessionState: { current: null as null | { user: { organizationId: string } } },
   fetchMock: vi.fn<typeof fetch>(),
 }))
 
+let triggerResizeObserver: (() => void) | null = null
+
+class TestResizeObserver implements ResizeObserver {
+  root: Element | Document | null = null
+  rootMargin = ''
+  thresholds: readonly number[] = []
+
+  constructor(private readonly callback: ResizeObserverCallback) {
+    triggerResizeObserver = () => this.callback([], this)
+  }
+
+  observe(target: Element) {
+    this.root = target
+  }
+
+  unobserve() {}
+
+  disconnect() {
+    triggerResizeObserver = null
+  }
+
+}
+
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: sessionState.current, status: 'authenticated' }),
 }))
 
 import OrganizationBrand from '@/components/layout/OrganizationBrand'
+import { shouldStackOrganizationBrand } from '@/components/layout/organizationBrandLayout'
 import { resetOrganizationBrandingCache } from '@/hooks/useOrganizationBranding'
 
 beforeEach(() => {
+  triggerResizeObserver = null
+  vi.stubGlobal('ResizeObserver', TestResizeObserver)
   resetOrganizationBrandingCache()
   sessionState.current = { user: { organizationId: 'org-1' } }
   fetchMock.mockReset()
@@ -24,6 +50,7 @@ beforeEach(() => {
     return new Response(JSON.stringify({
       logoDataUrl: dataUrl,
       logoShape: 'circle',
+      logoSize: 'medium',
       organizationName: sessionState.current?.user.organizationId === 'org-1' ? 'Salon 1' : 'Salon 2',
       showNameWithLogo: false,
     }), { status: 200 })
@@ -32,6 +59,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.restoreAllMocks()
+  triggerResizeObserver = null
   resetOrganizationBrandingCache()
   vi.unstubAllGlobals()
 })
@@ -61,6 +90,7 @@ describe('OrganizationBrand', () => {
       .mockImplementationOnce(async () => new Response(JSON.stringify({
         logoDataUrl: 'data:image/webp;base64,AQ==',
         logoShape: 'circle',
+        logoSize: 'medium',
         organizationName: 'Salon 1',
         showNameWithLogo: false,
       }), { status: 200 }))
@@ -77,6 +107,7 @@ describe('OrganizationBrand', () => {
     completeInitialRequest?.(new Response(JSON.stringify({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
+      logoSize: 'medium',
       organizationName: 'Salon 1',
       showNameWithLogo: false,
     }), { status: 200 }))
@@ -87,17 +118,60 @@ describe('OrganizationBrand', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
-  it('shows the organization name beside its logo when that preference is enabled', async () => {
+  it('shows the organization name with its logo when that preference is enabled', async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
+      logoSize: 'large',
       organizationName: 'Studio Étoile',
       showNameWithLogo: true,
     }), { status: 200 }))
 
     render(<OrganizationBrand variant="mobile" />)
 
-    expect(await screen.findByText('Studio Étoile')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Logo de l’organisation' })).toBeInTheDocument()
+    expect(await screen.findByTitle('Studio Étoile')).toHaveClass('order-2')
+    expect(screen.getByRole('img', { name: 'Logo de l’organisation' })).toHaveClass('size-12', 'order-1')
+  })
+
+  it('stacks the title below the logo only when the remaining width is insufficient', () => {
+    expect(shouldStackOrganizationBrand(200, 120, 48, 12)).toBe(false)
+    expect(shouldStackOrganizationBrand(170, 120, 48, 12)).toBe(true)
+  })
+
+  it('moves the title below the logo when resizing leaves insufficient width', async () => {
+    let availableWidth = 200
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => availableWidth)
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const width = this.getAttribute('aria-hidden') === 'true'
+        ? 120
+        : this.getAttribute('role') === 'img' ? 48 : 0
+      return new DOMRect(0, 0, width, 32)
+    })
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      logoDataUrl: 'data:image/webp;base64,AA==',
+      logoShape: 'circle',
+      logoSize: 'large',
+      organizationName: 'Studio Étoile',
+      showNameWithLogo: true,
+    }), { status: 200 }))
+
+    render(<OrganizationBrand variant="mobile" />)
+
+    const title = await screen.findByTitle('Studio Étoile')
+    const logo = screen.getByRole('img', { name: 'Logo de l’organisation' })
+    await waitFor(() => {
+      expect(title).toHaveClass('order-2', 'text-right')
+      expect(logo).toHaveClass('order-1')
+    })
+
+    act(() => {
+      availableWidth = 170
+      triggerResizeObserver?.()
+    })
+
+    await waitFor(() => {
+      expect(title).toHaveClass('order-2', 'text-center')
+      expect(logo).toHaveClass('order-1')
+    })
   })
 })

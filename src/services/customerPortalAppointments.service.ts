@@ -42,7 +42,11 @@ export async function getCustomerPortalAppointments(input: CustomerPortalAppoint
 }): Promise<{ timezone: string; appointments: CustomerPortalAppointmentSummary[] }> {
   const now = input.now ?? new Date()
   const organization = await prisma.organization.findFirst({
-    where: { id: input.organizationId, portalEnabled: true },
+    where: {
+      id: input.organizationId,
+      portalEnabled: true,
+      staff: { some: { active: true } },
+    },
     select: { id: true, timezone: true },
   })
   if (!organization) throw new CustomerPortalHttpError(404, 'Portal not found')
@@ -106,7 +110,11 @@ export async function cancelCustomerPortalAppointment(input: CustomerPortalAppoi
 
   await withSerializableRetry(async (transaction: Prisma.TransactionClient) => {
     const organization = await transaction.organization.findFirst({
-      where: { id: input.organizationId, portalEnabled: true },
+      where: {
+        id: input.organizationId,
+        portalEnabled: true,
+        staff: { some: { active: true } },
+      },
       select: { id: true },
     })
     if (!organization) throw new CustomerPortalHttpError(404, 'Portal not found')

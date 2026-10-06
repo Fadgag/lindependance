@@ -123,7 +123,11 @@ describe('/api/staff', () => {
     vi.mocked(auth).mockResolvedValue({
       user: { organizationId: 'org-1', role: 'ADMIN' },
     } as never)
-    vi.mocked(updateOrganizationStaff).mockResolvedValue(true)
+    vi.mocked(updateOrganizationStaff).mockResolvedValue({
+      status: 'updated',
+      portalDisabled: false,
+      notificationSent: null,
+    })
 
     const response = await PUT(put('staff-1', {
       firstName: 'Camille',
@@ -131,7 +135,11 @@ describe('/api/staff', () => {
     }))
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ success: true })
+    expect(await response.json()).toEqual({
+      success: true,
+      portalDisabled: false,
+      notificationSent: null,
+    })
     expect(updateOrganizationStaff).toHaveBeenCalledWith({
       id: 'staff-1',
       organizationId: 'org-1',
@@ -144,7 +152,11 @@ describe('/api/staff', () => {
     vi.mocked(auth).mockResolvedValue({
       user: { organizationId: 'org-1', role: 'ADMIN' },
     } as never)
-    vi.mocked(updateOrganizationStaff).mockResolvedValue(true)
+    vi.mocked(updateOrganizationStaff).mockResolvedValue({
+      status: 'updated',
+      portalDisabled: false,
+      notificationSent: null,
+    })
 
     const response = await PUT(put('staff-1', {
       firstName: 'Camille',
@@ -166,7 +178,7 @@ describe('/api/staff', () => {
     vi.mocked(auth).mockResolvedValue({
       user: { organizationId: 'org-1', role: 'ADMIN' },
     } as never)
-    vi.mocked(updateOrganizationStaff).mockResolvedValue(false)
+    vi.mocked(updateOrganizationStaff).mockResolvedValue({ status: 'not_found' })
 
     const response = await PUT(put('foreign-staff', {
       firstName: 'Camille',
@@ -186,7 +198,12 @@ describe('/api/staff', () => {
     } as never)
     vi.mocked(archiveOrganizationStaff)
       .mockResolvedValueOnce({ status: 'confirmation_required', appointmentCount: 2 })
-      .mockResolvedValueOnce({ status: 'archived', appointmentCount: 2 })
+      .mockResolvedValueOnce({
+        status: 'archived',
+        appointmentCount: 2,
+        portalDisabled: false,
+        notificationSent: null,
+      })
 
     const warningResponse = await DELETE(remove('staff-1'))
 
@@ -202,7 +219,12 @@ describe('/api/staff', () => {
 
     const response = await DELETE(remove('staff-1', 2))
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ success: true, appointmentCount: 2 })
+    expect(await response.json()).toEqual({
+      success: true,
+      appointmentCount: 2,
+      portalDisabled: false,
+      notificationSent: null,
+    })
     expect(archiveOrganizationStaff).toHaveBeenLastCalledWith({
       id: 'staff-1',
       organizationId: 'org-1',

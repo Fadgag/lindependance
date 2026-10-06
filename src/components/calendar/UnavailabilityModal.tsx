@@ -8,6 +8,7 @@ import { Trash2, BanIcon, RefreshCw } from 'lucide-react'
 import BaseModal from '@/components/ui/BaseModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { logger } from '@/lib/logger'
+import { getUserFacingMutationError, getUserFacingNetworkError } from '@/lib/userFacingMutationError'
 import type { Recurrence } from '@/types/models'
 import { RECURRENCE_OPTIONS, RECURRENCE_LABELS } from '@/types/models'
 
@@ -121,24 +122,34 @@ export default function UnavailabilityModal({
         recurrence,
       })
 
-      const res = await fetch('/api/unavailability', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        // On passe toujours allDay: false — on utilise des plages horaires pour rester visible dans la grille
-        body: JSON.stringify({ title: title.trim(), start, end, allDay: false, recurrence }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const count = data?.count ?? 1
-        toast.success(count > 1 ? `${count} créneaux bloqués (${RECURRENCE_LABELS[recurrence]})` : 'Créneau bloqué')
-        onClose(); onSuccess()
-      } else {
-        const data = await res.json().catch(() => ({}))
-        toast.error(data?.error ?? 'Erreur lors de l\'enregistrement')
+      let res: Response
+      try {
+        res = await fetch('/api/unavailability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          // On passe toujours allDay: false — on utilise des plages horaires pour rester visible dans la grille
+          body: JSON.stringify({ title: title.trim(), start, end, allDay: false, recurrence }),
+        })
+      } catch {
+        toast.error(getUserFacingNetworkError('unavailability-save'))
+        return
       }
-    } catch { toast.error('Erreur réseau') }
-    finally { setIsSaving(false) }
+
+      if (!res.ok) {
+        toast.error(getUserFacingMutationError('unavailability-save', res.status))
+        return
+      }
+      const data: unknown = await res.json().catch(() => null)
+      const count = typeof data === 'object' && data !== null && 'count' in data && typeof data.count === 'number'
+        ? data.count
+        : 1
+      toast.success(count > 1 ? `${count} créneaux bloqués (${RECURRENCE_LABELS[recurrence]})` : 'Créneau bloqué')
+      onClose()
+      onSuccess()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDelete = async (deleteAll: boolean) => {
@@ -153,13 +164,23 @@ export default function UnavailabilityModal({
     setIsSaving(true)
     try {
       const qs = deleteAll ? `?id=${editingId}&deleteAll=1` : `?id=${editingId}`
-      const res = await fetch(`/api/unavailability${qs}`, { method: 'DELETE', credentials: 'include' })
-      if (res.ok) {
-        toast.success(deleteAll ? 'Série supprimée' : 'Occurrence supprimée')
-        onClose(); onSuccess()
-      } else { toast.error('Erreur lors de la suppression') }
-    } catch { toast.error('Erreur réseau') }
-    finally { setIsSaving(false) }
+      let res: Response
+      try {
+        res = await fetch(`/api/unavailability${qs}`, { method: 'DELETE', credentials: 'include' })
+      } catch {
+        toast.error(getUserFacingNetworkError('unavailability-delete'))
+        return
+      }
+      if (!res.ok) {
+        toast.error(getUserFacingMutationError('unavailability-delete', res.status))
+        return
+      }
+      toast.success(deleteAll ? 'Série supprimée' : 'Occurrence supprimée')
+      onClose()
+      onSuccess()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (!isOpen) return null
@@ -287,4 +308,3 @@ export default function UnavailabilityModal({
     </>
   )
 }
-

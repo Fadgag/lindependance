@@ -14,14 +14,12 @@ describe('test scenario links', () => {
     ])
   })
 
-  it('links timezone and public-agenda scenarios to their relevant portal screens', () => {
+  it('links customer scenarios only to the remaining portal screens', () => {
     expect(getTestScenarioLinks('USER', 'CUS-03', 'osez-le-tre', true)).toEqual([
       { href: '/portail/osez-le-tre/reserver', label: 'Ouvrir le portail de réservation' },
       { href: '/portail/osez-le-tre/mes-rdv', label: 'Ouvrir Mes rendez-vous' },
     ])
-    expect(getTestScenarioLinks('USER', 'CUS-04', 'osez-le-tre', true)).toEqual([
-      { href: '/portail/osez-le-tre/agenda', label: 'Ouvrir l’agenda public' },
-    ])
+    expect(getTestScenarioLinks('USER', 'CUS-04', 'osez-le-tre', true)).toEqual([])
   })
 
   it('provides both customer and staff-protection links for the security scenario', () => {

@@ -30,6 +30,8 @@ client doit d'abord être créé par le staff.
     // ...champs existants...
     slug              String?  @unique // ex: "salon-dupont" — nullable pour compat existant, requis pour activer le portail
     portalEnabled     Boolean  @default(false)
+    portalContactPhone String? // numéro public affiché sur le portail
+    portalContactEmail String? // e-mail public affiché sur le portail
   }
   ```
   - `slug` : identifiant public lisible, généré à la création/à l'activation
@@ -38,6 +40,16 @@ client doit d'abord être créé par le staff.
   - `portalEnabled` : **flag d'activation explicite par organisation** (cf.
     point 4 ci-dessous) — le portail est **désactivé par défaut**, une
     organisation doit l'activer volontairement (`/settings/portail`).
+  - L'activation requiert au moins un praticien actif et au moins un moyen de
+    contact public (`portalContactPhone` ou `portalContactEmail`).
+  - La désactivation ou l'archivage du dernier praticien actif désactive
+    `portalEnabled` dans la même transaction. Un e-mail est envoyé après commit
+    à tous les utilisateurs `ADMIN` de cette organisation. Réactiver un
+    praticien ne réactive pas le portail ; un administrateur doit le réactiver
+    explicitement.
+  - `/settings/portail` permet aux administrateurs de configurer le téléphone
+    et l'e-mail publics du salon. Ces coordonnées ne sont jamais les coordonnées
+    d'une fiche client.
 - Toutes les routes `/portail/*` et `/api/portail/*` résolvent l'organisation
   via `slug` (`prisma.organization.findFirst({ where: { slug, portalEnabled: true } })`),
   puis utilisent son `id` interne pour toutes les requêtes suivantes — jamais
@@ -48,8 +60,10 @@ client doit d'abord être créé par le staff.
   exclusivement l'organisation de la session OTP ; si le slug est présent dans
   leur chemin, il doit correspondre à cette organisation. Ne jamais accepter
   un `organizationId` arbitraire du navigateur.
-- Si `portalEnabled` est `false` ou le `slug` inconnu → `404` (pas de fuite
-  d'existence de l'organisation).
+- Si `portalEnabled` est `false`, si aucun praticien n'est actif ou si le
+  `slug` est inconnu → `404` (pas de fuite d'existence de l'organisation).
+  Cette vérification s'applique aux pages publiques, aux API et aux sessions
+  client déjà ouvertes.
 
 ### 1. Modèle de données (Prisma)
 - **Pas de modèle `CustomerAccount`** : la fiche `Customer` existante reste la
@@ -103,6 +117,8 @@ client doit d'abord être créé par le staff.
      fiches client portant cette adresse existent dans cette organisation,
      le serveur envoie un code par email. Dans tous les cas, la réponse est générique et
      identique pour empêcher l'énumération des fiches.
+     Le formulaire affiche aussi une aide neutre invitant à contacter le salon
+     si le code n'arrive pas, avec ses coordonnées publiques configurées.
   2. Le client saisit le code dans un champ `autocomplete="one-time-code"`
      (autoremplissage best-effort selon navigateur/appareil ; l'API WebOTP ne
      s'applique pas aux emails).
@@ -121,6 +137,8 @@ client doit d'abord être créé par le staff.
 - `/portail/[organizationSlug]/reserver` : sélection obligatoire d'une
   prestation `Service` proposée par l'organisation → **praticien** (`Staff`, cf. règle ci-dessous)
   → créneau disponible → connexion OTP si nécessaire → confirmation.
+- La page de réservation affiche toujours le nom de l'organisation et son logo
+  lorsqu'il est configuré, afin que le client puisse vérifier le salon choisi.
 - La prestation détermine la durée réelle du rendez-vous. L'interface peut
   afficher la durée et le prix de la prestation sélectionnée ; le serveur
   recharge `Service` dans l'organisation résolue et dérive `duration`/`endTime`
@@ -182,29 +200,7 @@ client doit d'abord être créé par le staff.
   vérifiée côté serveur, dans le fuseau de l'organisation ; masquer le bouton
   seul ne suffit pas.
 
-### 3bis. Vue Agenda anonymisée (`/portail/[organizationSlug]/agenda`)
-- Le client connecté (ou anonyme) peut consulter l'agenda de l'organisation en
-  vue calendrier (jour/semaine), réutilisant si possible le composant
-  FullCalendar déjà utilisé côté back-office (`agenda`), en mode lecture seule
-  simplifié.
-- **Anonymisation obligatoire** : chaque créneau occupé (`Appointment` avec
-  `status` ≠ `CANCELLED`, ou `Unavailability`) s'affiche comme un bloc
-  générique **"Réservé"**, sans nom de client, sans prestation, sans note, sans
-  prix. Seuls la plage horaire (start/end) et le fait que le créneau soit
-  indisponible sont exposés.
-- Un endpoint public/portail dédié
-  `GET /api/portail/[organizationSlug]/agenda?date=` retourne
-  **uniquement** `{ start, end, status: "RESERVED" | "UNAVAILABLE" }` — jamais
-  les champs `customerId`, `title`, `note`, `service`, `price`, `staff`. Ne pas
-  réutiliser tel quel `/api/appointments` (qui expose les données complètes
-  pour le back-office) : soit un mapper strict de projection, soit une query
-  Prisma dédiée avec `select` minimal pour éviter toute fuite de champ par
-  erreur (ex: un futur champ ajouté à `Appointment` ne doit pas se retrouver
-  exposé "par défaut").
-- Les créneaux libres restent cliquables pour lancer directement le parcours
-  de réservation (§3) pré-rempli avec l'horaire choisi.
-
-### 3ter. Modification d'un RDV = demande soumise à validation admin
+### 3bis. Modification d'un RDV = demande soumise à validation admin
 - Contrairement à l'annulation (directe, cf. §3), un client **ne peut jamais**
   modifier lui-même la date/heure d'un RDV existant. Il ne peut que **soumettre
   une demande de modification**, que le staff doit approuver ou refuser depuis
@@ -289,8 +285,6 @@ client doit d'abord être créé par le staff.
 - `GET /api/portail/[organizationSlug]/creneaux?serviceId=&staffId=&date=`
   (créneaux disponibles pour la prestation et, lorsque nécessaire, le
   praticien sélectionnés ; la durée est lue en base depuis `Service`).
-- `GET /api/portail/[organizationSlug]/agenda?date=` (vue calendrier
-  anonymisée, cf. §3bis).
 - `GET /api/portail/rdv` (client authentifié) : retourne uniquement les RDV
   futurs non annulés des fiches reliées au couple
   `(session.organizationId, session.verifiedEmail)`, avec une projection
@@ -302,10 +296,10 @@ client doit d'abord être créé par le staff.
 - `DELETE /api/portail/rdv/[id]` (annulation directe, vérifie que le RDV
   appartient à une fiche reliée au couple
   `(session.organizationId, session.verifiedEmail)`).
-- `POST /api/portail/rdv/[id]/demande-modification` (cf. §3ter — ne modifie
+- `POST /api/portail/rdv/[id]/demande-modification` (cf. §3bis — ne modifie
   jamais le RDV directement).
-- `POST /api/appointments/change-requests/[id]/approve` (staff only, cf. §3ter).
-- `POST /api/appointments/change-requests/[id]/reject` (staff only, cf. §3ter).
+- `POST /api/appointments/change-requests/[id]/approve` (staff only, cf. §3bis).
+- `POST /api/appointments/change-requests/[id]/reject` (staff only, cf. §3bis).
 
 ### 4bis. Anti double-booking — garantie transactionnelle (durcissement)
 - **Constat sur l'existant** : `src/domain/appointment/policies.ts` fournit
@@ -373,7 +367,7 @@ client doit d'abord être créé par le staff.
   le domaine, pour ne pas bloquer une itération suivante).
 
 ### 5.3 Rate limiting élargi sur les demandes de modification
-- Au-delà de la règle "1 demande `PENDING` par RDV" (§3ter), plafonner le
+- Au-delà de la règle "1 demande `PENDING` par RDV" (§3bis), plafonner le
   nombre total de demandes de modification qu'un client authentifié peut créer
   sur une fenêtre glissante (**5 demandes / 24h**, tous RDV confondus),
   pour éviter le spam applicatif côté back-office. Réutilise le même
@@ -431,12 +425,6 @@ client doit d'abord être créé par le staff.
   Seules les routes `approve`/`reject` (protégées par session **staff**,
   vérification `role`/`accountType === "STAFF"` + `organizationId`) peuvent
   modifier l'`Appointment`.
-- [ ] **Anonymisation de l'agenda (§3bis)** : la réponse de
-  `GET /api/portail/[organizationSlug]/agenda` ne doit jamais contenir
-  `customerId`, nom/prénom, `note`, `service`, `price`/`finalPrice`, `staffId`.
-  Test dédié : sérialiser la réponse JSON et vérifier l'absence de ces clés
-  (pas seulement masquer côté UI).
-
 ## 📱 Expérience Utilisateur (UX)
 - Mobile first (le parcours client se fait majoritairement depuis un
   smartphone).
@@ -485,9 +473,9 @@ client doit d'abord être créé par le staff.
   parent/enfant.
 - OTP email sécurisé et session client isolée, puis sélection de la fiche
   concernée lorsqu'un email est lié à plusieurs personnes.
-- Consultation des prestations, vue agenda anonymisée et créneaux calculés
-  depuis la durée réelle du service, les heures d'ouverture, les rendez-vous et
-  les indisponibilités existantes.
+- Consultation des prestations et créneaux calculés depuis la durée réelle du
+  service, les heures d'ouverture, les rendez-vous et les indisponibilités
+  existantes.
 - Création fiable du RDV sans chevauchement, y compris face à une création ou
   modification concurrente du staff ; email de confirmation avec événement
   `.ics`.
@@ -553,10 +541,8 @@ client doit d'abord être créé par le staff.
    à 24h ou moins, l'API la refuse et l'interface invite à contacter le staff.
 7. Une session `CUSTOMER` ne peut atteindre aucune route back-office
    (`/dashboard`, `/api/customers`, etc.).
-8. Sur la vue agenda (§3bis), les créneaux occupés affichent "Réservé" sans
-   aucune donnée personnelle (nom, service, prix, note) — vérifié à la fois en
-   E2E (UI) et par un test d'intégration sur le payload JSON de
-   `/api/portail/[organizationSlug]/agenda`.
+8. La page de réservation affiche le nom de l'organisation et son logo
+   lorsqu'il est configuré.
 9. Deux clients qui réservent le même créneau en simultané (test de
    concurrence, requêtes parallèles) : un seul obtient le RDV, l'autre reçoit
    `409 Conflit horaire détecté` — jamais de double insertion en base.

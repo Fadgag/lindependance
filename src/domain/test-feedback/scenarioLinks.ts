@@ -15,11 +15,6 @@ const appointmentsLink = (slug: string): TestScenarioLink => ({
   label: 'Ouvrir Mes rendez-vous',
 })
 
-const publicAgendaLink = (slug: string): TestScenarioLink => ({
-  href: `/portail/${encodeURIComponent(slug)}/agenda`,
-  label: 'Ouvrir l’agenda public',
-})
-
 export function getTestScenarioLinks(
   profile: TestProfile,
   scenarioId: string,
@@ -44,8 +39,8 @@ export function getTestScenarioLinks(
   if (!portalEnabled || !organizationSlug) return []
 
   const number = Number(scenarioId.match(/^CUS-(\d{2})$/)?.[1])
+  if (number === 4) return []
   if (number === 3) return [bookingLink(organizationSlug), appointmentsLink(organizationSlug)]
-  if (number === 4) return [publicAgendaLink(organizationSlug)]
   if (number >= 1 && number <= 10) return [bookingLink(organizationSlug)]
   if (number >= 11 && number <= 15) return [appointmentsLink(organizationSlug)]
   if (number === 17) return [bookingLink(organizationSlug), appointmentsLink(organizationSlug)]

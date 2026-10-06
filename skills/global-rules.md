@@ -20,6 +20,12 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
 - Ne pas afficher aux testeurs les identifiants internes `CUS-*` / `ADM-*`, les priorités `P0` / `P1` / `P2`, ni les autres détails techniques de suivi. Les conserver dans les données et outils internes lorsque nécessaires au suivi.
 - Le code, les API, les tests, les rapports et les explications destinés à l'équipe technique peuvent rester techniques. Adapter le niveau de langage au public visé sans simplifier ni masquer les informations techniques utiles aux développeurs.
 
+## 🗂️ Classement des idées d'amélioration
+- Avant d'ajouter ou de réorganiser une idée dans `AMELIORATIONS.md`, lire la liste existante et repérer les sujets proches, les doublons et les dépendances.
+- Ranger chaque idée sous le thème ou le chantier qui correspond à son objectif utilisateur et à sa surface fonctionnelle. Regrouper les sujets pouvant avancer ensemble lorsqu'ils partagent un parcours, une configuration ou une dépendance concrète ; ne pas les rapprocher uniquement parce qu'ils utilisent la même technologie.
+- Un regroupement sert à planifier : conserver une entrée, un statut et des critères d'acceptation distincts pour chaque résultat livrable. Préciser les sous-chantiers ou dépendances lorsqu'un lot n'est pas entièrement indivisible.
+- Préserver les priorités et statuts existants ; ne déclarer une amélioration réalisée qu'après vérification de ses critères d'acceptation. Lorsqu'une mise en œuvre est demandée, cadrer le lot utile sans embarquer automatiquement les autres idées du même thème.
+
 ## 🔍 Revue après développement
 - Après toute tâche de développement qui modifie du code ou de la configuration, lancer `skills/reviewer.skill.md` une fois les tests et contrôles ciblés terminés, avant le compte rendu final. Cette revue est automatique : ne pas attendre une demande `/review`.
 - Examiner le diff complet de la branche par rapport à `preprod` (ou à la base réelle de la PR), en incluant les modifications staged, unstaged et les nouveaux fichiers non suivis. Exclure le rapport de revue lui-même. Les tâches strictement documentaires ne nécessitent pas cette revue automatique.

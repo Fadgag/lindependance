@@ -315,3 +315,8 @@ cartes lisibles.
 10. Aucune donnée personnelle du testeur ni liste de destinataires n'est stockée.
    Rate limit, droits et
    isolation sont testés ; TypeScript et lint passent.
+11. Depuis le détail d'une campagne, le `TECH_ADMIN` peut télécharger un fichier
+    JSON UTF-8 comprenant les métadonnées de campagne, les scénarios et leur
+    résultat courant, l'historique complet et les réponses/commentaires du
+    questionnaire. L'export n'inclut ni le jeton public, ni les identifiants
+    internes de campagne ou d'enregistrement, ni les destinataires.

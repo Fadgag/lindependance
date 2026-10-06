@@ -7,6 +7,7 @@ import type { Customer as CustomerType, Service as ServiceType, CustomerPackageS
 import type { DateSelectArg } from '@fullcalendar/core'
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings'
 import { useCustomerPackages } from '@/hooks/useCustomerPackages'
+import { getUserFacingMutationError, getUserFacingNetworkError } from '@/lib/userFacingMutationError'
 
 type Range = { start: Date; end: Date }
 type InitialData = Partial<{
@@ -15,19 +16,6 @@ type InitialData = Partial<{
   duration: number; note: string;
   extendedProps?: Record<string, unknown>
 }>
-
-function extractErrorMessage(payload: unknown): string | null {
-  if (!payload) return null
-  if (typeof payload === 'string') return payload
-  if (typeof payload === 'object' && payload !== null) {
-    // RAISON: narrowing nécessaire pour traiter `payload` typé `unknown` comme objet
-    const p = payload as Record<string, unknown>
-    const e = p['error'] ?? p['message'] ?? p['detail']
-    if (typeof e === 'string') return e
-    try { return JSON.stringify(payload) } catch { return null }
-  }
-  return null
-}
 
 export interface UseAppointmentFormReturn {
   // State
@@ -249,18 +237,22 @@ export function useAppointmentForm({
         try { onCloseAction(); await onSuccess() }
         catch (err: unknown) {
           import('@/lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed', err))
-          if (mountedRef.current) toast.error("Erreur lors de la mise à jour de l'agenda.")
+          if (mountedRef.current) toast.error("Le rendez-vous a été enregistré, mais l'agenda n'a pas pu être actualisé. Actualisez la page.")
         } finally { if (mountedRef.current) setIsSaving(false) }
       } else {
         let payload: unknown = null
         try { payload = await res.json() } catch { /* ignore */ }
         import('@/lib/clientLogger').then(({ clientError }) => clientError('Save failed', { status: res.status, payload }))
-        if (res.status === 409) { setCollision(true); setIsSaving(false) }
-        else { toast.error('Erreur serveur: ' + (extractErrorMessage(payload) || `HTTP ${res.status}`)); setIsSaving(false) }
+        if (res.status === 409) setCollision(true)
+        toast.error(getUserFacingMutationError('appointment-save', res.status))
+        if (mountedRef.current) setIsSaving(false)
       }
     } catch (err: unknown) {
       import('@/lib/clientLogger').then(({ clientError }) => clientError('Save error', err))
-      setIsSaving(false)
+      if (mountedRef.current) {
+        toast.error(getUserFacingNetworkError('appointment-save'))
+        setIsSaving(false)
+      }
     }
   }
 
@@ -276,17 +268,21 @@ export function useAppointmentForm({
         try { onCloseAction(); await onSuccess() }
         catch (err: unknown) {
           import('@/lib/clientLogger').then(({ clientError }) => clientError('onSuccess failed (delete)', err))
-          if (mountedRef.current) toast.error("Erreur lors de la mise à jour de l'agenda.")
+          if (mountedRef.current) toast.error("Le rendez-vous a été supprimé, mais l'agenda n'a pas pu être actualisé. Actualisez la page.")
         } finally { if (mountedRef.current) setIsSaving(false) }
       } else {
         let payload: unknown = null
         try { payload = await res.json() } catch { /* ignore */ }
-        toast.error('Erreur suppression: ' + (extractErrorMessage(payload) || `HTTP ${res.status}`))
+        import('@/lib/clientLogger').then(({ clientError }) => clientError('Delete failed', { status: res.status, payload }))
+        toast.error(getUserFacingMutationError('appointment-delete', res.status))
         if (mountedRef.current) setIsSaving(false)
       }
     } catch (err: unknown) {
       import('@/lib/clientLogger').then(({ clientError }) => clientError('Delete error', err))
-      if (mountedRef.current) setIsSaving(false)
+      if (mountedRef.current) {
+        toast.error(getUserFacingNetworkError('appointment-delete'))
+        setIsSaving(false)
+      }
     }
   }
 
@@ -300,7 +296,6 @@ export function useAppointmentForm({
     getEndTimeLabel, handleServiceChange, handleSave, handleDelete, handleConfirmDelete, handleSaveNote,
   }
 }
-
 
 
 

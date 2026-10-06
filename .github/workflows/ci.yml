@@ -21,26 +21,70 @@ jobs:
   quality:
     name: Lint, typecheck, test, and build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ci?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/ci?schema=public
+      BASE_URL: http://127.0.0.1:3000
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Lint GitHub Actions workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=1.7.12
+          archive="actionlint_${version}_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/rhysd/actionlint/releases/download/v${version}/${archive}" \
+            --output "$RUNNER_TEMP/$archive"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/$archive" \
+            | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/*.yml
+
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: 12.8.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate ephemeral test credentials
+        shell: bash
+        run: |
+          {
+            printf 'NEXTAUTH_SECRET=%s\n' "$(openssl rand -hex 32)"
+            printf 'TEST_API_KEY=%s\n' "$(openssl rand -hex 32)"
+          } >> "$GITHUB_ENV"
+
+      - name: Apply database migrations
+        run: pnpm exec prisma migrate deploy
 
       - name: Lint changed files
         shell: bash
@@ -49,7 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -d '' files < <(
-            git diff --name-only -z "$BASE_SHA"...HEAD -- \
+            git diff --diff-filter=ACMRT --name-only -z "$BASE_SHA"...HEAD -- \
               '*.js' '*.jsx' '*.mjs' '*.cjs' '*.ts' '*.tsx' '*.mts' '*.cts'
           )
 
@@ -63,7 +107,31 @@ jobs:
         run: pnpm exec tsc --noEmit
 
       - name: Test
-        run: pnpm exec vitest run
+        run: pnpm exec vitest run --coverage
+
+      - name: Upload Vitest coverage
+        if: always() && hashFiles('coverage/**') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vitest-coverage
+          path: coverage/
+          retention-days: 3
+          if-no-files-found: warn
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run billing end-to-end test
+        run: pnpm test:e2e:billing
+
+      - name: Upload Playwright diagnostics
+        if: failure() && hashFiles('test-results/**') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-diagnostics
+          path: test-results/
+          retention-days: 3
+          if-no-files-found: warn
 
       - name: Build
         run: pnpm build

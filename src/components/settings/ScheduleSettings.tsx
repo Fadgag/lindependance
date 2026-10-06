@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Clock, Info } from "lucide-react"
 import { toast } from "sonner"
+import { getUserFacingMutationError, getUserFacingNetworkError } from "@/lib/userFacingMutationError"
 
 export default function ScheduleSettings() {
   const [openingTime, setOpeningTime] = useState("08:00")
@@ -44,10 +45,10 @@ export default function ScheduleSettings() {
         // Notifier l'agenda pour qu'il recharge ses paramètres
         window.dispatchEvent(new CustomEvent("organization:settings-updated"))
       } else {
-        toast.error("Erreur lors de la sauvegarde.")
+        toast.error(getUserFacingMutationError("schedule-update", res.status))
       }
     } catch {
-      toast.error("Erreur réseau.")
+      toast.error(getUserFacingNetworkError("schedule-update"))
     } finally {
       setLoading(false)
     }
@@ -121,4 +122,3 @@ export default function ScheduleSettings() {
     </div>
   )
 }
-

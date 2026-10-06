@@ -1,12 +1,20 @@
 "use client"
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import type { LogoSize } from '@/domain/branding/logoSettings'
 
 type Service = { id: string; name: string; durationMinutes: number; price: number }
 type Practitioner = { id: string; firstName: string; lastName: string }
 type Customer = { id: string; firstName: string; lastName: string }
 type Slot = { start: string; end: string }
+
+const LOGO_DIMENSIONS: Record<LogoSize, { pixels: number; className: string }> = {
+  small: { pixels: 32, className: 'size-8' },
+  medium: { pixels: 48, className: 'size-12' },
+  large: { pixels: 64, className: 'size-16' },
+}
 
 function localDateToday(timezone: string): string {
   const parts = new Map(new Intl.DateTimeFormat('en-CA', {
@@ -28,9 +36,21 @@ async function readError(response: Response, fallback: string): Promise<string> 
 export default function PortalBooking({
   organizationSlug,
   organizationTimezone,
+  organizationName,
+  portalContactPhone,
+  portalContactEmail,
+  logoDataUrl,
+  logoShape,
+  logoSize,
 }: {
   organizationSlug: string
   organizationTimezone: string
+  organizationName: string
+  portalContactPhone: string | null
+  portalContactEmail: string | null
+  logoDataUrl: string | null
+  logoShape: string
+  logoSize: LogoSize
 }) {
   const [services, setServices] = useState<Service[]>([])
   const [practitioners, setPractitioners] = useState<Practitioner[]>([])
@@ -167,7 +187,7 @@ export default function PortalBooking({
       const hasCustomers = await loadCustomers()
       if (!hasCustomers) {
         setAuthenticated(false)
-        setError('Aucune fiche client ne correspond à cet email. Contactez votre établissement.')
+        setError('Impossible de vérifier votre code. Réessayez ou contactez le salon.')
       }
     } catch (verificationError: unknown) {
       setError(verificationError instanceof Error ? verificationError.message : 'Impossible de vérifier le code.')
@@ -212,14 +232,27 @@ export default function PortalBooking({
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
       <header>
+        <div className="mb-4 flex items-center gap-3">
+          {logoDataUrl && (
+            <span
+              role="img"
+              aria-label={`Logo de ${organizationName}`}
+              className={`inline-flex ${LOGO_DIMENSIONS[logoSize].className} shrink-0 overflow-hidden ${logoShape === 'circle' ? 'rounded-full' : 'rounded-none'}`}
+            >
+              <Image
+                src={logoDataUrl}
+                alt=""
+                width={LOGO_DIMENSIONS[logoSize].pixels}
+                height={LOGO_DIMENSIONS[logoSize].pixels}
+                unoptimized
+                className="h-full w-full object-cover"
+              />
+            </span>
+          )}
+          <p className="text-lg font-semibold text-gray-900">{organizationName}</p>
+        </div>
         <p className="text-sm font-semibold uppercase tracking-widest text-indigo-600">Portail client</p>
         <h1 className="mt-2 text-3xl font-bold text-gray-900">Réserver une prestation</h1>
-        <Link href={`/portail/${encodeURIComponent(organizationSlug)}/agenda`} className="mt-2 inline-block text-sm text-indigo-700 underline">
-          Voir l’agenda public
-        </Link>
-        <Link href={`/portail/${encodeURIComponent(organizationSlug)}/mes-rdv`} className="ml-4 mt-2 inline-block text-sm text-indigo-700 underline">
-          Mes rendez-vous
-        </Link>
         <Link href={`/portail/${encodeURIComponent(organizationSlug)}/mes-rdv`} className="ml-4 mt-2 inline-block text-sm text-indigo-700 underline">
           Mes rendez-vous
         </Link>
@@ -309,6 +342,21 @@ export default function PortalBooking({
                 </button>
               </form>
             )}
+            <aside className="rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
+              <p className="font-medium">Vous ne recevez pas de code ? Contactez le salon.</p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {portalContactPhone && (
+                  <a className="text-indigo-700 underline" href={`tel:${portalContactPhone.replace(/[^\d+]/g, '')}`}>
+                    {portalContactPhone}
+                  </a>
+                )}
+                {portalContactEmail && (
+                  <a className="text-indigo-700 underline" href={`mailto:${portalContactEmail}`}>
+                    {portalContactEmail}
+                  </a>
+                )}
+              </div>
+            </aside>
           </section>
 
           <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6">

@@ -1,4 +1,5 @@
 import { Prisma, type Prisma as PrismaTypes } from '@prisma/client'
+import { logoShapeSchema, logoSizeSchema } from '@/domain/branding/logoSettings'
 import { shouldInvalidateCustomerOtp } from '@/domain/customer-portal/identity'
 import { isRateLimitExceeded } from '@/domain/customer-portal/rateLimit'
 import {
@@ -38,11 +39,7 @@ export interface PortalOrganization {
 
 export async function findEnabledPortalOrganization(slug: string): Promise<PortalOrganization | null> {
   return prisma.organization.findFirst({
-    where: {
-      slug,
-      portalEnabled: true,
-      staff: { some: { active: true } },
-    },
+    where: { slug, portalEnabled: true, staff: { some: { active: true } } },
     select: {
       id: true,
       name: true,
@@ -53,9 +50,35 @@ export async function findEnabledPortalOrganization(slug: string): Promise<Porta
   })
 }
 
+export async function findEnabledPortalBookingOrganization(slug: string) {
+  const organization = await prisma.organization.findFirst({
+    where: { slug, portalEnabled: true, staff: { some: { active: true } } },
+    select: {
+      name: true,
+      timezone: true,
+      portalContactPhone: true,
+      portalContactEmail: true,
+      logoDataUrl: true,
+      logoShape: true,
+      logoSize: true,
+    },
+  })
+  if (!organization) return null
+
+  return {
+    ...organization,
+    logoShape: logoShapeSchema.parse(organization.logoShape),
+    logoSize: logoSizeSchema.parse(organization.logoSize),
+  }
+}
+
 export async function findDefaultEnabledPortalOrganization(): Promise<{ slug: string } | null> {
   const organizations = await prisma.organization.findMany({
-    where: { portalEnabled: true, slug: { not: null } },
+    where: {
+      portalEnabled: true,
+      slug: { not: null },
+      staff: { some: { active: true } },
+    },
     select: { slug: true },
     take: 2,
   })

@@ -101,8 +101,14 @@ export async function PUT(request: Request) {
       organizationId: access.organizationId,
       ...parsed.data,
     })
-    if (!updated) return NextResponse.json({ error: 'Practitioner not found' }, { status: 404 })
-    return NextResponse.json({ success: true })
+    if (updated.status === 'not_found') {
+      return NextResponse.json({ error: 'Practitioner not found' }, { status: 404 })
+    }
+    return NextResponse.json({
+      success: true,
+      portalDisabled: updated.portalDisabled,
+      notificationSent: updated.notificationSent,
+    })
   } catch (error: unknown) {
     return apiErrorResponse(error)
   }
@@ -139,7 +145,12 @@ export async function DELETE(request: Request) {
         appointmentCount: result.appointmentCount,
       }, { status: 409 })
     }
-    return NextResponse.json({ success: true, appointmentCount: result.appointmentCount })
+    return NextResponse.json({
+      success: true,
+      appointmentCount: result.appointmentCount,
+      portalDisabled: result.portalDisabled,
+      notificationSent: result.notificationSent,
+    })
   } catch (error: unknown) {
     return apiErrorResponse(error)
   }
