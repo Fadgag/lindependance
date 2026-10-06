@@ -23,6 +23,8 @@ model Organization {
   timezone          String             @default("Europe/Paris")
   portalContactPhone String?
   portalContactEmail String?
+  portalOtpEmailTemplate String?
+  portalConfirmationEmailTemplate String?
   services          Service[]
   customers         Customer[]
   staff             Staff[]

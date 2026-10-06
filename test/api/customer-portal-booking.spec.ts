@@ -40,6 +40,7 @@ const created = {
   organizationName: 'Atelier',
   organizationSlug: 'atelier',
   timezone: 'Europe/Paris',
+  confirmationEmailTemplate: 'Rendez-vous {{serviceName}} le {{date}} à {{startTime}}-{{endTime}}',
   email: 'parent@example.com',
 }
 
@@ -81,6 +82,9 @@ describe('POST /api/portail/rdv', () => {
       staffId: undefined,
       start: '2026-10-01T08:00:00.000Z',
     })
+    expect(sendAppointmentConfirmation).toHaveBeenCalledWith(expect.objectContaining({
+      template: created.confirmationEmailTemplate,
+    }))
     expect(loggerMock.error).toHaveBeenCalledOnce()
   })
 

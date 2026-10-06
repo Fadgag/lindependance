@@ -44,6 +44,7 @@ const confirmation = {
     serviceName: 'Coupe',
     organizationName: 'Atelier',
     timezone: 'Europe/Paris',
+    confirmationEmailTemplate: null,
     portalUrl: 'https://example.test/portail/atelier/reserver',
   },
 }
@@ -70,6 +71,9 @@ describe('POST /api/portail/rdv/[id]/confirmation', () => {
       verifiedEmail: 'parent@example.com',
     })
     expect(sendAppointmentConfirmation).toHaveBeenCalledOnce()
+    expect(sendAppointmentConfirmation).toHaveBeenCalledWith(expect.objectContaining({
+      template: confirmation.appointment.confirmationEmailTemplate,
+    }))
   })
 
   it('does not send a confirmation for appointments outside the verified customer scope', async () => {

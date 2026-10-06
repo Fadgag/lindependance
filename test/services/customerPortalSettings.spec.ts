@@ -27,6 +27,8 @@ const settings = {
   timezone: 'Europe/Paris',
   portalContactPhone: null,
   portalContactEmail: 'contact@atelier.fr',
+  portalOtpEmailTemplate: null,
+  portalConfirmationEmailTemplate: null,
 }
 
 beforeEach(() => {
@@ -53,6 +55,8 @@ describe('customer portal settings service', () => {
         timezone: true,
         portalContactPhone: true,
         portalContactEmail: true,
+        portalOtpEmailTemplate: true,
+        portalConfirmationEmailTemplate: true,
       },
     })
     expect(prisma.staff.count).toHaveBeenCalledWith({
@@ -113,6 +117,8 @@ describe('customer portal settings service', () => {
         timezone: true,
         portalContactPhone: true,
         portalContactEmail: true,
+        portalOtpEmailTemplate: true,
+        portalConfirmationEmailTemplate: true,
       },
     })
   })

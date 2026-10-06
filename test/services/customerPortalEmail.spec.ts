@@ -12,7 +12,9 @@ vi.mock('resend', () => ({
 
 import {
   createAppointmentIcs,
+  sendCustomerPortalOtpEmail,
   sendCustomerPortalDisabledEmail,
+  sendAppointmentConfirmation,
 } from '@/services/customerPortalEmail.service'
 
 beforeEach(() => {
@@ -47,6 +49,53 @@ describe('createAppointmentIcs', () => {
     expect(first).toContain('X-WR-TIMEZONE:Europe/Paris')
     expect(first).toContain('SUMMARY:Coupe\\; soin\\, finition')
     expect(first).not.toContain('customerId')
+  })
+
+  describe('sendCustomerPortalOtpEmail', () => {
+    it('uses the organization template and escapes rendered plain text as HTML', async () => {
+      await sendCustomerPortalOtpEmail({
+        to: 'client@example.test',
+        code: '123456',
+        organizationName: '<Atelier>',
+        template: 'Bienvenue chez {{organizationName}}\nVotre code : {{code}}',
+      })
+
+      expect(resendSendMock).toHaveBeenCalledWith(expect.objectContaining({
+        to: 'client@example.test',
+        html: expect.stringContaining('Bienvenue chez &lt;Atelier&gt;<br>Votre code : 123456'),
+      }))
+      expect(resendSendMock).toHaveBeenCalledWith(expect.objectContaining({
+        html: expect.not.stringContaining('<Atelier>'),
+      }))
+    })
+  })
+
+  describe('sendAppointmentConfirmation', () => {
+    it('renders the custom plain-text message safely and keeps the calendar attachment', async () => {
+      await sendAppointmentConfirmation({
+        to: 'client@example.test',
+        template: 'Rendez-vous {{serviceName}} le {{date}} à {{startTime}}-{{endTime}}. {{portalUrl}}',
+        appointment: {
+          id: 'appointment-123',
+          startTime: new Date('2026-10-01T08:00:00.000Z'),
+          endTime: new Date('2026-10-01T09:00:00.000Z'),
+          createdAt: new Date('2026-09-30T12:00:00.000Z'),
+          serviceName: '<Coupe>',
+          organizationName: 'Atelier',
+          timezone: 'Europe/Paris',
+          portalUrl: 'https://example.test/portail/atelier',
+        },
+      })
+
+      expect(resendSendMock).toHaveBeenCalledWith(expect.objectContaining({
+        to: 'client@example.test',
+        html: expect.stringContaining('Rendez-vous &lt;Coupe&gt; le jeudi 1 octobre 2026 à 10:00-11:00'),
+        attachments: [expect.objectContaining({ filename: 'rendez-vous.ics' })],
+      }))
+      expect(resendSendMock).toHaveBeenCalledWith(expect.objectContaining({
+        html: expect.not.stringContaining('<Coupe>'),
+      }))
+    })
   })
 
   describe('sendCustomerPortalDisabledEmail', () => {

@@ -8,6 +8,8 @@ export type CustomerPortalSettingsInput = {
   timezone: string
   portalContactPhone: string | null
   portalContactEmail: string | null
+  portalOtpEmailTemplate: string | null
+  portalConfirmationEmailTemplate: string | null
 }
 
 export type CustomerPortalSettings = CustomerPortalSettingsInput & {
@@ -25,6 +27,8 @@ export async function getOrganizationPortalSettings(
       timezone: true,
       portalContactPhone: true,
       portalContactEmail: true,
+      portalOtpEmailTemplate: true,
+      portalConfirmationEmailTemplate: true,
     },
   })
   if (!settings) return null
@@ -72,6 +76,8 @@ export async function updateOrganizationPortalSettings(input: {
         timezone: true,
         portalContactPhone: true,
         portalContactEmail: true,
+        portalOtpEmailTemplate: true,
+        portalConfirmationEmailTemplate: true,
       },
     })
     return { status: 'updated', settings: { ...settings, activePractitionerCount } }

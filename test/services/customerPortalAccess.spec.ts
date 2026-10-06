@@ -51,6 +51,7 @@ describe('customer portal availability', () => {
         timezone: true,
         openingTime: true,
         closingTime: true,
+        portalOtpEmailTemplate: true,
       },
     })
   })

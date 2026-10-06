@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { renderCustomerPortalEmailTemplate } from '@/domain/customer-portal/emailTemplates'
 
 export interface AppointmentConfirmation {
   id: string
@@ -32,6 +33,10 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
+function renderPlainTextEmail(value: string): string {
+  return `<div style="font-family:system-ui,sans-serif;line-height:1.6">${escapeHtml(value).replace(/\r\n?/g, '\n').replace(/\n/g, '<br>')}</div>`
+}
+
 export function createAppointmentIcs(appointment: AppointmentConfirmation): string {
   const lines = [
     'BEGIN:VCALENDAR',
@@ -59,6 +64,7 @@ export async function sendCustomerPortalOtpEmail(input: {
   to: string
   code: string
   organizationName: string
+  template: string | null
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) throw new Error('RESEND_API_KEY is not configured')
@@ -66,13 +72,10 @@ export async function sendCustomerPortalOtpEmail(input: {
     from: process.env.RESEND_FROM || 'no-reply@studio.test',
     to: input.to,
     subject: `Votre code de connexion à ${input.organizationName}`,
-    html: [
-      '<div style="font-family:system-ui,sans-serif;line-height:1.6">',
-      `<h2>Connexion au portail de ${escapeHtml(input.organizationName)}</h2>`,
-      `<p>Votre code de connexion est <strong>${escapeHtml(input.code)}</strong>.</p>`,
-      '<p>Ce code est à usage unique et expire dans 10 minutes.</p>',
-      '</div>',
-    ].join(''),
+    html: renderPlainTextEmail(renderCustomerPortalEmailTemplate(input.template, 'otp', {
+      organizationName: input.organizationName,
+      code: input.code,
+    })),
   })
 
   if (result.error) throw new Error(`Resend failed to send customer portal OTP: ${result.error.message}`)
@@ -104,6 +107,7 @@ export async function sendCustomerPortalDisabledEmail(input: {
 export async function sendAppointmentConfirmation(input: {
   to: string
   appointment: AppointmentConfirmation
+  template: string | null
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) throw new Error('RESEND_API_KEY is not configured')
@@ -128,15 +132,15 @@ export async function sendAppointmentConfirmation(input: {
     from: process.env.RESEND_FROM || 'no-reply@studio.test',
     to: input.to,
     subject: `Confirmation de votre rendez-vous chez ${appointment.organizationName}`,
-    html: [
-      '<div style="font-family:system-ui,sans-serif;line-height:1.6">',
-      `<h2>Votre rendez-vous chez ${escapeHtml(appointment.organizationName)} est confirmé</h2>`,
-      `<p><strong>Prestation :</strong> ${escapeHtml(appointment.serviceName)}</p>`,
-      `<p><strong>Date :</strong> ${escapeHtml(localizedDate)}</p>`,
-      `<p><strong>Horaire :</strong> ${escapeHtml(localizedStart)}–${escapeHtml(localizedEnd)} (${escapeHtml(appointment.timezone)})</p>`,
-      `<p><a href="${escapeHtml(appointment.portalUrl)}">Consulter le portail</a></p>`,
-      '</div>',
-    ].join(''),
+    html: renderPlainTextEmail(renderCustomerPortalEmailTemplate(input.template, 'appointmentConfirmation', {
+      organizationName: appointment.organizationName,
+      serviceName: appointment.serviceName,
+      date: localizedDate,
+      startTime: localizedStart,
+      endTime: localizedEnd,
+      timezone: appointment.timezone,
+      portalUrl: appointment.portalUrl,
+    })),
     attachments: [{
       filename: 'rendez-vous.ics',
       content: Buffer.from(createAppointmentIcs(appointment)),

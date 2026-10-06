@@ -21,9 +21,8 @@ livré en une seule fois.
 
 Les P1 sont terminées. Pour les sujets P2 encore ouverts :
 
-1. Personnaliser les messages envoyés par e-mail.
-2. Simplifier le vocabulaire et revoir les formulations.
-3. Permettre à l'utilisateur de signaler un problème ou un bug.
+1. Simplifier le vocabulaire et revoir les formulations.
+2. Permettre à l'utilisateur de signaler un problème ou un bug.
 
 Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiquées ci-dessous.
 
@@ -51,17 +50,6 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
   - Le lien actuel avec slug reste utilisable jusqu'à l'activation du domaine personnalisé.
   - Le portail peut être résolu à partir du domaine personnalisé de chaque organisation, sans logique spécifique à un salon.
   - Le prix et les modalités de facturation éventuels sont définis.
-
-### Personnaliser les messages envoyés par e-mail
-
-- **Statut :** À traiter
-- **Priorité proposée :** P2
-- **Constat :** Les e-mails du portail client (code de connexion et confirmation de rendez-vous) utilisent des messages prédéfinis.
-- **Amélioration souhaitée :** Permettre à chaque organisation de personnaliser depuis la configuration le contenu des e-mails envoyés à ses clients.
-- **Critères d'acceptation :**
-    - Le contenu des e-mails de code de connexion et de confirmation de rendez-vous peut être personnalisé dans la configuration.
-    - Les valeurs par défaut restent disponibles si aucun texte personnalisé n'est défini.
-    - Les informations dynamiques nécessaires (code, prestation, date et horaire du rendez-vous) restent correctement insérées dans le message.
 
 ### Fiches client — gestion et coordonnées
 
@@ -125,6 +113,13 @@ séparément.
 
 ## Réalisées
 
+### Personnaliser les messages envoyés par e-mail
+
+- **Type :** Amélioration
+- **Statut :** Réalisée — critères vérifiés le 6 octobre 2026.
+- **Priorité initiale :** P2
+- **Résultat :** Chaque organisation peut personnaliser en texte brut le corps des e-mails de code de connexion et de confirmation de rendez-vous. Les variables obligatoires sont validées et les valeurs par défaut peuvent être rétablies. Le contenu est échappé avant rendu HTML ; les sujets et la pièce jointe calendrier restent gérés par le système.
+
 ### Fiches client — gestion et coordonnées
 
 #### Actualiser la page des clients après l'enregistrement d'un client
@@ -172,16 +167,19 @@ séparément.
 
 ## Modèle pour ajouter une tâche
 
-Copie ce modèle dans la section **À traiter** :
+Copie ce modèle dans la section **À traiter** pour une amélioration ou un bug :
 
 ```markdown
-### [Titre de l'amélioration]
+### [Amélioration ou bug] — [Titre]
 
 - **Regroupement :** [Sujet ou chantier commun, si pertinent.]
+- **Type :** [Amélioration | Bug]
 - **Statut :** À préciser
 - **Priorité :** À définir
-- **Constat :** [Ce qui pose problème ou pourrait être amélioré.]
-- **Amélioration souhaitée :** [Le résultat attendu.]
+- **Constat / comportement observé :** [Ce qui pose problème ou pourrait être amélioré.]
+- **Comportement attendu / résultat souhaité :** [Résultat attendu.]
+- **Étapes de reproduction :** [Pour un bug, étapes connues ; sinon « Sans objet ».]
+- **Impact :** [Personnes ou parcours concernés et conséquence.]
 - **Critères d'acceptation :**
   - [Comment vérifier que l'amélioration est terminée.]
 ```

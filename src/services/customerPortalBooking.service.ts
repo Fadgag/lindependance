@@ -32,6 +32,7 @@ export interface CreatedCustomerPortalAppointment {
   organizationName: string
   organizationSlug: string
   timezone: string
+  confirmationEmailTemplate: string | null
   email: string
 }
 
@@ -46,6 +47,7 @@ export interface CustomerAppointmentConfirmation {
     serviceName: string
     organizationName: string
     timezone: string
+    confirmationEmailTemplate: string | null
   }
 }
 
@@ -72,6 +74,7 @@ export async function createCustomerPortalAppointment(
         timezone: true,
         openingTime: true,
         closingTime: true,
+        portalConfirmationEmailTemplate: true,
       },
     })
     if (!organization || !organization.slug) {
@@ -185,6 +188,7 @@ export async function createCustomerPortalAppointment(
       organizationName: organization.name,
       organizationSlug: organization.slug,
       timezone: organization.timezone,
+      confirmationEmailTemplate: organization.portalConfirmationEmailTemplate,
       email: input.verifiedEmail,
     }
   })
@@ -221,7 +225,14 @@ export async function getAppointmentConfirmationForCustomer(input: {
       endTime: true,
       createdAt: true,
       service: { select: { name: true } },
-      organization: { select: { name: true, slug: true, timezone: true } },
+      organization: {
+        select: {
+          name: true,
+          slug: true,
+          timezone: true,
+          portalConfirmationEmailTemplate: true,
+        },
+      },
     },
   })
   if (!appointment || !appointment.organization.slug) {
@@ -239,6 +250,7 @@ export async function getAppointmentConfirmationForCustomer(input: {
       serviceName: appointment.service.name,
       organizationName: appointment.organization.name,
       timezone: appointment.organization.timezone,
+      confirmationEmailTemplate: appointment.organization.portalConfirmationEmailTemplate,
     },
   }
 }

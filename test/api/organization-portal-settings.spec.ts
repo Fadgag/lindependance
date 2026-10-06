@@ -40,6 +40,8 @@ beforeEach(() => {
     timezone: 'Europe/Paris',
     portalContactPhone: '+33123456789',
     portalContactEmail: null,
+    portalOtpEmailTemplate: null,
+    portalConfirmationEmailTemplate: null,
     activePractitionerCount: 1,
   })
 })
@@ -54,6 +56,8 @@ describe('/api/organization/portal', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: '+33123456789',
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
       activePractitionerCount: 1,
     })
     expect(getOrganizationPortalSettings).toHaveBeenCalledWith('org-1')
@@ -68,6 +72,8 @@ describe('/api/organization/portal', () => {
         timezone: 'Europe/Paris',
         portalContactPhone: '+33123456789',
         portalContactEmail: null,
+        portalOtpEmailTemplate: null,
+        portalConfirmationEmailTemplate: null,
         activePractitionerCount: 1,
       },
     })
@@ -78,6 +84,8 @@ describe('/api/organization/portal', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: '+33123456789',
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
     }))
 
     expect(response.status).toBe(200)
@@ -89,6 +97,8 @@ describe('/api/organization/portal', () => {
         timezone: 'Europe/Paris',
         portalContactPhone: '+33123456789',
         portalContactEmail: null,
+        portalOtpEmailTemplate: null,
+        portalConfirmationEmailTemplate: null,
       },
     })
 
@@ -98,6 +108,8 @@ describe('/api/organization/portal', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: '+33123456789',
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
     }))
     expect(invalidResponse.status).toBe(400)
   })
@@ -112,6 +124,8 @@ describe('/api/organization/portal', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: '+33123456789',
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
     }))
 
     expect(response.status).toBe(400)
@@ -130,6 +144,8 @@ describe('/api/organization/portal', () => {
       timezone: 'Europe/Paris',
       portalContactPhone: null,
       portalContactEmail: null,
+      portalOtpEmailTemplate: null,
+      portalConfirmationEmailTemplate: null,
       organizationId: 'other-org',
     }))
     expect(response.status).toBe(400)

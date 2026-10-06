@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isCustomerPortalEmailTemplateValid } from '@/domain/customer-portal/emailTemplates'
 
 export const CustomerPortalSlugSchema = z.string()
   .min(3)
@@ -14,12 +15,22 @@ const timezoneSchema = z.string().min(1).max(100).refine((timezone) => {
   }
 }, 'Fuseau horaire IANA invalide')
 
+function emailTemplateSchema(type: 'otp' | 'appointmentConfirmation') {
+  return z.string().max(5000).nullable()
+    .transform((template) => template?.trim() || null)
+    .refine((template) => isCustomerPortalEmailTemplateValid(template, type), {
+      message: 'Le modèle contient une variable inconnue ou omet une information obligatoire',
+    })
+}
+
 export const CustomerPortalSettingsSchema = z.object({
   slug: CustomerPortalSlugSchema.nullable(),
   portalEnabled: z.boolean(),
   timezone: timezoneSchema,
   portalContactPhone: z.string().trim().min(5).max(40).nullable(),
   portalContactEmail: z.string().trim().email().max(254).transform((email) => email.toLowerCase()).nullable(),
+  portalOtpEmailTemplate: emailTemplateSchema('otp'),
+  portalConfirmationEmailTemplate: emailTemplateSchema('appointmentConfirmation'),
 }).strict().superRefine((settings, context) => {
   if (settings.portalEnabled && settings.slug === null) {
     context.addIssue({
