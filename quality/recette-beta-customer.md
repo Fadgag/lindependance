@@ -29,7 +29,7 @@ Créer ou demander les données de test suivantes dans l'interface staff :
 
 | Alias | Préparation |
 |---|---|
-| `ORG-A` | Portail activé, slug connu, fuseau `Europe/Paris`, horaires renseignés. |
+| `ORG-A` | Portail activé, slug connu, fuseau `Europe/Paris`, horaires renseignés ; identité du portail personnalisée avec un logo. |
 | `ORG-B` | Seconde organisation active, avec au moins un client et un rendez-vous. |
 | `ORG-SOLO` | Organisation de test avec un seul praticien actif, pour vérifier le sélecteur masqué. |
 | `SVC-30` / `SVC-60` | Prestations de 30 et 60 minutes, avec prix distincts. |
@@ -56,10 +56,13 @@ date : `________` · navigateur/appareil : `________` · organisation : `_______
 #### [ ] CUS-01 — Ouvrir la réservation du bon salon
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, DoD 1]
 
-**Étapes :** ouvrez le lien de réservation reçu et vérifiez que le nom affiché
-est bien celui du salon que vous souhaitez contacter.
+**Étapes :** ouvrez le lien de réservation reçu et vérifiez que le nom et le
+logo affichés sont bien ceux du salon que vous souhaitez contacter. Regardez
+également la présentation choisie par le salon : police, couleur et taille du
+nom, ainsi que la forme du logo.
 
-**Attendu :** la réservation s'ouvre pour le bon salon. Vous ne voyez aucune
+**Attendu :** la réservation s'ouvre pour le bon salon et présente son nom et
+son logo avec les réglages choisis par le salon. Vous ne voyez aucune
 information appartenant à un autre salon.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts` (lecture publique).
@@ -195,10 +198,12 @@ l'import dans une application calendrier sont à vérifier manuellement.
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2]
 
 **Étapes :** ouvrez la page « Mes rendez-vous » après avoir pris un rendez-vous
-et vérifiez la liste affichée.
+et vérifiez la liste affichée. Comparez le nom et le logo du salon avec ceux
+de la page de réservation.
 
 **Attendu :** vos prochains rendez-vous apparaissent du plus proche au plus
-lointain, avec la bonne prestation, le bon coiffeur et le bon horaire.
+lointain, avec la bonne prestation, le bon coiffeur et le bon horaire. Le nom
+et le logo du salon conservent la même présentation que sur la réservation.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts`,
 `test/api/customer-portal-appointments.spec.ts`,

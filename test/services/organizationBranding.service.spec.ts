@@ -20,6 +20,12 @@ const brandingRecord = {
   logoShape: 'circle',
   logoSize: 'medium',
   showNameWithLogo: false,
+  portalNameFont: 'manrope',
+  portalNameSize: 18,
+  portalNameColor: 'charcoal',
+  portalNameWeight: 'semibold',
+  portalNameAlignment: 'left',
+  portalLogoSize: 48,
 }
 
 beforeEach(() => {
@@ -36,10 +42,28 @@ describe('organizationBranding.service', () => {
       logoShape: 'circle',
       logoSize: 'medium',
       showNameWithLogo: false,
+      portalNameFont: 'manrope',
+      portalNameSize: 18,
+      portalNameColor: 'charcoal',
+      portalNameWeight: 'semibold',
+      portalNameAlignment: 'left',
+      portalLogoSize: 48,
     })
     expect(findUniqueMock).toHaveBeenCalledWith({
       where: { id: 'org-1' },
-      select: { name: true, logoDataUrl: true, logoShape: true, logoSize: true, showNameWithLogo: true },
+      select: {
+        name: true,
+        logoDataUrl: true,
+        logoShape: true,
+        logoSize: true,
+        showNameWithLogo: true,
+        portalNameFont: true,
+        portalNameSize: true,
+        portalNameColor: true,
+        portalNameWeight: true,
+        portalNameAlignment: true,
+        portalLogoSize: true,
+      },
     })
   })
 
@@ -49,23 +73,63 @@ describe('organizationBranding.service', () => {
       name: 'Nouveau salon',
       logoSize: 'large',
       showNameWithLogo: true,
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })
 
     await expect(updateOrganizationBranding('org-1', {
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
       logoSize: 'large',
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })).resolves.toEqual({
       organizationName: 'Nouveau salon',
       logoDataUrl: null,
       logoShape: 'circle',
       logoSize: 'large',
       showNameWithLogo: true,
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })
     expect(updateMock).toHaveBeenCalledWith({
       where: { id: 'org-1' },
-      data: { showNameWithLogo: true, logoSize: 'large', name: 'Nouveau salon' },
-      select: { name: true, logoDataUrl: true, logoShape: true, logoSize: true, showNameWithLogo: true },
+      data: {
+        showNameWithLogo: true,
+        logoSize: 'large',
+        portalNameFont: 'notoSerif',
+        portalNameSize: 22,
+        portalNameColor: 'emerald',
+        portalNameWeight: 'bold',
+        portalNameAlignment: 'right',
+        portalLogoSize: 120,
+        name: 'Nouveau salon',
+      },
+      select: {
+        name: true,
+        logoDataUrl: true,
+        logoShape: true,
+        logoSize: true,
+        showNameWithLogo: true,
+        portalNameFont: true,
+        portalNameSize: true,
+        portalNameColor: true,
+        portalNameWeight: true,
+        portalNameAlignment: true,
+        portalLogoSize: true,
+      },
     })
   })
 })

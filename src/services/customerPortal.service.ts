@@ -1,5 +1,8 @@
 import { Prisma, type Prisma as PrismaTypes } from '@prisma/client'
-import { logoShapeSchema, logoSizeSchema } from '@/domain/branding/logoSettings'
+import {
+  logoSizeSchema,
+  portalAppearanceSchema,
+} from '@/domain/branding/logoSettings'
 import { shouldInvalidateCustomerOtp } from '@/domain/customer-portal/identity'
 import { isRateLimitExceeded } from '@/domain/customer-portal/rateLimit'
 import {
@@ -63,14 +66,45 @@ export async function findEnabledPortalBookingOrganization(slug: string) {
       logoDataUrl: true,
       logoShape: true,
       logoSize: true,
+      portalNameFont: true,
+      portalNameSize: true,
+      portalNameColor: true,
+      portalNameWeight: true,
+      portalNameAlignment: true,
+      portalLogoSize: true,
     },
   })
   if (!organization) return null
 
   return {
     ...organization,
-    logoShape: logoShapeSchema.parse(organization.logoShape),
+    ...portalAppearanceSchema.parse(organization),
     logoSize: logoSizeSchema.parse(organization.logoSize),
+  }
+}
+
+export async function findEnabledPortalAppointmentOrganization(slug: string) {
+  const organization = await prisma.organization.findFirst({
+    where: { slug, portalEnabled: true, staff: { some: { active: true } } },
+    select: {
+      name: true,
+      timezone: true,
+      logoDataUrl: true,
+      logoShape: true,
+      portalNameFont: true,
+      portalNameSize: true,
+      portalNameColor: true,
+      portalNameWeight: true,
+      portalNameAlignment: true,
+      portalLogoSize: true,
+    },
+  })
+  if (!organization) return null
+
+  return {
+    name: organization.name,
+    timezone: organization.timezone,
+    ...portalAppearanceSchema.parse(organization),
   }
 }
 

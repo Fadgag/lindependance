@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { organizationBrandingUpdateSchema } from '@/domain/branding/logoSettings'
+import {
+  DEFAULT_ORGANIZATION_BRANDING,
+  PORTAL_BRAND_COLORS,
+  getPortalLogoSizeForViewport,
+  organizationBrandingSchema,
+  organizationBrandingUpdateSchema,
+} from '@/domain/branding/logoSettings'
 
 describe('organizationBrandingUpdateSchema', () => {
   it('accepts supported logo data and either display shape', () => {
@@ -12,6 +18,65 @@ describe('organizationBrandingUpdateSchema', () => {
     })
     expect(organizationBrandingUpdateSchema.parse({ logoShape: 'square' })).toEqual({
       logoShape: 'square',
+    })
+  })
+
+  describe('portal branding settings', () => {
+    it('provides accessible default appearance settings', () => {
+      expect(DEFAULT_ORGANIZATION_BRANDING).toMatchObject({
+        portalNameFont: 'manrope',
+        portalNameSize: 18,
+        portalNameColor: 'charcoal',
+        portalNameWeight: 'semibold',
+        portalNameAlignment: 'left',
+        portalLogoSize: 48,
+      })
+    })
+
+    it('accepts supported appearance options and rejects arbitrary CSS values', () => {
+      const settings = {
+        organizationName: 'Atelier',
+        logoDataUrl: null,
+        logoShape: 'square',
+        logoSize: 'medium',
+        showNameWithLogo: true,
+        portalNameFont: 'notoSerif',
+        portalNameSize: 24,
+        portalNameColor: 'indigo',
+        portalNameWeight: 'bold',
+        portalNameAlignment: 'center',
+        portalLogoSize: 160,
+      }
+
+      expect(organizationBrandingSchema.safeParse(settings).success).toBe(true)
+      expect(organizationBrandingUpdateSchema.safeParse({ portalNameColor: 'red; background:url(x)' }).success)
+        .toBe(false)
+      expect(organizationBrandingUpdateSchema.safeParse({ portalNameSize: 13 }).success).toBe(false)
+      expect(organizationBrandingUpdateSchema.safeParse({ portalNameSize: 25 }).success).toBe(false)
+      expect(organizationBrandingUpdateSchema.safeParse({ portalLogoSize: 23 }).success).toBe(false)
+      expect(organizationBrandingUpdateSchema.safeParse({ portalLogoSize: 161 }).success).toBe(false)
+    })
+
+    it('caps logo rendering responsively without changing the stored size', () => {
+      expect(getPortalLogoSizeForViewport(160, 'mobile')).toBe(128)
+      expect(getPortalLogoSizeForViewport(160, 'desktop')).toBe(160)
+      expect(getPortalLogoSizeForViewport(48, 'mobile')).toBe(48)
+    })
+
+    it('uses only colors with readable contrast on white', () => {
+      for (const { hex } of Object.values(PORTAL_BRAND_COLORS)) {
+        const match = /^#([0-9a-f]{6})$/i.exec(hex)
+        if (!match) throw new Error(`Invalid color: ${hex}`)
+        const channels = [0, 2, 4].map((offset) => Number.parseInt(match[1].slice(offset, offset + 2), 16) / 255)
+        const linearize = (channel: number) => (
+          channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+        )
+        const luminance = 0.2126 * linearize(channels[0] ?? 0)
+          + 0.7152 * linearize(channels[1] ?? 0)
+          + 0.0722 * linearize(channels[2] ?? 0)
+
+        expect(1.05 / (luminance + 0.05)).toBeGreaterThanOrEqual(4.5)
+      }
     })
   })
 

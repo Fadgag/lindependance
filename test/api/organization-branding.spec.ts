@@ -42,6 +42,12 @@ describe('/api/organization/branding', () => {
       logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
+      portalNameFont: 'manrope',
+      portalNameSize: 18,
+      portalNameColor: 'charcoal',
+      portalNameWeight: 'semibold',
+      portalNameAlignment: 'left',
+      portalLogoSize: 48,
     })
 
     const response = await GET()
@@ -53,6 +59,12 @@ describe('/api/organization/branding', () => {
       logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
+      portalNameFont: 'manrope',
+      portalNameSize: 18,
+      portalNameColor: 'charcoal',
+      portalNameWeight: 'semibold',
+      portalNameAlignment: 'left',
+      portalLogoSize: 48,
     })
     expect(getOrganizationBranding).toHaveBeenCalledWith('org-1')
   })
@@ -67,6 +79,12 @@ describe('/api/organization/branding', () => {
       logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })
 
     const response = await PATCH(patch({
@@ -83,6 +101,12 @@ describe('/api/organization/branding', () => {
       logoSize: 'large',
       organizationName: '  Nouveau salon  ',
       showNameWithLogo: true,
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     }))
 
     expect(validResponse.status).toBe(200)
@@ -92,12 +116,24 @@ describe('/api/organization/branding', () => {
       logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })
     expect(updateOrganizationBranding).toHaveBeenCalledWith('org-1', {
       logoShape: 'square',
       logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })
   })
 

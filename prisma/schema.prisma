@@ -18,6 +18,12 @@ model Organization {
   logoShape                       String                     @default("circle")
   logoSize                        String                     @default("medium")
   showNameWithLogo                Boolean                    @default(false)
+  portalNameFont                  String                     @default("manrope")
+  portalNameSize                  Int                        @default(18)
+  portalNameColor                 String                     @default("charcoal")
+  portalNameWeight                String                     @default("semibold")
+  portalNameAlignment             String                     @default("left")
+  portalLogoSize                  Int                        @default(48)
   slug                            String?                    @unique
   portalEnabled                   Boolean                    @default(false)
   timezone                        String                     @default("Europe/Paris")
