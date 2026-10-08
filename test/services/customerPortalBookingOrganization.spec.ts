@@ -8,7 +8,10 @@ vi.mock('@/lib/prisma', () => ({
   prisma: { organization: { findFirst: findFirstMock } },
 }))
 
-import { findEnabledPortalBookingOrganization } from '@/services/customerPortal.service'
+import {
+  findEnabledPortalAppointmentOrganization,
+  findEnabledPortalBookingOrganization,
+} from '@/services/customerPortal.service'
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -24,6 +27,12 @@ describe('findEnabledPortalBookingOrganization', () => {
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
       logoSize: 'large',
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })
 
     await expect(findEnabledPortalBookingOrganization('salon-elise')).resolves.toEqual({
@@ -34,6 +43,12 @@ describe('findEnabledPortalBookingOrganization', () => {
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
       logoSize: 'large',
+      portalNameFont: 'notoSerif',
+      portalNameSize: 22,
+      portalNameColor: 'emerald',
+      portalNameWeight: 'bold',
+      portalNameAlignment: 'right',
+      portalLogoSize: 120,
     })
     expect(findFirstMock).toHaveBeenCalledWith({
       where: {
@@ -49,6 +64,59 @@ describe('findEnabledPortalBookingOrganization', () => {
         logoDataUrl: true,
         logoShape: true,
         logoSize: true,
+        portalNameFont: true,
+        portalNameSize: true,
+        portalNameColor: true,
+        portalNameWeight: true,
+        portalNameAlignment: true,
+        portalLogoSize: true,
+      },
+    })
+  })
+
+  it('returns public brand details for the enabled appointments portal only', async () => {
+    findFirstMock.mockResolvedValue({
+      name: 'Salon Élise',
+      timezone: 'Europe/Paris',
+      logoDataUrl: 'data:image/webp;base64,AA==',
+      logoShape: 'square',
+      portalNameFont: 'manrope',
+      portalNameSize: 18,
+      portalNameColor: 'charcoal',
+      portalNameWeight: 'semibold',
+      portalNameAlignment: 'center',
+      portalLogoSize: 160,
+    })
+
+    await expect(findEnabledPortalAppointmentOrganization('salon-elise')).resolves.toEqual({
+      name: 'Salon Élise',
+      timezone: 'Europe/Paris',
+      logoDataUrl: 'data:image/webp;base64,AA==',
+      logoShape: 'square',
+      portalNameFont: 'manrope',
+      portalNameSize: 18,
+      portalNameColor: 'charcoal',
+      portalNameWeight: 'semibold',
+      portalNameAlignment: 'center',
+      portalLogoSize: 160,
+    })
+    expect(findFirstMock).toHaveBeenCalledWith({
+      where: {
+        slug: 'salon-elise',
+        portalEnabled: true,
+        staff: { some: { active: true } },
+      },
+      select: {
+        name: true,
+        timezone: true,
+        logoDataUrl: true,
+        logoShape: true,
+        portalNameFont: true,
+        portalNameSize: true,
+        portalNameColor: true,
+        portalNameWeight: true,
+        portalNameAlignment: true,
+        portalLogoSize: true,
       },
     })
   })

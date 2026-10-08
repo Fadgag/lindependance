@@ -17,9 +17,16 @@ export default async function PortalBookingPage({
       organizationName={organization.name}
       portalContactPhone={organization.portalContactPhone}
       portalContactEmail={organization.portalContactEmail}
-      logoDataUrl={organization.logoDataUrl}
-      logoShape={organization.logoShape}
-      logoSize={organization.logoSize}
+      branding={{
+        logoDataUrl: organization.logoDataUrl,
+        logoShape: organization.logoShape,
+        portalNameFont: organization.portalNameFont,
+        portalNameSize: organization.portalNameSize,
+        portalNameColor: organization.portalNameColor,
+        portalNameWeight: organization.portalNameWeight,
+        portalNameAlignment: organization.portalNameAlignment,
+        portalLogoSize: organization.portalLogoSize,
+      }}
     />
   )
 }

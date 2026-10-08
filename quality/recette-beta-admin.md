@@ -248,6 +248,33 @@ les messages par défaut sont de nouveau utilisés.
 staff doit aussi être essayé sur l'environnement bêta.
 **Résultat / preuve :** `________`
 
+#### [ ] ADM-14 — Personnaliser le nom et le logo du portail client
+**Priorité : P2 · Exigence :** [Req: formal — `portal-branding-customization.md`, critères 1–7]
+
+**Étapes :** dans les réglages d'identité du salon, choisissez une police, une
+taille, une couleur et un alignement pour le nom. Modifiez aussi la taille et
+la forme du logo. Importez une image, déplacez-la et zoomez dans le cadre carré,
+essayez un fichier qui n'est pas une image acceptée puis une image de plus de
+10 Mo, et vérifiez qu'elles sont refusées. Importez ensuite une image acceptée,
+déplacez-la et zoomez dans le cadre carré, puis vérifiez les aperçus téléphone
+et grand écran. Rétablissez les valeurs par défaut sans enregistrer et vérifiez
+que l'ancienne présentation est conservée. Recommencez, enregistrez, puis
+rouvrez les pages de réservation et « Mes rendez-vous ».
+
+**Attendu :** l'aperçu suit immédiatement vos choix. Le recadrage reste carré,
+le logo n'est pas déformé et son affichage ne dépasse pas 128 px sur téléphone
+ni 160 px sur grand écran. Après réinitialisation sans enregistrement, les
+réglages enregistrés restent inchangés. Après enregistrement, le nom et le logo
+gardent la même présentation sur les deux pages du portail.
+
+**Automatisé :** `test/ui/brandingSettings.spec.tsx`,
+`test/ui/portalLogoCropper.spec.tsx`, `test/ui/portalBrandIdentity.spec.tsx`,
+`test/api/organization-branding.spec.ts` et
+`test/services/customerPortalBookingOrganization.spec.ts`. L'import et le
+recadrage réels sur téléphone, ainsi que le refus des fichiers non pris en
+charge et trop volumineux, restent à vérifier en bêta.
+**Résultat / preuve :** `________`
+
 ## Couverture automatisée relue
 
 Les suites automatisées pertinentes sont indiquées sous chaque scénario. Elles

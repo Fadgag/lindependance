@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import PortalBooking from '@/components/customer-portal/PortalBooking'
+import { DEFAULT_ORGANIZATION_BRANDING } from '@/domain/branding/logoSettings'
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -30,16 +31,18 @@ describe('PortalBooking', () => {
         organizationSlug="osezletre"
         organizationTimezone="Europe/Paris"
         organizationName="Salon Élise"
-        logoDataUrl="data:image/png;base64,aGVsbG8="
-        logoShape="circle"
-        logoSize="large"
+        branding={{
+          ...DEFAULT_ORGANIZATION_BRANDING,
+          logoDataUrl: 'data:image/png;base64,aGVsbG8=',
+        }}
         portalContactPhone="01 23 45 67 89"
         portalContactEmail="contact@salon-elise.fr"
       />,
     )
 
     expect(await screen.findByText('Salon Élise')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Logo de Salon Élise' })).toHaveClass('size-16', 'rounded-full')
+    expect(screen.getByRole('img', { name: 'Logo de Salon Élise' })).toHaveClass('rounded-full')
+    expect(screen.getByTestId('portal-brand-preview')).toHaveAttribute('data-logo-size', '48')
     expect(screen.queryByRole('link', { name: 'Voir l’agenda public' })).not.toBeInTheDocument()
     expect(await screen.findByRole('link', { name: '01 23 45 67 89' })).toHaveAttribute('href', 'tel:0123456789')
     expect(screen.getByRole('link', { name: 'contact@salon-elise.fr' })).toHaveAttribute('href', 'mailto:contact@salon-elise.fr')
@@ -51,9 +54,7 @@ describe('PortalBooking', () => {
         organizationSlug="osezletre"
         organizationTimezone="Europe/Paris"
         organizationName="Salon Élise"
-        logoDataUrl={null}
-        logoShape="circle"
-        logoSize="medium"
+        branding={DEFAULT_ORGANIZATION_BRANDING}
         portalContactPhone={null}
         portalContactEmail="contact@salon-elise.fr"
       />,
@@ -69,9 +70,7 @@ describe('PortalBooking', () => {
         organizationSlug="osezletre"
         organizationTimezone="Europe/Paris"
         organizationName="Salon Élise"
-        logoDataUrl={null}
-        logoShape="circle"
-        logoSize="medium"
+        branding={DEFAULT_ORGANIZATION_BRANDING}
         portalContactPhone="01 23 45 67 89"
         portalContactEmail={null}
       />,

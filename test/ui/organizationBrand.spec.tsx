@@ -36,6 +36,7 @@ vi.mock('next-auth/react', () => ({
 import OrganizationBrand from '@/components/layout/OrganizationBrand'
 import { shouldStackOrganizationBrand } from '@/components/layout/organizationBrandLayout'
 import { resetOrganizationBrandingCache } from '@/hooks/useOrganizationBranding'
+import { DEFAULT_ORGANIZATION_BRANDING } from '@/domain/branding/logoSettings'
 
 beforeEach(() => {
   triggerResizeObserver = null
@@ -48,6 +49,7 @@ beforeEach(() => {
       ? 'data:image/webp;base64,AA=='
       : 'data:image/webp;base64,AQ=='
     return new Response(JSON.stringify({
+      ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: dataUrl,
       logoShape: 'circle',
       logoSize: 'medium',
@@ -88,6 +90,7 @@ describe('OrganizationBrand', () => {
     fetchMock
       .mockImplementationOnce(() => new Promise((resolve) => { completeInitialRequest = resolve }))
       .mockImplementationOnce(async () => new Response(JSON.stringify({
+        ...DEFAULT_ORGANIZATION_BRANDING,
         logoDataUrl: 'data:image/webp;base64,AQ==',
         logoShape: 'circle',
         logoSize: 'medium',
@@ -105,6 +108,7 @@ describe('OrganizationBrand', () => {
     })
 
     completeInitialRequest?.(new Response(JSON.stringify({
+      ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
       logoSize: 'medium',
@@ -120,6 +124,7 @@ describe('OrganizationBrand', () => {
 
   it('shows the organization name with its logo when that preference is enabled', async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
       logoSize: 'large',
@@ -148,6 +153,7 @@ describe('OrganizationBrand', () => {
       return new DOMRect(0, 0, width, 32)
     })
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
       logoSize: 'large',

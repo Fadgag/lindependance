@@ -1,20 +1,14 @@
 "use client"
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import type { LogoSize } from '@/domain/branding/logoSettings'
+import PortalBrandIdentity from '@/components/customer-portal/PortalBrandIdentity'
+import type { PortalAppearance } from '@/domain/branding/logoSettings'
 
 type Service = { id: string; name: string; durationMinutes: number; price: number }
 type Practitioner = { id: string; firstName: string; lastName: string }
 type Customer = { id: string; firstName: string; lastName: string }
 type Slot = { start: string; end: string }
-
-const LOGO_DIMENSIONS: Record<LogoSize, { pixels: number; className: string }> = {
-  small: { pixels: 32, className: 'size-8' },
-  medium: { pixels: 48, className: 'size-12' },
-  large: { pixels: 64, className: 'size-16' },
-}
 
 function localDateToday(timezone: string): string {
   const parts = new Map(new Intl.DateTimeFormat('en-CA', {
@@ -39,18 +33,14 @@ export default function PortalBooking({
   organizationName,
   portalContactPhone,
   portalContactEmail,
-  logoDataUrl,
-  logoShape,
-  logoSize,
+  branding,
 }: {
   organizationSlug: string
   organizationTimezone: string
   organizationName: string
   portalContactPhone: string | null
   portalContactEmail: string | null
-  logoDataUrl: string | null
-  logoShape: string
-  logoSize: LogoSize
+  branding: PortalAppearance
 }) {
   const [services, setServices] = useState<Service[]>([])
   const [practitioners, setPractitioners] = useState<Practitioner[]>([])
@@ -232,24 +222,8 @@ export default function PortalBooking({
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
       <header>
-        <div className="mb-4 flex items-center gap-3">
-          {logoDataUrl && (
-            <span
-              role="img"
-              aria-label={`Logo de ${organizationName}`}
-              className={`inline-flex ${LOGO_DIMENSIONS[logoSize].className} shrink-0 overflow-hidden ${logoShape === 'circle' ? 'rounded-full' : 'rounded-none'}`}
-            >
-              <Image
-                src={logoDataUrl}
-                alt=""
-                width={LOGO_DIMENSIONS[logoSize].pixels}
-                height={LOGO_DIMENSIONS[logoSize].pixels}
-                unoptimized
-                className="h-full w-full object-cover"
-              />
-            </span>
-          )}
-          <p className="text-lg font-semibold text-gray-900">{organizationName}</p>
+        <div className="mb-4">
+          <PortalBrandIdentity organizationName={organizationName} branding={branding} />
         </div>
         <p className="text-sm font-semibold uppercase tracking-widest text-indigo-600">Portail client</p>
         <h1 className="mt-2 text-3xl font-bold text-gray-900">Réserver une prestation</h1>
