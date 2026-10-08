@@ -70,9 +70,10 @@ function getScenarioCounts(
   }
 }
 
-export async function listTestCampaigns() {
+export async function listTestCampaigns(organizationIds?: string[]) {
   const [campaigns, organizations] = await Promise.all([
     prisma.testCampaign.findMany({
+      ...(organizationIds?.length ? { where: { organizationId: { in: organizationIds } } } : {}),
       orderBy: { createdAt: 'desc' },
       include: {
         organization: { select: { name: true } },

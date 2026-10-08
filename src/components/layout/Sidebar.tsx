@@ -7,6 +7,7 @@ import { LogOut } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { menuItems } from './menuItems'
 import OrganizationBrand from './OrganizationBrand'
+import TechAdminDomainSelector from './TechAdminDomainSelector'
 import { IssueReportMenuButton } from '@/components/issue-reports/IssueReportLauncher'
 
 export default function Sidebar() {
@@ -31,6 +32,8 @@ export default function Sidebar() {
                     <div className="font-bold text-(--studio-text)">{session.user.name || session.user.email}</div>
                 </div>
             )}
+
+            <TechAdminDomainSelector />
 
             {/* NAVIGATION MODULES */}
             <nav className="space-y-2 flex-1">

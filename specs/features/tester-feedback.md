@@ -30,11 +30,17 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   l'organisation. Il est stocké pour permettre de réafficher et copier le lien
   depuis le dashboard. Le lien n'est utilisable que tant que la campagne est
   active.
-- Le tableau de bord liste les campagnes de toutes les organisations avec leur
-  état, parcours sélectionnés, dates et progression. La vue détaillée regroupe
-  les résultats par scénario ; pour la progression et le statut courant, seul
-  le résultat le plus récent de chaque couple profil/scénario compte.
-  L'historique conserve tous les envois.
+- Le tableau de bord liste par défaut les campagnes de toutes les organisations
+  avec leur état, parcours sélectionnés, dates et progression. Depuis le menu
+  TECH_ADMIN, un sélecteur commun aux campagnes et aux signalements permet de
+  filtrer une ou plusieurs organisations ; ce choix est conservé entre les deux
+  pages. Le filtre s'applique aux campagnes et aux indicateurs, sans restreindre
+  les organisations proposées à la création. Une organisation cible est
+  préremplie à la création uniquement si une seule est sélectionnée ; en vue
+  globale ou multi-organisation, le `TECH_ADMIN` choisit explicitement la cible.
+  La vue détaillée regroupe les résultats par scénario ; pour la progression et
+  le statut courant, seul le résultat le plus récent de chaque couple
+  profil/scénario compte. L'historique conserve tous les envois.
 - Le `TECH_ADMIN` peut fermer une campagne ; ses liens de test deviennent
   alors en lecture seule/indisponibles pour les nouvelles soumissions.
 - Formulaire public sans compte, accessible uniquement par le lien de campagne.
@@ -92,7 +98,9 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   serveur ; aucune organisation ne vient du navigateur.
 - L'accès à `/test-campaigns` et aux API de gestion/suivi est réservé au
   `TECH_ADMIN`, qui voit les campagnes et retours toutes organisations
-  confondues. Les admins de salon n'ont pas accès au tableau de bord technique.
+  confondues en vue globale. Le filtre d'organisation est validé côté serveur
+  et ne remplace pas le contrôle d'accès. Les admins de salon n'ont pas accès au
+  tableau de bord technique.
 
 ## Maquettes fonctionnelles
 

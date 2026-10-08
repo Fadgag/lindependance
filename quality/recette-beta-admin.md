@@ -29,7 +29,7 @@ Préparer dans l'interface staff et avec l'équipe technique :
 | Alias | Préparation |
 |---|---|
 | `ORG-A` / `ORG-B` | Deux organisations actives distinctes ; compte staff dédié dans chacune. |
-| `TECH-ADMIN` | Compte technique habilité à consulter et traiter les signalements de toutes les organisations. |
+| `TECH-ADMIN` | Compte technique habilité à consulter et traiter les signalements de toutes les organisations ; préparer des signalements `Nouveau`, `En cours` et `Résolu` dans `ORG-A` et `ORG-B`. |
 | Portail `ORG-A` | Activé avec slug et fuseau connus ; préparer aussi `ORG-SOLO` si le test des praticiens mono-staff est nécessaire. |
 | Praticiens et services | Deux praticiens actifs, un inactif, services de 30 et 60 minutes, horaires connus. |
 | Demandes | Plusieurs demandes `PENDING`, une demande déjà rejetée et une demande approuvée. |
@@ -215,13 +215,16 @@ qu'une fois et la première réponse reste affichée.
 Essayez d'accepter une demande dont l'horaire vient d'être pris. Depuis
 la barre de menu du personnel, ouvrez « Signaler un problème », lisez les
 informations transmises et envoyez un signalement de test sans donnée
-personnelle. Demandez à l'équipe technique de vérifier le signalement et de le
-marquer comme résolu.
+personnelle. Demandez à l'équipe technique de sélectionner `ORG-A` et `ORG-B`
+dans son menu, de filtrer les signalements non résolus, d'ouvrir les campagnes
+de test puis de revenir aux signalements pour en marquer un comme résolu.
 
 **Attendu :** les commentaires et boutons restent lisibles. Si l'horaire n'est
 plus disponible, un message clair s'affiche et la demande reste visible tant
-qu'elle n'a pas été traitée. Le formulaire confirme l'envoi et l'équipe
-technique retrouve le signalement et peut suivre son état.
+qu'elle n'a pas été traitée. Le formulaire confirme l'envoi. L'équipe technique
+retrouve les signalements non résolus (`Nouveau` et `En cours`) dans les deux
+domaines choisis, conserve ce choix en passant aux campagnes de test et peut
+revenir à une vue de tous les domaines avant de suivre leur état.
 
 **Automatisé :** `test/ui/appointmentChangeRequests.spec.tsx` vérifie le rendu
 et l'envoi des actions ; `test/ui/IssueReportLauncher.spec.tsx` vérifie le

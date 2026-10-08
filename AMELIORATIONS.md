@@ -138,6 +138,20 @@ actuellement l'accès à l'e-mail au moment de la connexion.
     - Les signalements résolus sont supprimés après 90 jours.
 - **Mise à jour :** Le formulaire, les diagnostics expurgés, les contrôles d'accès `TECH_ADMIN`, le tableau de suivi et la migration additive sont implémentés. Les scénarios `CUS-17` et `ADM-12` couvrent la recette manuelle ; la migration n'a pas été appliquée à une base.
 
+#### Choisir un domaine dans les outils d’administration technique
+
+- **Type :** Amélioration
+- **Statut :** Implémentée — critères automatisés validés le 8 octobre 2026 ; recette manuelle bêta à effectuer.
+- **Priorité proposée :** P2
+- **Constat :** Les outils de signalement et de campagne de test sont réservés aux administrateurs techniques et présentent des données de plusieurs organisations, sans contexte commun permettant de se concentrer sur une organisation.
+- **Amélioration souhaitée :** Conserver les pages « Signalements » et « Campagnes de test » dans le menu TECH_ADMIN et permettre de choisir une ou plusieurs organisations depuis ce menu, ou de revenir à une vue globale.
+- **Critères d'acceptation :**
+  - Le menu TECH_ADMIN propose « Tous les domaines » ainsi que chaque organisation, y compris celles sans signalement ou campagne ; plusieurs organisations peuvent être sélectionnées simultanément.
+  - Le choix est conservé lors du passage entre les signalements et les campagnes ; « Tous les domaines » reste la vue par défaut.
+  - Le filtre s'applique aux signalements et à la liste et aux indicateurs des campagnes. Un filtre de signalements permet d'afficher tous les états ou seulement les signalements non résolus (« Nouveau » et « En cours »).
+  - Une campagne est préremplie avec l'organisation sélectionnée si une seule est choisie ; sinon le TECH_ADMIN choisit explicitement l'organisation cible et peut toujours sélectionner toute organisation.
+  - Les filtres de données sont validés côté serveur et les pages et API restent réservées au rôle TECH_ADMIN.
+
 #### Vérifier les e-mails personnalisés dans les campagnes de recette
 
 - **Type :** Amélioration

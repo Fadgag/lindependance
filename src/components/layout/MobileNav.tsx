@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { menuItems } from './menuItems'
 import { useSession } from 'next-auth/react'
 import { IssueReportMenuButton } from '@/components/issue-reports/IssueReportLauncher'
+import TechAdminDomainSelector from './TechAdminDomainSelector'
 
 export default function MobileNav({ onIssueReportOpen }: { onIssueReportOpen?: () => void } = {}) {
     const pathname = usePathname()
@@ -14,6 +15,7 @@ export default function MobileNav({ onIssueReportOpen }: { onIssueReportOpen?: (
 
     return (
         <nav data-testid="mobile-nav" className="space-y-2 px-4 py-4">
+            <TechAdminDomainSelector />
             {menuItems.map((item) => {
                 const isActive = pathname === item.href
                 if (item.techAdminOnly && !isTechAdmin) return null

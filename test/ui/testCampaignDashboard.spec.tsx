@@ -2,13 +2,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import TestCampaignDashboard from '@/components/test-feedback/TestCampaignDashboard'
 
+const domainSelection = vi.hoisted(() => ({ ids: ['org-1'] as string[] }))
+
+vi.mock('@/components/layout/TechAdminDomainProvider', () => ({
+  useTechAdminDomain: () => ({ selectedOrganizationIds: domainSelection.ids }),
+}))
+
 const emptyDashboard = {
-  organizations: [{ id: 'org-1', name: 'Osez le T’re' }],
+  organizations: [
+    { id: 'org-1', name: 'Osez le T’re' },
+    { id: 'org-2', name: 'Salon B' },
+  ],
   campaigns: [],
 }
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  domainSelection.ids = ['org-1']
 })
 
 describe('TestCampaignDashboard', () => {
@@ -52,9 +62,7 @@ describe('TestCampaignDashboard', () => {
     campaignNameInput.dispatchEvent(enterEvent)
     expect(enterEvent.defaultPrevented).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    fireEvent.change(screen.getByLabelText('Organisation'), {
-      target: { value: 'org-1' },
-    })
+    expect(screen.getByLabelText('Organisation')).toHaveValue('org-1')
     fireEvent.change(screen.getByLabelText('Objet de l’e-mail'), {
       target: { value: 'Testez la réservation' },
     })
@@ -84,7 +92,35 @@ describe('TestCampaignDashboard', () => {
       emailSubject: 'Testez la réservation',
       emailMessage: 'Merci de vérifier le parcours de réservation.',
     })
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/test-campaigns?organizationId=org-1')
     expect(screen.queryByLabelText('Build ou commit testé')).not.toBeInTheDocument()
     expect(await screen.findByText('La campagne a été créée. 1 invitation envoyée sur 1.')).toBeInTheDocument()
+  })
+
+  it('requires an explicit organization when multiple domains are selected', async () => {
+    domainSelection.ids = ['org-1', 'org-2']
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(emptyDashboard), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<TestCampaignDashboard />)
+
+    await screen.findByText(/Aucune campagne/)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/test-campaigns?organizationId=org-1&organizationId=org-2')
+    expect(screen.getByLabelText('Organisation')).toHaveValue('')
+    expect(screen.getByRole('option', { name: 'Salon B' })).toBeInTheDocument()
+  })
+
+  it('requires an explicit organization in the global view', async () => {
+    domainSelection.ids = []
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(emptyDashboard), { status: 200 }),
+    ))
+
+    render(<TestCampaignDashboard />)
+
+    await screen.findByText(/Aucune campagne/)
+    expect(screen.getByLabelText('Organisation')).toHaveValue('')
   })
 })

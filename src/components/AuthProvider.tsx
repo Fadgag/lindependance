@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { SessionProvider } from 'next-auth/react'
+import TechAdminDomainProvider from '@/components/layout/TechAdminDomainProvider'
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   // Disable aggressive session revalidation to avoid session drops caused by
@@ -9,8 +10,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // middleware or server-side session refresh.
   return (
     <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
-      {children}
+      <TechAdminDomainProvider>{children}</TechAdminDomainProvider>
     </SessionProvider>
   )
 }
-
