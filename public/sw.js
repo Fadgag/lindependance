@@ -5,7 +5,7 @@ const CACHE_NAME = 'app-cache-v3'
 
 // ─── INSTALL ───────────────────────────────────────────────────────────────
 // Pre-cache nothing on install. Assets are cached on first access (lazy fill).
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   // Skip waiting immediately so the new SW activates without needing all tabs to close.
   self.skipWaiting()
 })
@@ -50,17 +50,19 @@ self.addEventListener('fetch', (event) => {
   // All other GET requests (HTML pages, public assets) → network-first.
   // This ensures users always receive the latest HTML referencing current chunk hashes.
   // Falls back to cache only if the network is unavailable (offline support).
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // Only cache successful, non-opaque responses
-        if (response.ok && response.type !== 'opaque') {
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()))
-        }
-        return response
-      })
-      .catch(() => caches.match(request))
+  const networkResponse = fetch(request)
+  const cacheUpdate = networkResponse.then(
+    (response) => {
+      // Clone before the browser starts consuming the response body.
+      if (response.ok && response.type !== 'opaque') {
+        const responseToCache = response.clone()
+        return caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache))
+      }
+    },
+    () => undefined
   )
+  event.waitUntil(cacheUpdate)
+  event.respondWith(networkResponse.catch(() => caches.match(request)))
 })
 
 // ─── ACTIVATE ──────────────────────────────────────────────────────────────

@@ -59,7 +59,8 @@ date : `________` · navigateur/appareil : `________` · organisation : `_______
 **Étapes :** ouvrez le lien de réservation reçu et vérifiez que le nom et le
 logo affichés sont bien ceux du salon que vous souhaitez contacter. Regardez
 également la présentation choisie par le salon : police, couleur et taille du
-nom, ainsi que la forme du logo.
+nom, ainsi que la forme du logo. Actualisez ensuite la page et vérifiez que la
+réservation reste accessible et que l'identité du salon est toujours affichée.
 
 **Attendu :** la réservation s'ouvre pour le bon salon et présente son nom et
 son logo avec les réglages choisis par le salon. Vous ne voyez aucune
