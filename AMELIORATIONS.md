@@ -1,6 +1,6 @@
 # Améliorations à suivre
 
-Ce fichier suit les améliorations à traiter au fur et à mesure qu'elles sont repérées. Les statuts et priorités ci-dessous sont une proposition de tri fondée sur l'état du dépôt observé le 6 octobre 2026 ; ils ne remplacent pas les décisions produit.
+Ce fichier suit les améliorations à traiter au fur et à mesure qu'elles sont repérées. Les statuts et priorités ci-dessous sont une proposition de tri fondée sur l'état du dépôt observé le 8 octobre 2026 ; ils ne remplacent pas les décisions produit.
 
 ### Légende de priorisation
 
@@ -17,14 +17,18 @@ livré en une seule fois.
 
 ## À traiter
 
-### Ordre recommandé
+### Vérifications manuelles bêta restantes
 
-Les sujets P2 de développement ci-dessous sont implémentés. Il reste à
-effectuer les vérifications manuelles en bêta indiquées dans les guides de
-recette.
+Les développements concernés sont implémentés. Il reste à effectuer les
+vérifications manuelles suivantes dans les guides de recette :
 
-1. Vérifier les e-mails personnalisés pendant une campagne de recette bêta.
-2. Vérifier les parcours de signalement sur les espaces client et staff.
+- Vérifier la personnalisation de l'identité visuelle du portail côté staff et
+  son affichage côté client.
+- Après déploiement de la correction du service worker, ouvrir puis recharger le
+  portail client et vérifier que la réservation reste accessible.
+- Vérifier les e-mails personnalisés avec `CUS-05`, `CUS-10` et `ADM-13`.
+- Appliquer la migration des signalements à la base bêta, puis vérifier les
+  parcours client et staff avec `CUS-17` et `ADM-12`.
 
 Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiquées ci-dessous.
 
@@ -55,6 +59,19 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
   - Le prix et les modalités de facturation éventuels sont définis.
 
 ### Portail client — identité visuelle
+
+#### Corriger l'erreur de lecture de réponse du service worker
+
+- **Type :** Bug
+- **Statut :** Correction implémentée localement — vérification en preprod après déploiement requise.
+- **Priorité proposée :** P1
+- **Comportement observé :** Lors de l'ouverture du portail en preprod, la console signale que `clone()` est appelé sur une réponse déjà utilisée ; la requête FetchEvent du portail échoue également. Une réponse `403` apparaît aussi dans la console, mais sa requête d'origine reste à identifier.
+- **Comportement attendu :** Le service worker met en cache les réponses réseau sans lire ni cloner leur corps après consommation, et le portail reste accessible.
+- **Impact :** Le chargement ou l'actualisation du portail client peut échouer.
+- **Critères d'acceptation :**
+  - L'ouverture et l'actualisation du portail ne produisent plus d'erreur `Response body is already used`.
+  - La réservation reste accessible après actualisation en preprod.
+  - Si un `403` persiste, sa requête et sa cause sont identifiées séparément.
 
 #### Personnaliser l'apparence du nom et du logo du salon
 
@@ -101,23 +118,6 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
 Cette validation est liée aux coordonnées des fiches client et au parcours de
 vérification d'e-mail du portail, mais elle reste distincte : le portail vérifie
 actuellement l'accès à l'e-mail au moment de la connexion.
-
-### Expérience utilisateur — messages et formulations
-
-#### Simplifier le vocabulaire et revoir les formulations au féminin
-
-- **Type :** Amélioration
-- **Statut :** Réalisée — passe de clarté effectuée sur les parcours client et personnel ; tests UI ciblés réussis le 6 octobre 2026.
-- **Priorité :** À définir
-- **Constat :** Certains termes de l'interface sont jargonneux et les formulations sont au féminin partout.
-- **Amélioration souhaitée :** Employer des termes accessibles et revoir les accords de genre selon les personnes et le contexte concernés.
-- **Critères d'acceptation :**
-    - Le vocabulaire de l'interface est compréhensible sans jargon inutile.
-    - Les accords de genre sont cohérents avec les personnes ou les rôles désignés.
-
-Ces deux améliorations peuvent être traitées ensemble dans une passe de clarté
-de l'interface ; les messages d'erreur et les formulations restent vérifiables
-séparément.
 
 ### Qualité terrain — retours et validation
 
