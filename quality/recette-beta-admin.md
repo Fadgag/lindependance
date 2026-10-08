@@ -213,9 +213,10 @@ qu'une fois et la première réponse reste affichée.
 
 **Étapes :** sur un téléphone, ouvrez des demandes avec et sans commentaire.
 Essayez d'accepter une demande dont l'horaire vient d'être pris. Depuis
-l'espace du personnel, ouvrez « Signaler un problème », lisez les informations
-transmises et envoyez un signalement de test sans donnée personnelle. Demandez
-à l'équipe technique de vérifier le signalement et de le marquer comme résolu.
+la barre de menu du personnel, ouvrez « Signaler un problème », lisez les
+informations transmises et envoyez un signalement de test sans donnée
+personnelle. Demandez à l'équipe technique de vérifier le signalement et de le
+marquer comme résolu.
 
 **Attendu :** les commentaires et boutons restent lisibles. Si l'horaire n'est
 plus disponible, un message clair s'affiche et la demande reste visible tant
@@ -253,7 +254,9 @@ staff doit aussi être essayé sur l'environnement bêta.
 
 **Étapes :** dans les réglages d'identité du salon, choisissez une police, une
 taille, une couleur et un alignement pour le nom. Modifiez aussi la taille et
-la forme du logo. Importez une image, déplacez-la et zoomez dans le cadre carré,
+la forme du logo. Réglez une seule fois sa taille dans le curseur commun, puis
+vérifiez le rendu dans la barre latérale, le menu sur téléphone et les aperçus
+du portail. Importez une image, déplacez-la et zoomez dans le cadre carré,
 essayez un fichier qui n'est pas une image acceptée puis une image de plus de
 10 Mo, et vérifiez qu'elles sont refusées. Importez ensuite une image acceptée,
 déplacez-la et zoomez dans le cadre carré, puis vérifiez les aperçus téléphone
@@ -261,13 +264,16 @@ et grand écran. Rétablissez les valeurs par défaut sans enregistrer et vérif
 que l'ancienne présentation est conservée. Recommencez, enregistrez, puis
 rouvrez les pages de réservation et « Mes rendez-vous ».
 
-**Attendu :** l'aperçu suit immédiatement vos choix. Le recadrage reste carré,
-le logo n'est pas déformé et son affichage ne dépasse pas 128 px sur téléphone
-ni 160 px sur grand écran. Après réinitialisation sans enregistrement, les
-réglages enregistrés restent inchangés. Après enregistrement, le nom et le logo
-gardent la même présentation sur les deux pages du portail.
+**Attendu :** l'aperçu suit immédiatement vos choix. Le recadrage reste carré
+et le logo n'est pas déformé. Le curseur commun met à jour la taille dans l'application et le
+portail ; dans l'application, elle ne dépasse pas 64 px dans la barre latérale
+ni 48 px dans le menu mobile. Sur le portail, elle ne dépasse pas 128 px sur
+téléphone ni 160 px sur grand écran. Après réinitialisation sans enregistrement,
+les réglages enregistrés restent inchangés. Après enregistrement, le nom et le
+logo gardent la même présentation sur les deux pages du portail.
 
 **Automatisé :** `test/ui/brandingSettings.spec.tsx`,
+`test/ui/organizationBrand.spec.tsx`,
 `test/ui/portalLogoCropper.spec.tsx`, `test/ui/portalBrandIdentity.spec.tsx`,
 `test/api/organization-branding.spec.ts` et
 `test/services/customerPortalBookingOrganization.spec.ts`. L'import et le

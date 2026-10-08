@@ -5,7 +5,6 @@ import BrandingSettings from '@/components/settings/BrandingSettings'
 const savedBranding = {
   logoDataUrl: null,
   logoShape: 'square',
-  logoSize: 'large',
   organizationName: 'Nouveau salon',
   showNameWithLogo: true,
   portalNameFont: 'notoSerif',
@@ -26,7 +25,6 @@ beforeEach(() => {
     return new Response(JSON.stringify({
       logoDataUrl: null,
       logoShape: 'circle',
-      logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
       portalNameFont: 'manrope',
@@ -52,14 +50,15 @@ describe('BrandingSettings', () => {
       target: { value: 'Nouveau salon' },
     })
     fireEvent.click(await screen.findByRole('radio', { name: 'Carré' }))
-    fireEvent.click(await screen.findByRole('radio', { name: 'Grand' }))
     fireEvent.click(screen.getByRole('checkbox', { name: /Afficher le nom avec le logo/ }))
     fireEvent.change(screen.getByLabelText('Police du nom du salon'), { target: { value: 'notoSerif' } })
     fireEvent.change(screen.getByLabelText('Taille du nom du salon (px)'), { target: { value: '24' } })
     fireEvent.change(screen.getByLabelText('Couleur du nom du salon'), { target: { value: 'emerald' } })
     fireEvent.change(screen.getByLabelText('Graisse du nom du salon'), { target: { value: 'bold' } })
     fireEvent.change(screen.getByLabelText('Alignement du nom du salon'), { target: { value: 'right' } })
-    fireEvent.change(screen.getByLabelText('Taille du logo du portail (px)'), { target: { value: '160' } })
+    fireEvent.change(screen.getByLabelText('Taille du logo dans l’application et le portail (px)'), {
+      target: { value: '160' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Grand écran' }))
     expect(screen.getByTestId('portal-brand-preview')).toHaveAttribute('data-viewport', 'desktop')
     expect(screen.getByTestId('portal-brand-preview')).toHaveAttribute('data-logo-size', '160')
@@ -71,7 +70,6 @@ describe('BrandingSettings', () => {
     expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual({
       logoDataUrl: null,
       logoShape: 'square',
-      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
       portalNameFont: 'notoSerif',
@@ -119,7 +117,7 @@ describe('BrandingSettings', () => {
 
     expect(screen.getByLabelText('Police du nom du salon')).toHaveValue('manrope')
     expect(screen.getByLabelText('Taille du nom du salon (px)')).toHaveValue('18')
-    expect(screen.getByLabelText('Taille du logo du portail (px)')).toHaveValue('48')
+    expect(screen.getByLabelText('Taille du logo dans l’application et le portail (px)')).toHaveValue('48')
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

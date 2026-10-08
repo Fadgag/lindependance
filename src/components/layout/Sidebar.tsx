@@ -7,6 +7,7 @@ import { LogOut } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { menuItems } from './menuItems'
 import OrganizationBrand from './OrganizationBrand'
+import { IssueReportMenuButton } from '@/components/issue-reports/IssueReportLauncher'
 
 export default function Sidebar() {
     const pathname = usePathname()
@@ -56,6 +57,7 @@ export default function Sidebar() {
                         </Link>
                     )
                 })}
+                <IssueReportMenuButton />
             </nav>
 
             <button onClick={() => signOut({ callbackUrl: '/auth/signin' })} className="flex items-center gap-3 px-6 py-6 mt-4 text-(--studio-muted) hover:text-red-400 transition-colors">

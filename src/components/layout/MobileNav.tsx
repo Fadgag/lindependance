@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { menuItems } from './menuItems'
 import { useSession } from 'next-auth/react'
+import { IssueReportMenuButton } from '@/components/issue-reports/IssueReportLauncher'
 
-export default function MobileNav() {
+export default function MobileNav({ onIssueReportOpen }: { onIssueReportOpen?: () => void } = {}) {
     const pathname = usePathname()
     const { data: session } = useSession()
     const isTechAdmin = session?.user?.role === 'TECH_ADMIN'
@@ -33,7 +34,7 @@ export default function MobileNav() {
                     </Link>
                 )
             })}
+            <IssueReportMenuButton onOpen={onIssueReportOpen} />
         </nav>
     )
 }
-

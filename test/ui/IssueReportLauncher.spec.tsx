@@ -15,7 +15,9 @@ vi.mock('@/lib/clientIssueErrors', () => ({
   getRecentClientIssueErrors: mocks.getRecentClientIssueErrors,
 }))
 
-import IssueReportLauncher from '@/components/issue-reports/IssueReportLauncher'
+import IssueReportLauncher, {
+  IssueReportMenuButton,
+} from '@/components/issue-reports/IssueReportLauncher'
 
 function jsonResponse(body: object, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -52,7 +54,12 @@ describe('IssueReportLauncher', () => {
       .mockResolvedValueOnce(jsonResponse({ id: 'report-1' }, 201))
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<ModalStackProvider><IssueReportLauncher /></ModalStackProvider>)
+    render(
+      <ModalStackProvider>
+        <IssueReportLauncher />
+        <IssueReportMenuButton />
+      </ModalStackProvider>,
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Signaler un problème' }))
 
     expect(await screen.findByRole('dialog', { name: 'Signaler un problème' })).toBeInTheDocument()
@@ -84,6 +91,15 @@ describe('IssueReportLauncher', () => {
 
   it('offers the report form in the customer appointments area', () => {
     vi.mocked(mocks.useSession).mockReturnValue({ data: null, status: 'unauthenticated' })
+    vi.mocked(mocks.usePathname).mockReturnValue('/portail/salon-a/mes-rdv')
+    vi.stubGlobal('fetch', vi.fn())
+
+    render(<ModalStackProvider><IssueReportLauncher /></ModalStackProvider>)
+
+    expect(screen.getByRole('button', { name: 'Signaler un problème' })).toBeInTheDocument()
+  })
+
+  it('keeps the portal report action available when staff opens customer appointments', () => {
     vi.mocked(mocks.usePathname).mockReturnValue('/portail/salon-a/mes-rdv')
     vi.stubGlobal('fetch', vi.fn())
 

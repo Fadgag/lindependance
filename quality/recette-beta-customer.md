@@ -63,8 +63,9 @@ nom, ainsi que la forme du logo. Actualisez ensuite la page et vérifiez que la
 réservation reste accessible et que l'identité du salon est toujours affichée.
 
 **Attendu :** la réservation s'ouvre pour le bon salon et présente son nom et
-son logo avec les réglages choisis par le salon. Vous ne voyez aucune
-information appartenant à un autre salon.
+son logo avec les réglages choisis par le salon, y compris la taille commune du
+logo et son adaptation à l'écran. Vous ne voyez aucune information appartenant
+à un autre salon.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts` (lecture publique).
 **Résultat / preuve :** `________`

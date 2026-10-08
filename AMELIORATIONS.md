@@ -77,15 +77,15 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
 #### Personnaliser l'apparence du nom et du logo du salon
 
 - **Type :** Amélioration
-- **Statut :** Réalisée — critères vérifiés le 7 octobre 2026 ; la recette manuelle bêta reste à effectuer.
+- **Statut :** Réalisée — réglage commun de taille vérifié par tests automatisés ; la recette manuelle bêta reste à effectuer.
 - **Priorité :** À définir
-- **Constat / comportement observé :** L'identité du salon apparaît sur la page de réservation, mais la taille du logo ne se règle qu'avec trois choix prédéfinis et l'apparence du nom du salon n'est pas personnalisable.
-- **Comportement attendu / résultat souhaité :** Permettre à chaque organisation de personnaliser l'identité affichée sur toutes les pages du portail client, avec aperçu avant enregistrement.
-- **Impact :** Les organisations peuvent adapter le nom et le logo affichés sur le portail à leur image, sans modifier leur identité dans l'espace de gestion.
+- **Constat / comportement observé :** L'identité du salon apparaît sur le portail, mais les tailles du logo se réglaient séparément dans l'espace de gestion et sur le portail ; les trois choix de l'espace de gestion limitaient la personnalisation.
+- **Comportement attendu / résultat souhaité :** Permettre à chaque organisation de personnaliser l'identité affichée sur le portail avec aperçu avant enregistrement, et de régler la taille du logo une seule fois pour l'espace de gestion et le portail.
+- **Impact :** Les organisations disposent d'un seul réglage cohérent de taille du logo, adapté aux limites d'affichage de chaque écran.
 - **Critères d'acceptation :**
   - Un administrateur peut choisir une police intégrée, une taille de nom de 14 à 24 px, une couleur contrastée, une graisse et un alignement.
   - Le logo PNG, JPEG ou WebP de 10 Mo maximum peut être déplacé et agrandi dans un recadrage carré ; seul le résultat optimisé est enregistré.
-  - La taille du logo est réglable séparément de l'espace de gestion et son affichage est plafonné à 128 px sur mobile et 160 px sur grand écran.
+  - Un seul curseur de 24 à 160 px règle la taille du logo dans l'espace de gestion et le portail ; l'espace de gestion est plafonné à 64 px dans la barre latérale et 48 px sur mobile, le portail à 128 px sur mobile et 160 px sur grand écran.
   - L'aperçu bascule entre mobile et grand écran, reflète les changements avant sauvegarde et le bouton de réinitialisation ne persiste rien sans action d'enregistrement.
   - Les réglages sont isolés par organisation et appliqués de façon cohérente aux pages de réservation et « Mes rendez-vous ».
   - Les guides de recette permettent de vérifier la configuration staff et son affichage côté client.

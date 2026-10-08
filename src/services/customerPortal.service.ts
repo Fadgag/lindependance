@@ -1,6 +1,5 @@
 import { Prisma, type Prisma as PrismaTypes } from '@prisma/client'
 import {
-  logoSizeSchema,
   portalAppearanceSchema,
 } from '@/domain/branding/logoSettings'
 import { shouldInvalidateCustomerOtp } from '@/domain/customer-portal/identity'
@@ -65,7 +64,6 @@ export async function findEnabledPortalBookingOrganization(slug: string) {
       portalContactEmail: true,
       logoDataUrl: true,
       logoShape: true,
-      logoSize: true,
       portalNameFont: true,
       portalNameSize: true,
       portalNameColor: true,
@@ -79,7 +77,6 @@ export async function findEnabledPortalBookingOrganization(slug: string) {
   return {
     ...organization,
     ...portalAppearanceSchema.parse(organization),
-    logoSize: logoSizeSchema.parse(organization.logoSize),
   }
 }
 

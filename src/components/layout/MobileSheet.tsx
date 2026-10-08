@@ -51,12 +51,11 @@ export default function MobileSheet({ isOpen, onClose }: { isOpen: boolean; onCl
                     </button>
                 </div>
                 <div className="overflow-y-auto h-full">
-                    <MobileNav />
+                    <MobileNav onIssueReportOpen={onClose} />
                 </div>
             </div>
         </>
     )
 }
-
 
 

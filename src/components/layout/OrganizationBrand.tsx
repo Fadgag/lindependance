@@ -3,7 +3,10 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { useOrganizationBranding } from '@/hooks/useOrganizationBranding'
-import type { LogoShape, LogoSize } from '@/domain/branding/logoSettings'
+import {
+  getOrganizationLogoSizeForViewport,
+  type LogoShape,
+} from '@/domain/branding/logoSettings'
 import { shouldStackOrganizationBrand } from './organizationBrandLayout'
 
 type OrganizationBrandProps = {
@@ -14,18 +17,6 @@ function logoShapeClass(shape: LogoShape): string {
   return shape === 'circle' ? 'rounded-full' : 'rounded-none'
 }
 
-const LOGO_DIMENSIONS = {
-  sidebar: {
-    small: { pixels: 32, className: 'size-8' },
-    medium: { pixels: 48, className: 'size-12' },
-    large: { pixels: 64, className: 'size-16' },
-  },
-  mobile: {
-    small: { pixels: 24, className: 'size-6' },
-    medium: { pixels: 32, className: 'size-8' },
-    large: { pixels: 48, className: 'size-12' },
-  },
-} satisfies Record<OrganizationBrandProps['variant'], Record<LogoSize, { pixels: number; className: string }>>
 const HORIZONTAL_GAP = 12
 
 export default function OrganizationBrand({ variant }: OrganizationBrandProps) {
@@ -57,14 +48,14 @@ export default function OrganizationBrand({ variant }: OrganizationBrandProps) {
     return () => observer.disconnect()
   }, [
     branding.logoDataUrl,
-    branding.logoSize,
+    branding.portalLogoSize,
     branding.organizationName,
     branding.showNameWithLogo,
     variant,
   ])
 
   if (branding.logoDataUrl) {
-    const { pixels, className: sizeClass } = LOGO_DIMENSIONS[variant][branding.logoSize]
+    const pixels = getOrganizationLogoSizeForViewport(branding.portalLogoSize, variant)
     return (
       <span
         ref={brandRef}
@@ -95,7 +86,8 @@ export default function OrganizationBrand({ variant }: OrganizationBrandProps) {
           role="img"
           aria-label="Logo de l’organisation"
           ref={logoRef}
-          className={`inline-flex ${sizeClass} order-1 shrink-0 overflow-hidden align-middle ${logoShapeClass(branding.logoShape)}`}
+          className={`inline-flex order-1 shrink-0 overflow-hidden align-middle ${logoShapeClass(branding.logoShape)}`}
+          style={{ width: pixels, height: pixels }}
         >
           <Image
             src={branding.logoDataUrl}

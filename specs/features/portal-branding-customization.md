@@ -1,6 +1,6 @@
 # Spécification — Personnalisation de l’identité du portail client
 
-**Statut :** Implémentée — contrôles automatisés validés le 7 octobre 2026 ; recette manuelle bêta à effectuer.
+**Statut :** Implémentée — réglage commun et contrôles automatisés validés le 8 octobre 2026 ; recette manuelle bêta à effectuer.
 **Source :** `AMELIORATIONS.md` — « Personnaliser l'apparence du nom et du logo du salon »
 
 ## Objectif
@@ -16,8 +16,8 @@ l’enregistrement.
 - Les réglages sont enregistrés pour l’organisation de la session ; un
   identifiant d’organisation fourni par le navigateur ne fait jamais autorité.
 - Ils s’appliquent aux pages publiques de réservation et « Mes rendez-vous ».
-- Les tailles de logo de l’espace de gestion restent inchangées. La taille
-  personnalisée décrite ci-dessous concerne le portail client.
+- Un réglage unique de taille du logo s’applique à l’espace de gestion et au
+  portail client.
 - L’aperçu intégré présente uniquement le bloc nom + logo et peut basculer entre
   les rendus mobile et grand écran. Il se met à jour avant l’enregistrement.
 
@@ -42,9 +42,10 @@ l’enregistrement.
   (ronde ou carrée), sans déformation.
 - Seul le résultat recadré est enregistré. Changer le cadrage ultérieurement
   nécessite de réimporter l’image source.
-- Proposer un curseur de taille du logo. Le rendu est plafonné à 128 px sur
-  mobile et 160 px sur grand écran, sans modifier les tailles de l’espace de
-  gestion.
+- Proposer un curseur commun de taille du logo de 24 à 160 px. Dans l’espace de
+  gestion, le rendu est plafonné à 64 px dans la barre latérale et 48 px sur
+  mobile. Dans le portail client, il est plafonné à 128 px sur mobile et 160 px
+  sur grand écran.
 
 ## Enregistrement et valeurs par défaut
 
@@ -53,10 +54,10 @@ l’enregistrement.
   uniquement après « Enregistrer les modifications ».
 - Les valeurs par défaut préservent l’apparence actuelle autant que possible :
   Manrope, 18 px, couleur foncée, graisse semi-grasse, alignement à gauche et
-  logo de 48 px.
-- Le profil et les champs sont validés côté serveur par Zod. Les valeurs
-  d’apparence persistées sont des choix énumérés, pas du CSS fourni par
-  l’utilisateur.
+  logo réglé à 48 px.
+- Le profil et les champs sont validés côté serveur par Zod. Les choix fermés
+  sont des énumérations et les dimensions sont bornées ; aucun CSS libre n’est
+  fourni par l’utilisateur.
 
 ## Critères d’acceptation
 
@@ -64,8 +65,9 @@ l’enregistrement.
    ceux d’un autre salon ne peuvent être ni lus ni modifiés.
 2. Le nom suit les choix enregistrés de police, taille, couleur, graisse et
    alignement sur la réservation et « Mes rendez-vous ».
-3. Le logo recadré, sa forme et sa taille sont cohérents sur ces deux pages ;
-   les plafonds responsive sont de 128 px sur mobile et 160 px sur grand écran.
+3. Le réglage commun du logo met à jour l’espace de gestion et le portail ;
+   l’espace de gestion est plafonné à 64 px dans la barre latérale et 48 px sur
+   mobile, et le portail à 128 px sur mobile et 160 px sur grand écran.
 4. L’aperçu simple reflète immédiatement les choix et permet de vérifier les
    rendus mobile et grand écran avant sauvegarde.
 5. L’import refuse les types non pris en charge et les fichiers dépassant 10 Mo.

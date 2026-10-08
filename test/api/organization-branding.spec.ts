@@ -39,7 +39,6 @@ describe('/api/organization/branding', () => {
     vi.mocked(getOrganizationBranding).mockResolvedValue({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
-      logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
       portalNameFont: 'manrope',
@@ -56,7 +55,6 @@ describe('/api/organization/branding', () => {
     expect(await response.json()).toEqual({
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
-      logoSize: 'medium',
       organizationName: 'Studio Étoile',
       showNameWithLogo: false,
       portalNameFont: 'manrope',
@@ -76,7 +74,6 @@ describe('/api/organization/branding', () => {
     vi.mocked(updateOrganizationBranding).mockResolvedValue({
       logoDataUrl: null,
       logoShape: 'square',
-      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
       portalNameFont: 'notoSerif',
@@ -98,7 +95,6 @@ describe('/api/organization/branding', () => {
 
     const validResponse = await PATCH(patch({
       logoShape: 'square',
-      logoSize: 'large',
       organizationName: '  Nouveau salon  ',
       showNameWithLogo: true,
       portalNameFont: 'notoSerif',
@@ -113,7 +109,6 @@ describe('/api/organization/branding', () => {
     expect(await validResponse.json()).toEqual({
       logoDataUrl: null,
       logoShape: 'square',
-      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
       portalNameFont: 'notoSerif',
@@ -125,7 +120,6 @@ describe('/api/organization/branding', () => {
     })
     expect(updateOrganizationBranding).toHaveBeenCalledWith('org-1', {
       logoShape: 'square',
-      logoSize: 'large',
       organizationName: 'Nouveau salon',
       showNameWithLogo: true,
       portalNameFont: 'notoSerif',
@@ -145,6 +139,17 @@ describe('/api/organization/branding', () => {
       user: { organizationId: 'org-1', role: 'STAFF' },
     } as never)
     expect((await PATCH(patch({ logoShape: 'circle' }))).status).toBe(403)
+    expect(updateOrganizationBranding).not.toHaveBeenCalled()
+  })
+
+  it('rejects the legacy independent logo size field', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { organizationId: 'org-1', role: 'ADMIN' },
+    } as never)
+
+    const response = await PATCH(patch({ logoSize: 'large' }))
+
+    expect(response.status).toBe(400)
     expect(updateOrganizationBranding).not.toHaveBeenCalled()
   })
 })

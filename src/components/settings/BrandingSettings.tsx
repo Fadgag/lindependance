@@ -6,6 +6,7 @@ import PortalBrandIdentity from '@/components/customer-portal/PortalBrandIdentit
 import PortalLogoCropper from '@/components/settings/PortalLogoCropper'
 import {
   DEFAULT_ORGANIZATION_BRANDING,
+  getOrganizationLogoSizeForViewport,
   organizationBrandingUpdateSchema,
   organizationBrandingSchema,
   PORTAL_BRAND_COLORS,
@@ -15,18 +16,12 @@ import {
   portalNameFontSchema,
   portalNameWeightSchema,
   type LogoShape,
-  type LogoSize,
   type OrganizationBranding,
 } from '@/domain/branding/logoSettings'
 
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 const LOGO_SHAPES: LogoShape[] = ['circle', 'square']
-const LOGO_SIZES: { value: LogoSize; label: string; previewSize: number }[] = [
-  { value: 'small', label: 'Petit', previewSize: 32 },
-  { value: 'medium', label: 'Moyen', previewSize: 48 },
-  { value: 'large', label: 'Grand', previewSize: 64 },
-]
 
 function responseErrorMessage(value: unknown): string {
   if (value && typeof value === 'object' && 'error' in value && typeof value.error === 'string') {
@@ -102,11 +97,6 @@ export default function BrandingSettings() {
     setMessage('')
   }
 
-  function handleSizeChange(logoSize: LogoSize) {
-    setBranding((current) => ({ ...current, logoSize }))
-    setMessage('')
-  }
-
   function handleNameChange(organizationName: string) {
     setBranding((current) => ({ ...current, organizationName }))
     setMessage('')
@@ -159,7 +149,7 @@ export default function BrandingSettings() {
   }
 
   const shapeClass = branding.logoShape === 'circle' ? 'rounded-full' : 'rounded-none'
-  const previewSize = LOGO_SIZES.find((size) => size.value === branding.logoSize)?.previewSize ?? 48
+  const previewSize = getOrganizationLogoSizeForViewport(branding.portalLogoSize, 'sidebar')
 
   return (
     <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -226,7 +216,9 @@ export default function BrandingSettings() {
               </div>
 
               <fieldset>
-                <legend className="text-sm font-medium text-gray-700">Forme du logo sur le portail</legend>
+                <legend className="text-sm font-medium text-gray-700">
+                  Forme du logo dans l’application et le portail
+                </legend>
                 <div className="mt-2 flex gap-4">
                   {LOGO_SHAPES.map((shape) => (
                     <label key={shape} className="flex items-center gap-2 text-sm text-gray-700">
@@ -244,24 +236,30 @@ export default function BrandingSettings() {
                 </div>
               </fieldset>
 
-              <fieldset>
-                <legend className="text-sm font-medium text-gray-700">Taille du logo dans l’espace de gestion</legend>
-                <div className="mt-2 flex gap-4">
-                  {LOGO_SIZES.map(({ value, label }) => (
-                    <label key={value} className="flex items-center gap-2 text-sm text-gray-700">
-                      <input
-                        type="radio"
-                        name="organization-logo-size"
-                        value={value}
-                        checked={branding.logoSize === value}
-                        onChange={() => handleSizeChange(value)}
-                        disabled={saving}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <label className="block text-sm font-medium text-gray-700">
+                Taille du logo dans l’application et le portail (px)
+                <input
+                  aria-label="Taille du logo dans l’application et le portail (px)"
+                  type="range"
+                  min="24"
+                  max="160"
+                  step="1"
+                  value={branding.portalLogoSize}
+                  onChange={(event) => setBranding((current) => ({
+                    ...current,
+                    portalLogoSize: Number(event.target.value),
+                  }))}
+                  disabled={saving}
+                  className="mt-2 block w-full accent-indigo-600"
+                />
+                <span className="mt-1 block text-xs font-normal text-gray-500">
+                  {branding.portalLogoSize} px
+                </span>
+                <span className="block text-xs font-normal text-gray-500">
+                  Taille limitée à 64 px dans la barre latérale et 48 px sur mobile ;
+                  jusqu’à 128 px sur mobile et 160 px sur grand écran dans le portail.
+                </span>
+              </label>
 
               <label className="flex items-start gap-3 text-sm text-gray-700">
                 <input
@@ -419,26 +417,6 @@ export default function BrandingSettings() {
                 </select>
               </label>
 
-              <label className="block text-sm font-medium text-gray-700">
-                Taille du logo du portail (px)
-                <input
-                  aria-label="Taille du logo du portail (px)"
-                  type="range"
-                  min="24"
-                  max="160"
-                  step="1"
-                  value={branding.portalLogoSize}
-                  onChange={(event) => setBranding((current) => ({
-                    ...current,
-                    portalLogoSize: Number(event.target.value),
-                  }))}
-                  disabled={saving}
-                  className="mt-2 block w-full accent-indigo-600"
-                />
-                <span className="text-xs text-gray-500">
-                  Jusqu’à 128 px sur mobile et 160 px sur grand écran
-                </span>
-              </label>
             </div>
 
             <button

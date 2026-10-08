@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_ORGANIZATION_BRANDING,
   PORTAL_BRAND_COLORS,
+  getOrganizationLogoSizeForViewport,
   getPortalLogoSizeForViewport,
   organizationBrandingSchema,
   organizationBrandingUpdateSchema,
@@ -38,7 +39,6 @@ describe('organizationBrandingUpdateSchema', () => {
         organizationName: 'Atelier',
         logoDataUrl: null,
         logoShape: 'square',
-        logoSize: 'medium',
         showNameWithLogo: true,
         portalNameFont: 'notoSerif',
         portalNameSize: 24,
@@ -55,6 +55,14 @@ describe('organizationBrandingUpdateSchema', () => {
       expect(organizationBrandingUpdateSchema.safeParse({ portalNameSize: 25 }).success).toBe(false)
       expect(organizationBrandingUpdateSchema.safeParse({ portalLogoSize: 23 }).success).toBe(false)
       expect(organizationBrandingUpdateSchema.safeParse({ portalLogoSize: 161 }).success).toBe(false)
+      expect(organizationBrandingUpdateSchema.safeParse({ logoSize: 'large' }).success).toBe(false)
+    })
+
+    it('caps the shared logo size for the available management navigation space', () => {
+      expect(getOrganizationLogoSizeForViewport(160, 'sidebar')).toBe(64)
+      expect(getOrganizationLogoSizeForViewport(160, 'mobile')).toBe(48)
+      expect(getOrganizationLogoSizeForViewport(24, 'sidebar')).toBe(24)
+      expect(getOrganizationLogoSizeForViewport(24, 'mobile')).toBe(24)
     })
 
     it('caps logo rendering responsively without changing the stored size', () => {
@@ -90,15 +98,13 @@ describe('organizationBrandingUpdateSchema', () => {
     expect(organizationBrandingUpdateSchema.parse({
       organizationName: '  Studio Étoile  ',
       showNameWithLogo: true,
-      logoSize: 'large',
     })).toEqual({
       organizationName: 'Studio Étoile',
       showNameWithLogo: true,
-      logoSize: 'large',
     })
     expect(organizationBrandingUpdateSchema.safeParse({ organizationName: '   ' }).success).toBe(false)
     expect(organizationBrandingUpdateSchema.safeParse({ organizationName: 'Studio\nÉtoile' }).success).toBe(false)
-    expect(organizationBrandingUpdateSchema.safeParse({ logoSize: 'giant' }).success).toBe(false)
+    expect(organizationBrandingUpdateSchema.safeParse({ logoSize: 'large' }).success).toBe(false)
   })
 
   it('rejects unsupported image formats, malformed data, and empty updates', () => {
