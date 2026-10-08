@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { z } from 'zod'
 import {
@@ -18,6 +18,7 @@ import {
   testScenarioGroups as scenarioGroupCatalog,
   type TestScenarioGroupId,
 } from '@/domain/test-feedback/scenarioGroups'
+import { useTechAdminDomain } from '@/components/layout/TechAdminDomainProvider'
 
 type CampaignDashboard = z.infer<typeof TestCampaignListResponseSchema>
 type CampaignDraft = z.infer<typeof CreateTestCampaignSchema>
@@ -58,6 +59,14 @@ function scenarioGroupLabel(id: TestScenarioGroupId): string {
 }
 
 export default function TestCampaignDashboard() {
+  const { selectedOrganizationIds } = useTechAdminDomain()
+  const selectedOrganizationKey = JSON.stringify(selectedOrganizationIds)
+  const organizationQuery = selectedOrganizationIds
+    .map((id) => `organizationId=${encodeURIComponent(id)}`)
+    .join('&')
+  const singleSelectedOrganizationId = selectedOrganizationIds.length === 1
+    ? selectedOrganizationIds[0]
+    : null
   const [data, setData] = useState<CampaignDashboard | null>(null)
   const [campaignName, setCampaignName] = useState('')
   const [organizationId, setOrganizationId] = useState('')
@@ -71,32 +80,46 @@ export default function TestCampaignDashboard() {
   const [selectedScenarioGroups, setSelectedScenarioGroups] = useState<TestScenarioGroupId[]>(
     scenarioGroupCatalog.map(({ id }) => id),
   )
+  const [loadedOrganizationKey, setLoadedOrganizationKey] = useState('')
+  const latestCampaignRequest = useRef(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
   const loadCampaigns = useCallback(async () => {
+    const requestId = ++latestCampaignRequest.current
     setLoading(true)
     setError('')
     try {
-      const response = await fetch('/api/test-campaigns', { cache: 'no-store' })
+      const query = organizationQuery
+        ? `?${organizationQuery}`
+        : ''
+      const response = await fetch(`/api/test-campaigns${query}`, { cache: 'no-store' })
       if (!response.ok) throw new Error(await responseError(response))
       const payload: unknown = await response.json()
       const parsed = TestCampaignListResponseSchema.safeParse(payload)
       if (!parsed.success) throw new Error('Réponse invalide du tableau de bord')
+      if (requestId !== latestCampaignRequest.current) return
       setData(parsed.data)
-      setOrganizationId((current) => current || parsed.data.organizations[0]?.id || '')
+      setLoadedOrganizationKey(selectedOrganizationKey)
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : 'Impossible de charger les campagnes')
+      if (requestId === latestCampaignRequest.current) {
+        setError(cause instanceof Error ? cause.message : 'Impossible de charger les campagnes')
+      }
     } finally {
-      setLoading(false)
+      if (requestId === latestCampaignRequest.current) setLoading(false)
     }
-  }, [])
+  }, [organizationQuery, selectedOrganizationKey])
 
   useEffect(() => {
     void loadCampaigns()
   }, [loadCampaigns])
+
+  useEffect(() => {
+    if (!data) return
+    setOrganizationId(singleSelectedOrganizationId ?? '')
+  }, [data, singleSelectedOrganizationId])
 
   useEffect(() => {
     let active = true
@@ -260,7 +283,9 @@ export default function TestCampaignDashboard() {
     }
   }
 
-  const campaigns = data?.campaigns ?? []
+  const campaigns = loading || loadedOrganizationKey !== selectedOrganizationKey
+    ? []
+    : data?.campaigns ?? []
   const totals = campaigns.reduce((summary, campaign) => ({
     active: summary.active + Number(campaign.status === 'ACTIVE'),
     passed: summary.passed + campaign.progress.passed,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { apiErrorResponse } from '@/lib/api'
 import { getTestCampaignAdminAccess } from '@/lib/testCampaignAccess'
 import { CreateTestCampaignSchema } from '@/schemas/testFeedback'
+import { TechAdminOrganizationFilterSchema } from '@/schemas/techAdmin'
 import {
   createTestCampaign,
   listTestCampaigns,
@@ -9,13 +10,20 @@ import {
 } from '@/services/testFeedback.service'
 import { sendTestCampaignInvitationEmails } from '@/services/testCampaignInvitationEmail.service'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const access = await getTestCampaignAdminAccess()
     if (!access.authorized) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: access.status })
     }
-    return NextResponse.json(await listTestCampaigns())
+    const searchParams = new URL(request.url).searchParams
+    const filters = TechAdminOrganizationFilterSchema.safeParse({
+      organizationIds: searchParams.getAll('organizationId'),
+    })
+    if (!filters.success) {
+      return NextResponse.json({ error: 'Filtre de domaine invalide' }, { status: 400 })
+    }
+    return NextResponse.json(await listTestCampaigns(filters.data.organizationIds))
   } catch (error: unknown) {
     return apiErrorResponse(error)
   }

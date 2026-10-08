@@ -3,6 +3,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
 import IssueReportsDashboard from '@/components/issue-reports/IssueReportsDashboard'
 
+vi.mock('@/components/layout/TechAdminDomainProvider', () => ({
+  useTechAdminDomain: () => ({ selectedOrganizationIds: ['org-1', 'org-2'] }),
+}))
+
 function jsonResponse(body: object, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -26,6 +30,19 @@ const report = {
   createdAt: '2026-10-06T12:00:00.000Z',
   resolvedAt: null,
 }
+const resolvedReport = {
+  ...report,
+  id: 'report-2',
+  title: 'Signalement résolu',
+  status: 'RESOLVED',
+  resolvedAt: '2026-10-06T12:00:00.000Z',
+}
+const inProgressReport = {
+  ...report,
+  id: 'report-3',
+  title: 'Signalement en cours',
+  status: 'IN_PROGRESS',
+}
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -48,11 +65,30 @@ describe('IssueReportsDashboard', () => {
     })
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/issue-reports?organizationId=org-1&organizationId=org-2')
     expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/issue-reports/report-1')
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({ status: 'RESOLVED' })
     await waitFor(() => {
       expect(screen.getByLabelText('État du signalement Le portail se bloque')).toHaveValue('RESOLVED')
     })
+  })
+
+  it('filters unresolved reports to new and in-progress statuses while keeping resolved reports available', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse([report, inProgressReport, resolvedReport])))
+
+    render(<IssueReportsDashboard />)
+
+    expect(await screen.findByText('Signalement résolu')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Afficher les signalements'), {
+      target: { value: 'UNRESOLVED' },
+    })
+    expect(screen.getByText('Le portail se bloque')).toBeInTheDocument()
+    expect(screen.getByText('Signalement en cours')).toBeInTheDocument()
+    expect(screen.queryByText('Signalement résolu')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Afficher les signalements'), {
+      target: { value: 'ALL' },
+    })
+    expect(screen.getByText('Signalement résolu')).toBeInTheDocument()
   })
 
   it('shows a useful error when the report list cannot be loaded', async () => {

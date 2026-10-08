@@ -7,7 +7,9 @@ const mocks = vi.hoisted(() => {
     testCampaignReview: { create: vi.fn() },
   }
   return {
+    organizationFindMany: vi.fn(),
     organizationFindUnique: vi.fn(),
+    campaignFindMany: vi.fn(),
     userFindMany: vi.fn(),
     customerFindMany: vi.fn(),
     campaignCreate: vi.fn(),
@@ -21,11 +23,15 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    organization: { findUnique: mocks.organizationFindUnique },
+    organization: {
+      findMany: mocks.organizationFindMany,
+      findUnique: mocks.organizationFindUnique,
+    },
     user: { findMany: mocks.userFindMany },
     customer: { findMany: mocks.customerFindMany },
     testCampaign: {
       create: mocks.campaignCreate,
+      findMany: mocks.campaignFindMany,
       findUnique: mocks.campaignFindUnique,
       updateMany: mocks.campaignUpdateMany,
     },
@@ -38,6 +44,7 @@ import {
   createTestCampaign,
   createTestFeedback,
   closeTestCampaign,
+  listTestCampaigns,
   getTestCampaignDetail,
   getPublicTestCampaign,
   listTestCampaignRecipients,
@@ -46,6 +53,8 @@ import {
 beforeEach(() => {
   vi.resetAllMocks()
   mocks.organizationFindUnique.mockResolvedValue({ id: 'org-1', name: 'Osez le T’re' })
+  mocks.organizationFindMany.mockResolvedValue([{ id: 'org-1', name: 'Osez le T’re' }])
+  mocks.campaignFindMany.mockResolvedValue([])
   mocks.userFindMany.mockResolvedValue([])
   mocks.customerFindMany.mockResolvedValue([])
   mocks.campaignCreate.mockResolvedValue({ id: 'campaign-1' })
@@ -61,6 +70,18 @@ beforeEach(() => {
 })
 
 describe('test feedback service', () => {
+  it('limits campaign dashboard records to the selected organizations', async () => {
+    await listTestCampaigns(['org-2', 'org-3'])
+
+    expect(mocks.campaignFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { organizationId: { in: ['org-2', 'org-3'] } },
+    }))
+    expect(mocks.organizationFindMany).toHaveBeenCalledWith({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    })
+  })
+
   it('includes the organization slug in public campaign metadata without exposing its ID', async () => {
     mocks.campaignFindUnique.mockResolvedValueOnce({
       name: 'Recette bêta',

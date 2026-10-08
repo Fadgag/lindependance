@@ -177,7 +177,7 @@ describe('issue report persistence', () => {
   it('purges resolved reports after 90 days and returns valid report data', async () => {
     const now = new Date('2026-10-06T12:00:00.000Z')
 
-    const reports = await listIssueReports(now)
+    const reports = await listIssueReports({ now })
 
     expect(mocks.issueReportDeleteMany).toHaveBeenCalledWith({
       where: {
@@ -200,6 +200,22 @@ describe('issue report persistence', () => {
       createdAt: '2026-10-06T12:00:00.000Z',
       errors: [{ name: 'TypeError', message: 'Erreur expurgée' }],
     })
+  })
+
+  it('filters reports by selected organizations without changing the retention window', async () => {
+    const now = new Date('2026-10-06T12:00:00.000Z')
+
+    await listIssueReports({ now, organizationIds: ['org-2', 'org-3'] })
+
+    expect(mocks.issueReportFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        organizationId: { in: ['org-2', 'org-3'] },
+        OR: [
+          { resolvedAt: null },
+          { resolvedAt: { gt: new Date('2026-07-08T12:00:00.000Z') } },
+        ],
+      },
+    }))
   })
 
   it('starts the 90-day retention period when a report is resolved', async () => {

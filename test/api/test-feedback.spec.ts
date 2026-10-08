@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   sendCampaignInvitations: vi.fn(),
   getPublicCampaign: vi.fn(),
   loadScenarioCatalog: vi.fn(),
+  listTechAdminOrganizations: vi.fn(),
   createFeedback: vi.fn(),
   consumeRateLimits: vi.fn(),
   getSecret: vi.fn(),
@@ -23,6 +24,9 @@ vi.mock('@/services/testFeedback.service', () => ({
   loadScenarioCatalog: mocks.loadScenarioCatalog,
   createTestFeedback: mocks.createFeedback,
 }))
+vi.mock('@/services/techAdmin.service', () => ({
+  listTechAdminOrganizations: mocks.listTechAdminOrganizations,
+}))
 vi.mock('@/services/testCampaignInvitationEmail.service', () => ({
   sendTestCampaignInvitationEmails: mocks.sendCampaignInvitations,
 }))
@@ -33,6 +37,7 @@ vi.mock('@/lib/customerPortalSecurity', () => ({
 }))
 
 import { GET as getCampaigns, POST as postCampaign } from '@/app/api/test-campaigns/route'
+import { GET as getTechAdminOrganizations } from '@/app/api/tech-admin/organizations/route'
 import { GET as getCampaignRecipients } from '@/app/api/test-campaigns/recipients/route'
 import { GET as getPublicFeedback, POST as postPublicFeedback } from '@/app/api/test-feedback/[campaignToken]/route'
 import { getTestCampaignAdminAccess } from '@/lib/testCampaignAccess'
@@ -89,6 +94,8 @@ beforeEach(() => {
     organization: { name: 'Osez le T’re', slug: 'osez-le-tre', portalEnabled: true },
   } as never)
   vi.mocked(listTestCampaignRecipients).mockResolvedValue([])
+  vi.mocked(mocks.listTechAdminOrganizations).mockResolvedValue([])
+  vi.mocked(listTestCampaigns).mockResolvedValue({ organizations: [], campaigns: [] })
   vi.mocked(sendTestCampaignInvitationEmails).mockResolvedValue({ failedIndexes: [], error: null })
   vi.mocked(loadScenarioCatalog).mockReturnValue(scenarioCatalog)
   vi.mocked(consumePortalRateLimits).mockResolvedValue(true)
@@ -98,6 +105,45 @@ beforeEach(() => {
 })
 
 describe('test campaign management API', () => {
+  it('filters the campaign dashboard by multiple optional organizations', async () => {
+    const response = await getCampaigns(new Request(
+      'https://example.test/api/test-campaigns?organizationId=org-1&organizationId=org-2',
+    ))
+
+    expect(response.status).toBe(200)
+    expect(listTestCampaigns).toHaveBeenCalledWith(['org-1', 'org-2'])
+  })
+
+  it('rejects malformed organization filters for the campaign dashboard', async () => {
+    const response = await getCampaigns(new Request(
+      'https://example.test/api/test-campaigns?organizationId=',
+    ))
+
+    expect(response.status).toBe(400)
+    expect(listTestCampaigns).not.toHaveBeenCalled()
+  })
+
+  it('returns organization options only to technical admins', async () => {
+    vi.mocked(mocks.listTechAdminOrganizations).mockResolvedValue([
+      { id: 'org-id', name: 'Osez le T’re' },
+    ])
+
+    const response = await getTechAdminOrganizations()
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual([{ id: 'org-id', name: 'Osez le T’re' }])
+    expect(mocks.listTechAdminOrganizations).toHaveBeenCalledOnce()
+  })
+
+  it('does not return organization options to salon administrators', async () => {
+    vi.mocked(getTestCampaignAdminAccess).mockResolvedValue({ authorized: false, status: 403 })
+
+    const response = await getTechAdminOrganizations()
+
+    expect(response.status).toBe(403)
+    expect(mocks.listTechAdminOrganizations).not.toHaveBeenCalled()
+  })
+
   it('returns recipients for the requested organization only to a technical admin', async () => {
     vi.mocked(listTestCampaignRecipients).mockResolvedValue([{
       id: 'user-1',
@@ -146,7 +192,7 @@ describe('test campaign management API', () => {
   it('denies salon administrators from the global dashboard API', async () => {
     vi.mocked(getTestCampaignAdminAccess).mockResolvedValue({ authorized: false, status: 403 })
 
-    const response = await getCampaigns()
+    const response = await getCampaigns(new Request('https://example.test/api/test-campaigns'))
 
     expect(response.status).toBe(403)
     expect(listTestCampaigns).not.toHaveBeenCalled()

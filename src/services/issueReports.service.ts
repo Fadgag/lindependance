@@ -162,10 +162,14 @@ async function purgeResolvedIssueReports(now: Date): Promise<void> {
   })
 }
 
-export async function listIssueReports(now = new Date()): Promise<IssueReportView[]> {
+export async function listIssueReports(options: { now?: Date; organizationIds?: string[] } = {}): Promise<IssueReportView[]> {
+  const now = options.now ?? new Date()
   await purgeResolvedIssueReports(now)
   const reports = await prisma.issueReport.findMany({
     where: {
+      ...(options.organizationIds?.length
+        ? { organizationId: { in: options.organizationIds } }
+        : {}),
       OR: [
         { resolvedAt: null },
         { resolvedAt: { gt: new Date(now.getTime() - RETENTION_MS) } },

@@ -13,17 +13,25 @@ import {
   listIssueReports,
 } from '@/services/issueReports.service'
 import { IssueReportSubmissionSchema } from '@/schemas/issueReport'
+import { TechAdminOrganizationFilterSchema } from '@/schemas/techAdmin'
 
 const REPORT_WINDOW_MS = 60 * 60 * 1000
 const REPORT_LIMIT = 5
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const access = await getTestCampaignAdminAccess()
     if (!access.authorized) {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs techniques.' }, { status: access.status })
     }
-    return NextResponse.json(await listIssueReports(), {
+    const searchParams = new URL(request.url).searchParams
+    const filters = TechAdminOrganizationFilterSchema.safeParse({
+      organizationIds: searchParams.getAll('organizationId'),
+    })
+    if (!filters.success) {
+      return NextResponse.json({ error: 'Filtre de domaine invalide.' }, { status: 400 })
+    }
+    return NextResponse.json(await listIssueReports(filters.data), {
       headers: { 'Cache-Control': 'private, no-store' },
     })
   } catch (error: unknown) {

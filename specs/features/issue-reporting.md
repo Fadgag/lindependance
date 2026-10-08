@@ -21,6 +21,23 @@ de le traiter dans un tableau de bord interne.
 - `/issue-reports` et ses API sont réservés au rôle `TECH_ADMIN`. Le tableau
   permet de consulter le signalement et de suivre son traitement avec les états
   `NOUVEAU`, `EN_COURS` et `RÉSOLU`.
+- Le menu TECH_ADMIN conserve les liens « Signalements » et « Campagnes de test »
+  et propose un sélecteur commun : « Tous les domaines » ou une ou plusieurs
+  organisations, y compris celles sans signalement. Le choix est conservé lors
+  du passage entre ces deux outils ; « Tous les domaines » est sélectionné par
+  défaut.
+- Le filtre réduit la liste des signalements et des campagnes ainsi que les
+  indicateurs de campagne. Dans les signalements, un filtre permet d'afficher
+  tous les états ou uniquement les signalements non résolus (`NOUVEAU` et
+  `EN_COURS`).
+- Une campagne est préremplie avec l'organisation sélectionnée si une seule
+  l'est ; en vue globale ou avec plusieurs organisations sélectionnées, le
+  TECH_ADMIN choisit explicitement la cible. Il peut toujours choisir toute
+  organisation disponible.
+- Le filtre est une commodité d'interface, pas une autorisation supplémentaire :
+  les pages et API restent protégées par `TECH_ADMIN`. Les identifiants
+  d'organisation sont validés côté serveur ; l'absence de filtre conserve la
+  vue globale.
 - Les requêtes de listing/modification n'exposent pas les signalements d'une
   organisation aux utilisateurs de cette organisation.
 

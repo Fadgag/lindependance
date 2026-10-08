@@ -6,6 +6,7 @@ import {
   IssueReportStatusSchema,
   type IssueReportStatus,
 } from '@/schemas/issueReport'
+import { useTechAdminDomain } from '@/components/layout/TechAdminDomainProvider'
 
 type IssueReport = typeof IssueReportDashboardRecordSchema._output
 
@@ -23,15 +24,26 @@ function errorMessage(body: unknown, fallback: string): string {
 
 export default function IssueReportsDashboard() {
   const [reports, setReports] = useState<IssueReport[]>([])
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'UNRESOLVED'>('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(() => new Set())
+  const { selectedOrganizationIds } = useTechAdminDomain()
+  const organizationQuery = selectedOrganizationIds
+    .map((id) => `organizationId=${encodeURIComponent(id)}`)
+    .join('&')
 
   useEffect(() => {
     let active = true
     async function loadReports() {
+      setLoading(true)
+      setError('')
+      setReports([])
       try {
-        const response = await fetch('/api/issue-reports', { cache: 'no-store' })
+        const query = organizationQuery
+          ? `?${organizationQuery}`
+          : ''
+        const response = await fetch(`/api/issue-reports${query}`, { cache: 'no-store' })
         const body: unknown = await response.json()
         if (!response.ok) {
           throw new Error(errorMessage(body, 'Impossible de charger les signalements.'))
@@ -49,7 +61,7 @@ export default function IssueReportsDashboard() {
     }
     void loadReports()
     return () => { active = false }
-  }, [])
+  }, [organizationQuery])
 
   async function updateStatus(reportId: string, status: IssueReportStatus) {
     setUpdatingIds((current) => new Set(current).add(reportId))
@@ -76,6 +88,10 @@ export default function IssueReportsDashboard() {
     }
   }
 
+  const visibleReports = statusFilter === 'UNRESOLVED'
+    ? reports.filter((report) => report.status !== 'RESOLVED')
+    : reports
+
   return (
     <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-8">
       <header>
@@ -83,14 +99,29 @@ export default function IssueReportsDashboard() {
         <p className="mt-2 text-sm text-slate-600">
           Consultez les signalements reçus et suivez leur traitement.
         </p>
+        <label className="mt-4 grid max-w-sm gap-1 text-sm font-medium text-slate-700">
+          Afficher les signalements
+          <select
+            aria-label="Afficher les signalements"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value === 'UNRESOLVED' ? 'UNRESOLVED' : 'ALL')}
+            className="rounded-lg border border-slate-300 bg-white p-2"
+          >
+            <option value="ALL">Tous les signalements</option>
+            <option value="UNRESOLVED">Non résolus (Nouveau + En cours)</option>
+          </select>
+        </label>
       </header>
       {error ? <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p> : null}
       {loading ? <p role="status">Chargement des signalements…</p> : null}
       {!loading && !error && reports.length === 0
         ? <p className="rounded-xl bg-white p-6 text-slate-600 shadow-sm">Aucun signalement pour le moment.</p>
         : null}
+      {!loading && !error && reports.length > 0 && visibleReports.length === 0
+        ? <p className="rounded-xl bg-white p-6 text-slate-600 shadow-sm">Aucun signalement pour ce filtre.</p>
+        : null}
       <div className="space-y-4">
-        {reports.map((report) => (
+        {visibleReports.map((report) => (
           <article key={report.id} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col justify-between gap-3 sm:flex-row">
               <div>

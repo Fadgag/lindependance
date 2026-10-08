@@ -184,17 +184,35 @@ describe('technical issue report dashboard API', () => {
   it('lists reports only for technical admins', async () => {
     vi.mocked(getTestCampaignAdminAccess).mockResolvedValue({ authorized: false, status: 403 })
 
-    const response = await getIssueReports()
+    const response = await getIssueReports(new Request('https://example.test/api/issue-reports'))
 
     expect(response.status).toBe(403)
     expect(listIssueReports).not.toHaveBeenCalled()
   })
 
   it('does not cache technical report data', async () => {
-    const response = await getIssueReports()
+    const response = await getIssueReports(new Request('https://example.test/api/issue-reports'))
 
     expect(response.status).toBe(200)
     expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+  })
+
+  it('validates and applies multiple optional organization filters for technical admins', async () => {
+    const response = await getIssueReports(new Request(
+      'https://example.test/api/issue-reports?organizationId=org-2&organizationId=org-3',
+    ))
+
+    expect(response.status).toBe(200)
+    expect(listIssueReports).toHaveBeenCalledWith({ organizationIds: ['org-2', 'org-3'] })
+  })
+
+  it('rejects malformed organization filters', async () => {
+    const response = await getIssueReports(new Request(
+      'https://example.test/api/issue-reports?organizationId=',
+    ))
+
+    expect(response.status).toBe(400)
+    expect(listIssueReports).not.toHaveBeenCalled()
   })
 
   it('allows technical admins to update report status', async () => {
