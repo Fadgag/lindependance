@@ -52,7 +52,6 @@ beforeEach(() => {
       ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: dataUrl,
       logoShape: 'circle',
-      logoSize: 'medium',
       organizationName: sessionState.current?.user.organizationId === 'org-1' ? 'Salon 1' : 'Salon 2',
       showNameWithLogo: false,
     }), { status: 200 })
@@ -93,7 +92,6 @@ describe('OrganizationBrand', () => {
         ...DEFAULT_ORGANIZATION_BRANDING,
         logoDataUrl: 'data:image/webp;base64,AQ==',
         logoShape: 'circle',
-        logoSize: 'medium',
         organizationName: 'Salon 1',
         showNameWithLogo: false,
       }), { status: 200 }))
@@ -111,7 +109,6 @@ describe('OrganizationBrand', () => {
       ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
-      logoSize: 'medium',
       organizationName: 'Salon 1',
       showNameWithLogo: false,
     }), { status: 200 }))
@@ -127,7 +124,7 @@ describe('OrganizationBrand', () => {
       ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
-      logoSize: 'large',
+      portalLogoSize: 160,
       organizationName: 'Studio Étoile',
       showNameWithLogo: true,
     }), { status: 200 }))
@@ -135,7 +132,22 @@ describe('OrganizationBrand', () => {
     render(<OrganizationBrand variant="mobile" />)
 
     expect(await screen.findByTitle('Studio Étoile')).toHaveClass('order-2')
-    expect(screen.getByRole('img', { name: 'Logo de l’organisation' })).toHaveClass('size-12', 'order-1')
+    const logo = screen.getByRole('img', { name: 'Logo de l’organisation' })
+    expect(logo).toHaveClass('order-1')
+    expect(logo).toHaveStyle({ width: '48px', height: '48px' })
+  })
+
+  it('caps the shared logo size at 64 pixels in the desktop sidebar', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      ...DEFAULT_ORGANIZATION_BRANDING,
+      logoDataUrl: 'data:image/webp;base64,AA==',
+      portalLogoSize: 160,
+    }), { status: 200 }))
+
+    render(<OrganizationBrand variant="sidebar" />)
+
+    const logo = await screen.findByRole('img', { name: 'Logo de l’organisation' })
+    expect(logo).toHaveStyle({ width: '64px', height: '64px' })
   })
 
   it('stacks the title below the logo only when the remaining width is insufficient', () => {
@@ -156,7 +168,7 @@ describe('OrganizationBrand', () => {
       ...DEFAULT_ORGANIZATION_BRANDING,
       logoDataUrl: 'data:image/webp;base64,AA==',
       logoShape: 'circle',
-      logoSize: 'large',
+      portalLogoSize: 160,
       organizationName: 'Studio Étoile',
       showNameWithLogo: true,
     }), { status: 200 }))

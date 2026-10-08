@@ -10,7 +10,6 @@ const logoDataUrlSchema = z.string()
   )
 
 export const logoShapeSchema = z.enum(['circle', 'square'])
-export const logoSizeSchema = z.enum(['small', 'medium', 'large'])
 export const portalNameFontSchema = z.enum(['manrope', 'notoSerif', 'rounded'])
 export const portalNameColorSchema = z.enum(['charcoal', 'indigo', 'emerald', 'plum', 'rose'])
 export const portalNameWeightSchema = z.enum(['normal', 'semibold', 'bold'])
@@ -51,7 +50,6 @@ export const portalAppearanceSchema = z.object({
 export const organizationBrandingUpdateSchema = z.object({
   logoDataUrl: logoDataUrlSchema.nullable().optional(),
   logoShape: logoShapeSchema.optional(),
-  logoSize: logoSizeSchema.optional(),
   organizationName: organizationNameSchema.optional(),
   showNameWithLogo: z.boolean().optional(),
   portalNameFont: portalNameFontSchema.optional(),
@@ -63,7 +61,6 @@ export const organizationBrandingUpdateSchema = z.object({
 }).strict().refine(
   (update) => update.logoDataUrl !== undefined
     || update.logoShape !== undefined
-    || update.logoSize !== undefined
     || update.organizationName !== undefined
     || update.showNameWithLogo !== undefined
     || update.portalNameFont !== undefined
@@ -76,7 +73,6 @@ export const organizationBrandingUpdateSchema = z.object({
 )
 
 export const organizationBrandingSchema = portalAppearanceSchema.extend({
-  logoSize: logoSizeSchema,
   organizationName: organizationNameSchema,
   showNameWithLogo: z.boolean(),
 })
@@ -84,7 +80,6 @@ export const organizationBrandingSchema = portalAppearanceSchema.extend({
 export type OrganizationBrandingUpdate = z.infer<typeof organizationBrandingUpdateSchema>
 export type OrganizationBranding = z.infer<typeof organizationBrandingSchema>
 export type LogoShape = z.infer<typeof logoShapeSchema>
-export type LogoSize = z.infer<typeof logoSizeSchema>
 export type PortalNameFont = z.infer<typeof portalNameFontSchema>
 export type PortalNameColor = z.infer<typeof portalNameColorSchema>
 export type PortalNameWeight = z.infer<typeof portalNameWeightSchema>
@@ -98,10 +93,16 @@ export function getPortalLogoSizeForViewport(
   return Math.min(size, viewport === 'mobile' ? 128 : 160)
 }
 
+export function getOrganizationLogoSizeForViewport(
+  size: number,
+  viewport: 'sidebar' | 'mobile',
+): number {
+  return Math.min(size, viewport === 'sidebar' ? 64 : 48)
+}
+
 export const DEFAULT_ORGANIZATION_BRANDING: OrganizationBranding = {
   logoDataUrl: null,
   logoShape: 'circle',
-  logoSize: 'medium',
   organizationName: 'Atelier Studio Coiffure',
   showNameWithLogo: false,
   portalNameFont: 'manrope',

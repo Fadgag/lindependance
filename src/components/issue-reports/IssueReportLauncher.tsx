@@ -1,14 +1,34 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { Bug } from 'lucide-react'
 import BaseModal from '@/components/ui/BaseModal'
 import {
   IssueReportReporterContextSchema,
   type IssueReportReporterContext,
 } from '@/schemas/issueReport'
 import { getRecentClientIssueErrors } from '@/lib/clientIssueErrors'
+
+export function IssueReportMenuButton({ onOpen }: { onOpen?: () => void }) {
+  const { data: session } = useSession()
+  if (session?.user?.accountType !== 'STAFF') return null
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        window.dispatchEvent(new Event('issue-report:open'))
+        onOpen?.()
+      }}
+      className="flex w-full items-center gap-4 rounded-3xl px-6 py-4 text-left text-(--studio-muted) transition-colors hover:bg-white/50 hover:text-(--studio-text)"
+    >
+      <Bug size={20} />
+      <span className="text-sm font-medium tracking-wide">Signaler un problème</span>
+    </button>
+  )
+}
 
 export default function IssueReportLauncher() {
   const pathname = usePathname()
@@ -25,9 +45,7 @@ export default function IssueReportLauncher() {
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
 
-  if (!isStaff && !isPortalAppointmentsPath) return null
-
-  async function openReportForm() {
+  const openReportForm = useCallback(async () => {
     setOpen(true)
     setError('')
     setSent(false)
@@ -54,7 +72,14 @@ export default function IssueReportLauncher() {
     } finally {
       setLoadingContext(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!isStaff) return
+    const openFromMenu = () => { void openReportForm() }
+    window.addEventListener('issue-report:open', openFromMenu)
+    return () => window.removeEventListener('issue-report:open', openFromMenu)
+  }, [isStaff, openReportForm])
 
   async function submitReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -92,15 +117,19 @@ export default function IssueReportLauncher() {
     }
   }
 
+  if (!isStaff && !isPortalAppointmentsPath) return null
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => void openReportForm()}
-        className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-slate-700"
-      >
-        Signaler un problème
-      </button>
+      {isPortalAppointmentsPath && (
+        <button
+          type="button"
+          onClick={() => void openReportForm()}
+          className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-slate-700"
+        >
+          Signaler un problème
+        </button>
+      )}
       <BaseModal isOpen={open} onClose={() => setOpen(false)} title="Signaler un problème" maxWidth="36rem">
             <section className="max-h-[70vh] overflow-y-auto">
             {loadingContext ? <p className="mt-4 text-sm text-slate-600">Vérification de votre accès…</p> : null}
