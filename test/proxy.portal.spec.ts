@@ -79,6 +79,15 @@ describe('public customer portal pages', () => {
     expect(response).toBeUndefined()
   })
 
+  it.each(['/manifest.json', '/manifest.webmanifest', '/sw.js'])(
+    'excludes public PWA assets from authentication matching (%s)',
+    (pathname) => {
+      const matcher = config.matcher[0]
+      if (typeof matcher !== 'string') throw new Error('Expected the general proxy matcher to be a string')
+      expect(new RegExp(matcher).test(pathname)).toBe(false)
+    },
+  )
+
   it.each([
     '/test-campaigns',
     '/test-campaigns/campaign-id',
