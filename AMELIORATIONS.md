@@ -63,14 +63,15 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
 #### Corriger l'erreur de lecture de réponse du service worker
 
 - **Type :** Bug
-- **Statut :** Correction implémentée localement — vérification en preprod après déploiement requise.
+- **Statut :** Clonage de réponse corrigé et fusionné ; accès public au manifest et au service worker corrigé localement, vérification en preprod requise.
 - **Priorité proposée :** P1
-- **Comportement observé :** Lors de l'ouverture du portail en preprod, la console signale que `clone()` est appelé sur une réponse déjà utilisée ; la requête FetchEvent du portail échoue également. Une réponse `403` apparaît aussi dans la console, mais sa requête d'origine reste à identifier.
-- **Comportement attendu :** Le service worker met en cache les réponses réseau sans lire ni cloner leur corps après consommation, et le portail reste accessible.
+- **Comportement observé :** À l'ouverture du portail en preprod, la console signalait que `clone()` était appelé sur une réponse déjà utilisée. Après application de la migration de personnalisation du portail, la page répond et affiche « Chargement du portail », mais le navigateur reçoit un `403` pour un chunk JavaScript. Les demandes de `/manifest.json` et `/sw.js` sont redirigées vers `/auth/signin` par le proxy. Lors du contrôle réseau, le `403` du chunk renvoyait une page de blocage Zscaler ; son origine doit être confirmée depuis le réseau du testeur.
+- **Comportement attendu :** Le service worker met en cache les réponses réseau sans cloner leur corps après consommation ; le manifest et le service worker sont accessibles sans authentification ; les chunks JavaScript sont servis par l'application et le portail termine son chargement.
 - **Impact :** Le chargement ou l'actualisation du portail client peut échouer.
 - **Critères d'acceptation :**
   - L'ouverture et l'actualisation du portail ne produisent plus d'erreur `Response body is already used`.
-  - La réservation reste accessible après actualisation en preprod.
+  - `/manifest.json` renvoie un document JSON valide et `/sw.js` le script du service worker, sans redirection vers la connexion staff.
+  - Le navigateur charge les chunks JavaScript et termine l'affichage de la réservation.
   - Si un `403` persiste, sa requête et sa cause sont identifiées séparément.
 
 #### Personnaliser l'apparence du nom et du logo du salon

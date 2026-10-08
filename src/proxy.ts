@@ -71,7 +71,7 @@ export default middleware
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest\\.json|manifest\\.webmanifest|sw\\.js).*)",
     '/api/test-campaigns/:path*',
     '/api/test-feedback/:path*',
   ],
