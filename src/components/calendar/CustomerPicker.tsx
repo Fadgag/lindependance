@@ -70,19 +70,7 @@ export function CustomerPicker({ customers, onSelectAction, selectedId, onCreate
             })
 
             if (!result.success) {
-                if (result.existing) {
-                    // duplicate phone — select the existing customer directly
-                    showToast(`Client existant sélectionné : ${result.existing.firstName} ${result.existing.lastName}`)
-                    const existingCust = { id: result.existing.id, firstName: result.existing.firstName, lastName: result.existing.lastName }
-                    setLocalCustomer(existingCust)
-                    onSelectAction(result.existing.id)
-                    onCreatedAction?.(result.existing)
-                    setCreating(false)
-                    setOpen(false)
-                    setSearch("")
-                } else {
-                    setCreateError(result.error)
-                }
+                setCreateError(result.error)
             } else {
                 showToast(`${result.customer.firstName} ${result.customer.lastName} ajouté(e)`)
                 const newCust = { id: result.customer.id, firstName: result.customer.firstName, lastName: result.customer.lastName }
@@ -90,7 +78,7 @@ export function CustomerPicker({ customers, onSelectAction, selectedId, onCreate
                 onSelectAction(result.customer.id)
                 onCreatedAction?.(result.customer)
                 // notify scheduler to refresh customers list
-                try { window.dispatchEvent(new CustomEvent('customers:updated')) } catch (_e: unknown) {}
+                window.dispatchEvent(new CustomEvent('customers:updated'))
                 setCreating(false)
                 setOpen(false)
                 setSearch("")

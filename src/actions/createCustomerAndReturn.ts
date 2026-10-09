@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 
 export type CreateCustomerResult =
   | { success: true; customer: { id: string; firstName: string; lastName: string; phone: string | null } }
-  | { success: false; error: string; existing?: { id: string; firstName: string; lastName: string; phone: string | null } }
+  | { success: false; error: string }
 
 /**
  * Server Action — crée un nouveau client et retourne son objet.
@@ -31,17 +31,6 @@ export async function createCustomerAndReturn(
 
   const { firstName, lastName, phone } = parse.data
 
-  // Déduplication par téléphone (seulement si fourni)
-  if (phone) {
-    const existing = await prisma.customer.findFirst({
-      where: { phone, organizationId: orgId },
-      select: { id: true, firstName: true, lastName: true, phone: true }
-    })
-    if (existing) {
-      return { success: false, error: 'Un client avec ce numéro existe déjà', existing }
-    }
-  }
-
   const created = await prisma.customer.create({
     data: {
       firstName,
@@ -56,4 +45,3 @@ export async function createCustomerAndReturn(
   revalidatePath('/customers')
   return { success: true, customer: created }
 }
-

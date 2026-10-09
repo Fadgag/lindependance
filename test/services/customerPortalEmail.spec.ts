@@ -13,6 +13,7 @@ vi.mock('resend', () => ({
 import {
   createAppointmentIcs,
   sendCustomerPortalOtpEmail,
+  sendCustomerPortalSavedEmail,
   sendCustomerPortalDisabledEmail,
   sendAppointmentConfirmation,
 } from '@/services/customerPortalEmail.service'
@@ -67,6 +68,28 @@ describe('createAppointmentIcs', () => {
       expect(resendSendMock).toHaveBeenCalledWith(expect.objectContaining({
         html: expect.not.stringContaining('<Atelier>'),
       }))
+    })
+  })
+
+  describe('sendCustomerPortalSavedEmail', () => {
+    it('sends the saved-address notice with an escaped reservation link', async () => {
+      await sendCustomerPortalSavedEmail({
+        to: 'client@example.test',
+        organizationName: '<Atelier>',
+        portalUrl: 'https://example.test/portail/atelier/reserver?next=booking&source=staff',
+      })
+
+      const sentEmail = vi.mocked(resendSendMock).mock.lastCall?.[0]
+      expect(sentEmail).toMatchObject({
+        to: 'client@example.test',
+        subject: 'Votre adresse e-mail pour réserver chez <Atelier>',
+      })
+      expect(sentEmail.html).toContain('Cette adresse e-mail est bien enregistrée dans votre fiche client chez &lt;Atelier&gt;.')
+      expect(sentEmail.html).toContain('Pour prendre vos rendez-vous en ligne, utilisez cette adresse e-mail.')
+      expect(sentEmail.html).toContain('Merci de confirmer au personnel du salon que vous avez bien reçu ce message.')
+      expect(sentEmail.html).toContain('href="https://example.test/portail/atelier/reserver?next=booking&amp;source=staff"')
+      expect(sentEmail.html).toContain('Réserver en ligne')
+      expect(sentEmail.html).not.toContain('<Atelier>')
     })
   })
 
