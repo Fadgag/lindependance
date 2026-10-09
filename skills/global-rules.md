@@ -51,6 +51,8 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
   1. vérifier/réutiliser la branche existante (voir règle ci-dessus),
   2. produire un résumé des changements (changelog),
   3. demander la validation humaine `GO` avant d'exécuter `git push`.
+- **Identité GitHub pour `Fadgag/lindependance` :** Toute action attribuée à un compte GitHub dans ce dépôt doit utiliser l'identité `Fadgag` : Issues, commentaires, PR, Project et push. Avant d'agir, vérifier le compte réellement utilisé par l'outil ; `GH_TOKEN` ou l'authentification propre à un outil peut primer sur le compte actif de `gh`. Ne pas créer ou publier sous une autre identité en silence. Si l'outil ne permet pas d'utiliser `Fadgag`, expliquer la limite et demander comment procéder.
+- **Identité des commits :** Un push authentifié comme `Fadgag` ne change pas l'auteur du commit. Avant de créer un commit pour ce dépôt, vérifier que `user.name` et `user.email` sont l'identité configurée et vérifiée de `Fadgag`. Si elle n'est pas disponible, demander à l'utilisateur plutôt que d'utiliser une autre identité ou d'inventer une adresse.
 - **Push GitHub de `Fadgag/lindependance` :** utiliser l'alias SSH `github.com-fadgag` défini dans le `~/.ssh/config` local, plutôt que `origin` en HTTPS, qui peut sélectionner le mauvais compte. Vérifier l'identité avec `ssh -T git@github.com-fadgag` ; le message attendu est `Hi Fadgag!` (GitHub peut terminer cette vérification avec un code de sortie non nul). Après le `GO`, pousser la branche explicitement sans changer la configuration du remote :
   ```bash
   git push -u git@github.com-fadgag:Fadgag/lindependance.git <branche>

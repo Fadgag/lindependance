@@ -219,15 +219,18 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 ### Gestion des stocks — produits revendus
 
 - **Type :** Amélioration
-- **Statut :** À cadrer — suivi dans le [GitHub Project](https://github.com/users/Fadgag/projects/1) et l'[Issue associée](https://github.com/Fadgag/lindependance/issues/65).
+- **Statut :** En cours — suivi dans le [GitHub Project](https://github.com/users/Fadgag/projects/1) et l'[Issue associée](https://github.com/Fadgag/lindependance/issues/65).
 - **Priorité proposée :** P3
 - **Constat :** Le stock d'un produit peut être modifié manuellement et est décrémenté lors de son encaissement, mais il n'existe pas de seuil d'alerte ni d'historique des entrées et ajustements.
 - **Amélioration souhaitée :** Permettre au personnel de suivre les entrées et ajustements de stock des produits revendus, de définir un seuil minimum par produit et de repérer rapidement les produits à réapprovisionner.
 - **Impact :** Réduire les ruptures de produits vendus aux clients et faciliter le contrôle des quantités.
 - **Critères d'acceptation :**
   - Un membre autorisé peut enregistrer une entrée ou un ajustement de stock et consulter l'historique associé au produit.
+  - Une entrée est un mouvement positif ; un ajustement accepte un mouvement positif ou négatif, sans permettre un stock inférieur à zéro.
+  - L'historique indique la variation et les quantités avant/après ; les ventes y sont ajoutées atomiquement avec l'encaissement.
   - Un seuil minimum configurable permet d'identifier les produits à réapprovisionner dans la liste des produits.
   - Une vente décrémente le stock une seule fois ; les mouvements et quantités restent isolés par organisation.
+- **Cadrage retenu :** Le seuil vaut 0 par défaut et un produit est signalé lorsque son stock est inférieur ou égal au seuil. Le périmètre couvre les produits revendus, pas les consommables.
 
 ### Gestion des stocks — consommables utilisés en prestation
 

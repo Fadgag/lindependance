@@ -78,6 +78,7 @@ function validateMigrationSql(sql, fileName) {
   const statements = executableSql.split(';').map((statement) => statement.trim()).filter(Boolean)
   const dataMutation = /^(?:INSERT|UPDATE|DELETE|TRUNCATE|MERGE|COPY|CALL|DO|SELECT|WITH)\b/
   const createStatement = /^(?:CREATE\s+TABLE\b|CREATE\s+(?:UNIQUE\s+)?INDEX\b)/
+  const createEnumStatement = /^CREATE\s+TYPE\s+AS\s+ENUM\s*\(\s*(?:,\s*)*\)$/
   const additiveAlter = /\bADD\s+(?:COLUMN|CONSTRAINT)\b/
   const relaxNullability = /\bALTER\s+COLUMN\b[^,;]*?\bDROP\s+NOT\s+NULL\b/
 
@@ -85,7 +86,7 @@ function validateMigrationSql(sql, fileName) {
     if (dataMutation.test(statement)) {
       throw new Error(`${fileName}: data-changing SQL is not allowed`)
     }
-    if (createStatement.test(statement)) continue
+    if (createStatement.test(statement) || createEnumStatement.test(statement)) continue
     if (!/^ALTER\s+TABLE\b/.test(statement) || (!additiveAlter.test(statement) && !relaxNullability.test(statement))) {
       throw new Error(`${fileName}: only additive table changes are allowed`)
     }

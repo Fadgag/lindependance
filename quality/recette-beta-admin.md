@@ -3,9 +3,10 @@
 ## Objectif et règles de recette
 
 Ce guide est destiné aux comptes **staff/admin** et couvre la configuration
-utile du portail, le compteur et le traitement des demandes de changement
-Phase 3. Le mot « admin » désigne ici un utilisateur staff rattaché à une
-organisation ; il ne donne pas accès aux autres organisations.
+utile du portail, le compteur, le traitement des demandes de changement
+Phase 3 et la gestion des produits revendus. Le mot « admin » désigne ici un
+utilisateur staff rattaché à une organisation ; il ne donne pas accès aux
+autres organisations.
 
 - **P0 — bloquant :** accès non autorisé, fuite inter-organisation, double
   réservation, approbation d'un créneau invalide ou erreur de forfait.
@@ -21,8 +22,9 @@ organisation ; il ne donne pas accès aux autres organisations.
 
 Ne pas tester sur la production. L'équipe technique doit confirmer que les
 migrations `20261001120000_customer_portal_phase_3` et
-`20261006182000_issue_reports` sont appliquées à la base bêta ; les testeurs
-ne doivent pas exécuter de migration.
+`20261006182000_issue_reports` et
+`20261009100000_product_stock_movements` sont appliquées à la base bêta ; les
+testeurs ne doivent pas exécuter de migration.
 
 Préparer dans l'interface staff et avec l'équipe technique :
 
@@ -37,6 +39,7 @@ Préparer dans l'interface staff et avec l'équipe technique :
 | Forfait | Rendez-vous de test lié à un forfait ; relever les crédits avant le test. |
 | Rendez-vous | Un rendez-vous modifiable, un rendez-vous supprimable, un rendez-vous `PAID` et un rendez-vous client annulable à plus de 24 h. |
 | Fiches client | Dans `ORG-A`, deux fiches distinctes avec le même numéro ; une boîte e-mail de test accessible et un portail actif avec son slug. |
+| Produits | Dans `ORG-A`, préparer un produit avec un stock de 3 et un autre avec un stock de 5 ; dans `ORG-B`, préparer un produit au nom différent. Prévoir un rendez-vous non payé avec la vente de deux unités. |
 
 **Fiche de campagne :** build/commit : `________` · testeur : `________` ·
 date : `________` · navigateur/appareil : `________` · organisation : `________`
@@ -320,6 +323,58 @@ code ou lien de vérification n'est demandé.
 `test/services/customerPortalEmail.spec.ts` et
 `test/ui/customerDetail.spec.tsx`. La réception réelle par e-mail et
 l'ouverture du lien sont à vérifier avec la boîte de test en bêta.
+**Résultat / preuve :** `________`
+
+#### [ ] ADM-17 — Repérer les produits à réapprovisionner
+**Priorité : P1 · Exigence :** [Req: user-confirmed — `AMELIORATIONS.md`, Gestion des stocks — produits revendus, Issue #65]
+
+**Étapes :** dans la gestion des produits, réglez le seuil minimum d'un produit
+sur 2 alors que son stock est de 3. Enregistrez ensuite un ajustement de -1,
+puis une entrée de +1.
+
+**Attendu :** le produit n'est pas signalé lorsque son stock est supérieur au
+seuil. À 2 unités, il est marqué « À réapprovisionner ». Après l'entrée, le
+stock et le seuil sont corrects et l'alerte disparaît.
+
+**Automatisé :** `test/domain/stock/policies.spec.ts` et
+`test/ui/ProductManager.spec.tsx` vérifient la règle et son affichage ; le
+parcours complet reste à vérifier en bêta.
+**Résultat / preuve :** `________`
+
+#### [ ] ADM-18 — Enregistrer les entrées et corrections de stock
+**Priorité : P1 · Exigence :** [Req: user-confirmed — `AMELIORATIONS.md`, Gestion des stocks — produits revendus, Issue #65]
+
+**Étapes :** pour le produit qui a 5 unités, enregistrez une entrée de 4,
+puis une correction de -1 avec une note. Ouvrez l'historique. Essayez ensuite
+une correction qui retirerait plus d'unités qu'il n'en reste.
+
+**Attendu :** l'historique montre chaque entrée et correction, la variation,
+les quantités avant/après et la note. La dernière correction est refusée si
+elle ferait passer le stock sous zéro ; la quantité reste inchangée.
+
+**Automatisé :** `test/api/product-stock-movements.spec.ts`,
+`test/api/products.spec.ts`, `test/schemas/products.spec.ts` et
+`test/ui/ProductManager.spec.tsx`. L'affichage et la saisie sur la base bêta
+restent à vérifier.
+**Résultat / preuve :** `________`
+
+#### [ ] ADM-19 — Vérifier le stock après une vente
+**Priorité : P1 · Exigence :** [Req: user-confirmed — `AMELIORATIONS.md`, Gestion des stocks — produits revendus, Issue #65]
+
+**Étapes :** encaissez le rendez-vous de test avec deux unités du produit.
+Vérifiez le stock et l'historique, puis rouvrez le rendez-vous et vérifiez
+qu'un second encaissement n'est pas possible. Enfin, consultez la gestion des
+produits depuis `ORG-B`.
+
+**Attendu :** l'encaissement retire deux unités et ajoute une seule vente à
+l'historique. Une nouvelle tentative ne retire rien et ne crée aucun mouvement
+supplémentaire. Dans `ORG-B`, seuls les produits et historiques de cette
+organisation sont visibles.
+
+**Automatisé :** `test/api/appointment-checkout.spec.ts` vérifie la vente
+atomique et le refus d'un encaissement répété ; les tests API de stock
+vérifient l'isolation par organisation. La vérification complète sur les deux
+organisations reste à effectuer en bêta.
 **Résultat / preuve :** `________`
 
 ## Couverture automatisée relue

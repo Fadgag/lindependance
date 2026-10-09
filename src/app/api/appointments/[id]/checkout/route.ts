@@ -6,6 +6,8 @@ import { CheckoutInputSchema } from '@/schemas/appointments'
 import { rejectPendingRequestsForAppointment } from '@/services/appointmentChangeRequests.service'
 import { computeCheckoutTotal, computeSoldProductLine } from '@/domain/billing/vat'
 import { isAppointmentPaid } from '@/domain/appointment/policies'
+import { ProductStockMovementType } from '@prisma/client'
+import { applyProductStockMovement } from '@/services/productStock.service'
 
 export async function POST(
     request: Request,
@@ -78,17 +80,17 @@ export async function POST(
             })
 
             for (const line of persistedSoldProducts) {
-                const result = await tx.product.updateMany({
-                    where: {
-                        id: line.productId,
-                        organizationId,
-                        stock: { gte: line.quantity },
-                    },
-                    data: { stock: { decrement: line.quantity } },
+                const movement = await applyProductStockMovement(tx, {
+                    productId: line.productId,
+                    organizationId,
+                    type: ProductStockMovementType.SALE,
+                    quantityDelta: -line.quantity,
+                    appointmentId: id,
                 })
-                if (result.count === 0) {
+                if (movement.status === 'insufficient-stock') {
                     throw new Error(`INSUFFICIENT_STOCK:${line.productId}`)
                 }
+                if (movement.status === 'product-not-found') throw new Error('PRODUCT_NOT_FOUND')
             }
 
             const finalPrice = computeCheckoutTotal(
