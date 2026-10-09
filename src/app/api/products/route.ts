@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { logger } from '@/lib/logger'
 import { ProductCreateSchema, ProductUpdateSchema } from '@/schemas/products'
+import { recordInitialProductStock } from '@/services/productStock.service'
 
 export async function GET() {
   const session = await auth()
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!session.user?.organizationId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const organizationId = session.user.organizationId
 
   const parsed = ProductCreateSchema.safeParse(await request.json())
   if (!parsed.success) {
@@ -27,8 +29,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 })
   }
 
-  const product = await prisma.product.create({
-    data: { ...parsed.data, organizationId: session.user.organizationId },
+  const product = await prisma.$transaction(async (transaction) => {
+    const createdProduct = await transaction.product.create({
+      data: { ...parsed.data, organizationId },
+    })
+    await recordInitialProductStock(transaction, createdProduct)
+    return createdProduct
   })
   return NextResponse.json(product, { status: 201 })
 }
@@ -75,4 +81,3 @@ export async function DELETE(request: Request) {
   await prisma.product.delete({ where: { id } })
   return NextResponse.json({ success: true })
 }
-

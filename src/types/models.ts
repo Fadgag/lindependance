@@ -5,10 +5,24 @@ export interface Product {
   priceTTC: number
   taxRate: number
   stock: number
+  stockMinimum: number
   iconName: string
   organizationId: string
   createdAt: string
   updatedAt: string
+}
+
+export interface ProductStockMovement {
+  id: string
+  productId: string | null
+  productName: string
+  type: 'INITIAL' | 'RECEIPT' | 'ADJUSTMENT' | 'SALE'
+  quantityDelta: number
+  stockBefore: number
+  stockAfter: number
+  note: string | null
+  appointmentId: string | null
+  createdAt: string
 }
 
 // Note: certaines interfaces peuvent ne pas être référencées directement par l'analyse statique

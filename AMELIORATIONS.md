@@ -51,7 +51,7 @@ livré en une seule fois.
 #### Limiter les tentatives de connexion et de réinitialisation du mot de passe
 
 - **Type :** Amélioration
-- **Statut :** À traiter
+- **Statut :** À traiter — suivi opérationnel dans le [GitHub Project](https://github.com/users/Fadgag/projects/1) et l'[Issue associée](https://github.com/Fadgag/lindependance/issues/67).
 - **Priorité proposée :** P2
 - **Constat :** Les points d'entrée publics de connexion par mot de passe et de demande de réinitialisation n'appliquent pas de limitation de tentatives dans le code applicatif.
 - **Comportement attendu :** Les tentatives répétées sont ralenties ou bloquées sans révéler l'existence d'un compte.
@@ -75,6 +75,7 @@ vérifications manuelles suivantes dans les guides de recette :
   parcours client et staff avec `CUS-17` et `ADM-12`.
 
 Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiquées ci-dessous.
+Les vérifications bêta restantes sont suivies dans l'[Issue de campagne](https://github.com/Fadgag/lindependance/issues/66).
 
 ### Simplifier le vocabulaire et revoir les formulations au féminin
 
@@ -90,6 +91,7 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
 ### Proposer un nom de domaine personnalisé en option payante
 
 - **Statut :** À cadrer — dépend du modèle commercial et du processus de support.
+- **Suivi opérationnel :** [GitHub Project](https://github.com/users/Fadgag/projects/1) · [Issue de cadrage](https://github.com/Fadgag/lindependance/issues/63).
 - **Priorité proposée :** P3
 - **Constat :** Le portail du salon utilise une adresse en `vercel.app`, et sa configuration sur Vercel et dans le DNS peut nécessiter l'intervention du support.
 - **Amélioration souhaitée :** Permettre à chaque organisation de demander l'activation de son domaine personnalisé depuis Configuration → Portail. La demande crée un ticket au support ; le support accompagne ou effectue la configuration Vercel et DNS selon les accès disponibles. Prévoir une solution générique pour plusieurs salons, sans dépendre d'un domaine codé en dur.
@@ -213,6 +215,36 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
     - Le retour au modèle par défaut est vérifié pour les deux e-mails ; la confirmation conserve sa pièce jointe calendrier.
     - Les scénarios sont inclus dans les groupes de campagne correspondant aux profils client et staff/admin.
 - **Mise à jour :** `CUS-05`, `CUS-10` et `ADM-13` couvrent maintenant ces vérifications ; `ADM-13` est inclus dans le groupe « Administration staff ». Les résultats réels restent à renseigner pendant la campagne bêta.
+
+### Gestion des stocks — produits revendus
+
+- **Type :** Amélioration
+- **Statut :** En cours — suivi dans le [GitHub Project](https://github.com/users/Fadgag/projects/1) et l'[Issue associée](https://github.com/Fadgag/lindependance/issues/65).
+- **Priorité proposée :** P3
+- **Constat :** Le stock d'un produit peut être modifié manuellement et est décrémenté lors de son encaissement, mais il n'existe pas de seuil d'alerte ni d'historique des entrées et ajustements.
+- **Amélioration souhaitée :** Permettre au personnel de suivre les entrées et ajustements de stock des produits revendus, de définir un seuil minimum par produit et de repérer rapidement les produits à réapprovisionner.
+- **Impact :** Réduire les ruptures de produits vendus aux clients et faciliter le contrôle des quantités.
+- **Critères d'acceptation :**
+  - Un membre autorisé peut enregistrer une entrée ou un ajustement de stock et consulter l'historique associé au produit.
+  - Une entrée est un mouvement positif ; un ajustement accepte un mouvement positif ou négatif, sans permettre un stock inférieur à zéro.
+  - L'historique indique la variation et les quantités avant/après ; les ventes y sont ajoutées atomiquement avec l'encaissement.
+  - Un seuil minimum configurable permet d'identifier les produits à réapprovisionner dans la liste des produits.
+  - Une vente décrémente le stock une seule fois ; les mouvements et quantités restent isolés par organisation.
+- **Cadrage retenu :** Le seuil vaut 0 par défaut et un produit est signalé lorsque son stock est inférieur ou égal au seuil. Le périmètre couvre les produits revendus, pas les consommables.
+
+### Gestion des stocks — consommables utilisés en prestation
+
+- **Type :** Amélioration
+- **Statut :** À cadrer — le moment où la consommation est décomptée et le traitement d'un stock insuffisant restent à décider. Suivi dans le [GitHub Project](https://github.com/users/Fadgag/projects/1) et l'[Issue associée](https://github.com/Fadgag/lindependance/issues/64).
+- **Priorité proposée :** P3
+- **Constat :** Les produits sont associés à un stock et aux ventes, mais aucune quantité de consommable n'est associée à une prestation ni décomptée lors de sa réalisation.
+- **Amélioration souhaitée :** Permettre d'associer à chaque prestation les consommables et quantités utilisés, puis de suivre leur consommation et leur stock restant.
+- **Impact :** Aider les salons à anticiper les réapprovisionnements et à mieux connaître le coût des produits utilisés pour chaque prestation.
+- **Critères d'acceptation :**
+  - Un membre autorisé peut configurer les consommables et quantités nécessaires à une prestation.
+  - Une prestation réalisée décompte une seule fois les quantités configurées, selon le moment de décompte choisi.
+  - Une annulation ne décompte pas les consommables ; un stock insuffisant est signalé selon une règle définie avant mise en œuvre.
+  - Les consommations et quantités restent isolées par organisation.
 
 ## Réalisées
 

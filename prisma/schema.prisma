@@ -43,6 +43,7 @@ model Organization {
   issueReports                    IssueReport[]
   Package                         Package[]
   products                        Product[]
+  productStockMovements           ProductStockMovement[]
   unavailabilities                Unavailability[]
   customerEmailOtps               CustomerEmailOtp[]
 }
@@ -65,19 +66,47 @@ model Unavailability {
   @@index([organizationId, start])
 }
 
+enum ProductStockMovementType {
+  INITIAL
+  RECEIPT
+  ADJUSTMENT
+  SALE
+}
+
 model Product {
-  id             String       @id @default(cuid())
+  id             String                 @id @default(cuid())
   name           String
   priceTTC       Float
-  taxRate        Float        @default(0)
-  stock          Int          @default(0)
-  iconName       String       @default("Package")
+  taxRate        Float                  @default(0)
+  stock          Int                    @default(0)
+  stockMinimum   Int                    @default(0)
+  iconName       String                 @default("Package")
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id])
+  stockMovements ProductStockMovement[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 
   @@index([organizationId])
+}
+
+model ProductStockMovement {
+  id             String                    @id @default(cuid())
+  productId      String?
+  product         Product?                 @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName    String
+  type           ProductStockMovementType
+  quantityDelta  Int
+  stockBefore    Int
+  stockAfter     Int
+  note           String?
+  appointmentId  String?
+  organizationId String
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime                  @default(now())
+
+  @@index([organizationId, productId, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 model Service {

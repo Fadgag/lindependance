@@ -4,7 +4,9 @@ const { authMock, prismaMock, transactionMock, loggerMock } = vi.hoisted(() => {
   const transaction = {
     appointment: { findFirst: vi.fn(), updateMany: vi.fn() },
     appointmentChangeRequest: { updateMany: vi.fn() },
+    $queryRaw: vi.fn(),
     product: { findMany: vi.fn(), updateMany: vi.fn() },
+    productStockMovement: { create: vi.fn() },
   }
   return {
     authMock: vi.fn(),
@@ -38,6 +40,7 @@ beforeEach(() => {
   })
   transactionMock.appointmentChangeRequest.updateMany.mockResolvedValue({ count: 1 })
   transactionMock.product.findMany.mockResolvedValue([])
+  transactionMock.$queryRaw.mockResolvedValue([])
   transactionMock.product.updateMany.mockResolvedValue({ count: 1 })
   vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transactionMock as never))
 })
@@ -73,6 +76,12 @@ describe('POST /api/appointments/[id]/checkout', () => {
       stock: 10,
       organizationId: 'org-1',
     }])
+    transactionMock.$queryRaw.mockResolvedValue([{
+      id: productId,
+      name: 'Huile capillaire',
+      stock: 10,
+      stockMinimum: 0,
+    }])
     const request = new Request('https://example.test/api/appointments/appointment-1/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -91,7 +100,19 @@ describe('POST /api/appointments/[id]/checkout', () => {
     expect(response.status).toBe(200)
     expect(transactionMock.product.updateMany).toHaveBeenCalledWith({
       where: { id: productId, organizationId: 'org-1', stock: { gte: 2 } },
-      data: { stock: { decrement: 2 } },
+      data: { stock: { increment: -2 } },
+    })
+    expect(transactionMock.productStockMovement.create).toHaveBeenCalledWith({
+      data: {
+        productId,
+        productName: 'Huile capillaire',
+        organizationId: 'org-1',
+        type: 'SALE',
+        quantityDelta: -2,
+        stockBefore: 10,
+        stockAfter: 8,
+        appointmentId: 'appointment-1',
+      },
     })
     const updateData = transactionMock.appointment.updateMany.mock.calls[0][0].data
     expect(updateData.finalPrice).toBe(65)
@@ -165,6 +186,7 @@ describe('POST /api/appointments/[id]/checkout', () => {
     expect(response.status).toBe(409)
     expect(transactionMock.product.findMany).not.toHaveBeenCalled()
     expect(transactionMock.product.updateMany).not.toHaveBeenCalled()
+    expect(transactionMock.productStockMovement.create).not.toHaveBeenCalled()
     expect(transactionMock.appointment.updateMany).not.toHaveBeenCalled()
   })
 })

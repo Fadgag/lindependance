@@ -28,12 +28,19 @@ describe('additive migration guard', () => {
   it('allows additive DDL and ignores commented-out backfills', () => {
     const result = validate(`
       -- UPDATE "Appointment" SET "productsTotal" = 0;
+      CREATE TYPE "ExampleType" AS ENUM ('FIRST', 'SECOND');
       ALTER TABLE "Staff" ADD COLUMN "active" BOOLEAN NOT NULL DEFAULT true;
       CREATE TABLE "Example" ("id" TEXT NOT NULL);
       ALTER TABLE "Example" ADD CONSTRAINT "Example_pkey" PRIMARY KEY ("id");
     `)
 
     expect(result.status).toBe(0)
+  })
+
+  it('rejects non-enum type creation', () => {
+    const result = validate('CREATE TYPE "ExampleType" AS RANGE (subtype = text);')
+
+    expect(result.status).not.toBe(0)
   })
 
   it.each([
