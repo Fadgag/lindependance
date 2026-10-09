@@ -1,0 +1,221 @@
+name: Move fork-linked issues to In preprod
+
+on:
+  pull_request_target:
+    branches:
+      - preprod
+    types:
+      - closed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-issue-preprod-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  update-project:
+    name: Update linked issues in GitHub Project
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'preprod' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check for the Project token
+        id: project-token
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "$PROJECT_TOKEN" ]]; then
+            echo "::warning::Set the PROJECT_TOKEN Actions secret to enable updates to the private GitHub Project."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Move linked issues to In preprod
+        if: steps.project-token.outputs.configured == 'true'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.8
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pullRequest = context.payload.pull_request;
+            const projectNumber = 1;
+            const desiredStatus = "In preprod";
+            const linkedNumbers = new Set();
+            const referenceText = `${pullRequest.title || ""}\n${pullRequest.body || ""}`;
+
+            for (const match of referenceText.matchAll(/(?:^|[^A-Za-z0-9_])#(\d+)\b/g)) {
+              linkedNumbers.add(Number(match[1]));
+            }
+
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner,
+              repo,
+              pull_number: pullRequest.number,
+              per_page: 100,
+            });
+            for (const commit of commits) {
+              for (const match of commit.commit.message.matchAll(/(?:^|[^A-Za-z0-9_])#(\d+)\b/g)) {
+                linkedNumbers.add(Number(match[1]));
+              }
+            }
+
+            const projectQuery = `
+              query($owner: String!, $projectNumber: Int!) {
+                user(login: $owner) {
+                  projectV2(number: $projectNumber) {
+                    id
+                    fields(first: 100) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options { id name }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+            const projectResult = await github.graphql(projectQuery, { owner, projectNumber });
+            const project = projectResult.user?.projectV2;
+            if (!project) {
+              throw new Error(`Could not access ${owner}'s GitHub Project #${projectNumber}. Check PROJECT_TOKEN permissions.`);
+            }
+
+            const statusField = project.fields.nodes.find((field) => field.name === "Status");
+            const targetOption = statusField?.options.find((option) => option.name === desiredStatus);
+            if (!statusField || !targetOption) {
+              throw new Error(`The Project is missing the Status field or the "${desiredStatus}" option.`);
+            }
+
+            const itemsByIssueNumber = new Map();
+            let cursor;
+            let hasNextPage = true;
+            while (hasNextPage) {
+              const itemsResult = await github.graphql(
+                `
+                  query($owner: String!, $projectNumber: Int!, $cursor: String) {
+                    user(login: $owner) {
+                      projectV2(number: $projectNumber) {
+                        items(first: 100, after: $cursor) {
+                          nodes {
+                            id
+                            content {
+                              ... on Issue {
+                                number
+                                state
+                                repository { nameWithOwner }
+                              }
+                            }
+                            fieldValues(first: 20) {
+                              nodes {
+                                ... on ProjectV2ItemFieldSingleSelectValue {
+                                  name
+                                  field {
+                                    ... on ProjectV2SingleSelectField { name }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }
+                  }
+                `,
+                { owner, projectNumber, cursor },
+              );
+              const itemsPage = itemsResult.user?.projectV2?.items;
+              if (!itemsPage) {
+                throw new Error("Could not read GitHub Project items. Check PROJECT_TOKEN permissions.");
+              }
+
+              for (const item of itemsPage.nodes) {
+                const issue = item.content;
+                if (issue?.repository?.nameWithOwner === `${owner}/${repo}`) {
+                  itemsByIssueNumber.set(issue.number, { item, issue });
+                }
+              }
+              hasNextPage = itemsPage.pageInfo.hasNextPage;
+              cursor = itemsPage.pageInfo.endCursor;
+            }
+
+            const issueQuery = `
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  issue(number: $number) {
+                    state
+                    timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT]) {
+                      nodes {
+                        ... on CrossReferencedEvent {
+                          source {
+                            ... on PullRequest { number }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+            const updateMutation = `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId,
+                  itemId: $itemId,
+                  fieldId: $fieldId,
+                  value: { singleSelectOptionId: $optionId }
+                }) {
+                  projectV2Item { id }
+                }
+              }
+            `;
+
+            for (const issueNumber of linkedNumbers) {
+              const issueResult = await github.graphql(issueQuery, { owner, repo, number: issueNumber });
+              const issue = issueResult.repository?.issue;
+              const referencesPullRequest = issue?.timelineItems.nodes.some(
+                (event) => event.source?.number === pullRequest.number,
+              );
+              if (!issue || !referencesPullRequest) {
+                continue;
+              }
+
+              const projectEntry = itemsByIssueNumber.get(issueNumber);
+              if (!projectEntry) {
+                core.info(`Issue #${issueNumber} references this PR but is not in Project #${projectNumber}; skipping.`);
+                continue;
+              }
+              if (issue.state === "CLOSED" || projectEntry.issue.state === "CLOSED") {
+                core.info(`Issue #${issueNumber} is closed; keeping its Project status unchanged.`);
+                continue;
+              }
+
+              const currentStatus = projectEntry.item.fieldValues.nodes.find(
+                (value) => value.field?.name === "Status",
+              )?.name;
+              if (currentStatus === "Done" || currentStatus === desiredStatus) {
+                core.info(`Issue #${issueNumber} is already "${currentStatus}"; keeping its Project status.`);
+                continue;
+              }
+
+              await github.graphql(updateMutation, {
+                projectId: project.id,
+                itemId: projectEntry.item.id,
+                fieldId: statusField.id,
+                optionId: targetOption.id,
+              });
+              core.info(`Moved issue #${issueNumber} to "${desiredStatus}".`);
+            }
+
+            core.info(`Processed references from merged PR #${pullRequest.number}.`);
