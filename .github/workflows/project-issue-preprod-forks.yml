@@ -182,6 +182,12 @@ jobs:
             `;
 
             for (const issueNumber of linkedNumbers) {
+              const projectEntry = itemsByIssueNumber.get(issueNumber);
+              if (!projectEntry) {
+                core.info(`Issue #${issueNumber} is not in Project #${projectNumber}; skipping.`);
+                continue;
+              }
+
               const issueResult = await github.graphql(issueQuery, { owner, repo, number: issueNumber });
               const issue = issueResult.repository?.issue;
               const referencesPullRequest = issue?.timelineItems.nodes.some(
@@ -191,11 +197,6 @@ jobs:
                 continue;
               }
 
-              const projectEntry = itemsByIssueNumber.get(issueNumber);
-              if (!projectEntry) {
-                core.info(`Issue #${issueNumber} references this PR but is not in Project #${projectNumber}; skipping.`);
-                continue;
-              }
               if (issue.state === "CLOSED" || projectEntry.issue.state === "CLOSED") {
                 core.info(`Issue #${issueNumber} is closed; keeping its Project status unchanged.`);
                 continue;
