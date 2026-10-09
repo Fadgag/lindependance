@@ -94,31 +94,34 @@ Les sujets P3 et ceux à cadrer restent au backlog selon les priorités indiqué
 
 #### Autoriser un même numéro de téléphone sur plusieurs fiches client
 
-- **Statut :** À préciser
+- **Type :** Amélioration
+- **Statut :** Implémentée — création et sélection validées par tests automatisés le 8 octobre 2026 ; recette manuelle en bêta à effectuer.
 - **Priorité :** À définir
 - **Constat :** Un même numéro de téléphone peut être utilisé par un parent pour plusieurs enfants, mais il peut être refusé ou empêcher de distinguer leurs fiches client.
-- **Amélioration souhaitée :** Permettre d'associer le même numéro de téléphone à plusieurs fiches client, notamment pour gérer les fiches d'enfants d'une même famille.
+- **Amélioration souhaitée :** Permettre d'associer le même numéro à plusieurs fiches dans une organisation. Le téléphone est une information de contact destinée au personnel, notamment pour appeler le client ; il ne sert pas à identifier ou sélectionner automatiquement une fiche.
 - **Critères d'acceptation :**
     - Plusieurs fiches client peuvent enregistrer le même numéro de téléphone.
     - Chaque fiche reste identifiable séparément par son nom et ses autres informations.
-    - Les parcours qui utilisent le numéro de téléphone continuent de fonctionner sans sélectionner ou modifier la mauvaise fiche.
+    - La création rapide depuis le calendrier crée une nouvelle fiche même si une autre utilise déjà le même numéro.
+    - La recherche et la sélection d'un client dans le calendrier restent basées sur le nom et l'identifiant de la fiche, jamais sur le téléphone.
 
-#### Confirmer l'adresse e-mail renseignée dans une fiche client
+#### Envoyer au client les informations de réservation par e-mail
 
-- **Statut :** À préciser
+- **Type :** Amélioration
+- **Statut :** Implémentée — envoi et contrôles d'accès validés par tests automatisés le 8 octobre 2026 ; réception réelle et lien du portail à vérifier en bêta.
 - **Priorité :** À définir
-- **Constat :** Une adresse e-mail peut être renseignée dans une fiche client sans que sa validité soit vérifiée.
-- **Amélioration souhaitée :** Envoyer un e-mail de confirmation lorsque l'admin clic sur le bouton à "envoyer email de confirmation" en dessous de l'adresse e-mail d'un client afin que la personne puisse valider qu'elle y a accès.
+- **Constat :** Le personnel peut enregistrer l'adresse e-mail d'un client, mais ne dispose pas d'une action pour lui signaler que cette adresse est associée à sa fiche et doit servir aux réservations en ligne.
+- **Amélioration souhaitée :** Ajouter sous l'adresse e-mail un bouton permettant au personnel d'envoyer un message au client. Le message confirme que l'adresse est enregistrée dans sa fiche, lui demande de l'utiliser pour ses réservations en ligne et contient un bouton ouvrant le portail de réservation de son organisation. Le client confirme verbalement au personnel qu'il a reçu le message ; aucun lien de vérification ni état de validation n'est requis.
 - **Critères d'acceptation :**
-    - Un e-mail de confirmation est envoyé à l'adresse renseignée dans la fiche client.
-    - La personne peut confirmer qu'elle a accès à cette adresse.
-    - L'état de validation de l'adresse est visible depuis la fiche client.
-    - Le comportement en cas d'adresse non confirmée ou de lien expiré reste à préciser.
-    - Un bouton"envoyer emal de confirmation" en dessous de l'adresse email dans la fiche client.
+    - Le personnel peut envoyer le message à l'adresse enregistrée dans la fiche ; si l'adresse vient d'être modifiée, elle est enregistrée avant l'envoi.
+    - Le message précise que l'adresse est enregistrée dans la fiche et doit être utilisée pour prendre des rendez-vous en ligne.
+    - Le message invite le client à confirmer verbalement au personnel qu'il l'a reçu.
+    - Le bouton « Réserver en ligne » mène au portail de réservation de la bonne organisation.
+    - L'envoi échoue avec un message explicite si l'adresse manque, si le portail n'est pas disponible ou si le fournisseur d'e-mail refuse l'envoi.
 
-Cette validation est liée aux coordonnées des fiches client et au parcours de
-vérification d'e-mail du portail, mais elle reste distincte : le portail vérifie
-actuellement l'accès à l'e-mail au moment de la connexion.
+Cette notification ne valide pas techniquement l'accès à l'adresse. Le portail
+continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au code
+à usage unique.
 
 ### Qualité terrain — retours et validation
 
@@ -151,6 +154,7 @@ actuellement l'accès à l'e-mail au moment de la connexion.
   - Le filtre s'applique aux signalements et à la liste et aux indicateurs des campagnes. Un filtre de signalements permet d'afficher tous les états ou seulement les signalements non résolus (« Nouveau » et « En cours »).
   - Une campagne est préremplie avec l'organisation sélectionnée si une seule est choisie ; sinon le TECH_ADMIN choisit explicitement l'organisation cible et peut toujours sélectionner toute organisation.
   - Les filtres de données sont validés côté serveur et les pages et API restent réservées au rôle TECH_ADMIN.
+- **Mise à jour :** La revue du 8 octobre 2026 n'a relevé aucun problème confirmé. Le scénario `ADM-12` couvre maintenant le choix de plusieurs organisations et le filtre des signalements non résolus. La vérification manuelle avec un compte TECH_ADMIN et les données bêta reste à effectuer.
 
 #### Vérifier les e-mails personnalisés dans les campagnes de recette
 

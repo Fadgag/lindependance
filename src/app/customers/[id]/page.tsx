@@ -17,6 +17,7 @@ export default function ClientDetail() {
   const [saving, setSaving] = useState(false)
   const [editingEmail, setEditingEmail] = useState('')
   const [savingEmail, setSavingEmail] = useState(false)
+  const [sendingPortalEmail, setSendingPortalEmail] = useState(false)
   const [emailMessage, setEmailMessage] = useState('')
 
   // État pour gérer l'ouverture de la modal de détail/paiement
@@ -57,10 +58,9 @@ export default function ClientDetail() {
     }
   }
 
-  const saveEmail = async () => {
-    if (!client) return
-    setSavingEmail(true)
-    setEmailMessage('')
+  const persistEmail = async (): Promise<boolean> => {
+    if (!client) return false
+
     try {
       const res = await fetch('/api/customers', {
         method: 'PUT',
@@ -70,16 +70,52 @@ export default function ClientDetail() {
       const data = await res.json()
       if (!res.ok) {
         setEmailMessage(data.error || 'Impossible d’enregistrer cet email.')
-        return
+        return false
       }
       setClient((current) => current ? { ...current, email: data.email } : current)
       setEditingEmail(data.email || '')
-      setEmailMessage('Email de contact enregistré.')
+      return true
     } catch (err: unknown) {
       clientError('Erreur enregistrement email client', err)
       setEmailMessage('Impossible d’enregistrer cet email.')
+      return false
+    }
+  }
+
+  const saveEmail = async () => {
+    setSavingEmail(true)
+    setEmailMessage('')
+    try {
+      if (await persistEmail()) setEmailMessage('Email de contact enregistré.')
     } finally {
       setSavingEmail(false)
+    }
+  }
+
+  const sendPortalEmail = async () => {
+    if (!client || !editingEmail.trim()) return
+
+    setSendingPortalEmail(true)
+    setEmailMessage('')
+    try {
+      if (editingEmail.trim() !== (client.email || '')) {
+        if (!await persistEmail()) return
+      }
+
+      const response = await fetch(`/api/customers/${encodeURIComponent(client.id)}/send-portal-email`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setEmailMessage(data.error || 'Impossible d’envoyer l’e-mail au client.')
+        return
+      }
+      setEmailMessage('E-mail envoyé au client.')
+    } catch (err: unknown) {
+      clientError('Erreur envoi des informations de réservation', err)
+      setEmailMessage('Impossible d’envoyer l’e-mail au client.')
+    } finally {
+      setSendingPortalEmail(false)
     }
   }
 
@@ -126,6 +162,13 @@ export default function ClientDetail() {
                 className="w-full mt-4 py-3 bg-studio-primary text-white rounded-xl font-bold disabled:opacity-50"
               >
                 {savingEmail ? 'Enregistrement...' : 'Enregistrer l’email'}
+              </button>
+              <button
+                disabled={savingEmail || sendingPortalEmail || !editingEmail.trim()}
+                onClick={sendPortalEmail}
+                className="w-full mt-2 py-3 border border-studio-primary text-studio-primary rounded-xl font-bold disabled:opacity-50"
+              >
+                {sendingPortalEmail ? 'Envoi en cours...' : 'Envoyer les informations de réservation'}
               </button>
             </div>
             <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-100">

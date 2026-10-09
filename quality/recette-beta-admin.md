@@ -36,6 +36,7 @@ Préparer dans l'interface staff et avec l'équipe technique :
 | Créneaux | Un créneau libre, un occupé par le même praticien, un occupé par un autre praticien et une indisponibilité globale. |
 | Forfait | Rendez-vous de test lié à un forfait ; relever les crédits avant le test. |
 | Rendez-vous | Un rendez-vous modifiable, un rendez-vous supprimable, un rendez-vous `PAID` et un rendez-vous client annulable à plus de 24 h. |
+| Fiches client | Dans `ORG-A`, deux fiches distinctes avec le même numéro ; une boîte e-mail de test accessible et un portail actif avec son slug. |
 
 **Fiche de campagne :** build/commit : `________` · testeur : `________` ·
 date : `________` · navigateur/appareil : `________` · organisation : `________`
@@ -282,6 +283,43 @@ logo gardent la même présentation sur les deux pages du portail.
 `test/services/customerPortalBookingOrganization.spec.ts`. L'import et le
 recadrage réels sur téléphone, ainsi que le refus des fichiers non pris en
 charge et trop volumineux, restent à vérifier en bêta.
+**Résultat / preuve :** `________`
+
+#### [ ] ADM-15 — Garder deux fiches distinctes avec le même téléphone
+**Priorité : P1 · Exigence :** [Req: user-confirmed — `customer-contact-details.md`, numéros partagés]
+
+**Étapes :** dans la gestion des clients, créez deux fiches avec des noms
+différents et le même numéro de téléphone. Dans le calendrier, recherchez
+chaque personne par son nom, puis créez une autre fiche en réutilisant ce
+numéro.
+
+**Attendu :** les fiches restent séparées. Le numéro partagé ne bloque pas la
+création et ne sélectionne jamais automatiquement une autre personne ; vous
+pouvez choisir la bonne fiche par son nom.
+
+**Automatisé :** `test/api/customers.route.spec.ts`,
+`test/actions/createCustomerAndReturn.spec.ts` et
+`test/ui/customerPicker.spec.tsx`. La vérification des fiches et rendez-vous
+sur l'environnement bêta reste à effectuer.
+**Résultat / preuve :** `________`
+
+#### [ ] ADM-16 — Envoyer au client les informations de réservation
+**Priorité : P1 · Exigence :** [Req: user-confirmed — `customer-contact-details.md`, message e-mail]
+
+**Étapes :** ouvrez une fiche client avec une adresse e-mail de test. Si
+nécessaire, modifiez l'adresse, puis choisissez « Envoyer les informations de
+réservation ». Vérifiez le message reçu et ouvrez « Réserver en ligne ».
+
+**Attendu :** l'adresse modifiée est enregistrée avant l'envoi. Le message
+confirme que l'adresse figure dans la fiche et demande de l'utiliser pour les
+réservations en ligne. Le bouton ouvre la page de réservation du bon salon.
+Vous pouvez confirmer verbalement au personnel la réception du message ; aucun
+code ou lien de vérification n'est demandé.
+
+**Automatisé :** `test/api/customer-saved-email.route.spec.ts`,
+`test/services/customerPortalEmail.spec.ts` et
+`test/ui/customerDetail.spec.tsx`. La réception réelle par e-mail et
+l'ouverture du lien sont à vérifier avec la boîte de test en bêta.
 **Résultat / preuve :** `________`
 
 ## Couverture automatisée relue

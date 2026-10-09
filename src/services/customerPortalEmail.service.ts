@@ -81,6 +81,35 @@ export async function sendCustomerPortalOtpEmail(input: {
   if (result.error) throw new Error(`Resend failed to send customer portal OTP: ${result.error.message}`)
 }
 
+export async function sendCustomerPortalSavedEmail(input: {
+  to: string
+  organizationName: string
+  portalUrl: string
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured')
+
+  const organizationName = escapeHtml(input.organizationName)
+  const portalUrl = escapeHtml(input.portalUrl)
+  const result = await new Resend(apiKey).emails.send({
+    from: process.env.RESEND_FROM || 'no-reply@studio.test',
+    to: input.to,
+    subject: `Votre adresse e-mail pour réserver chez ${input.organizationName.replace(/[\r\n]/g, ' ')}`,
+    html: [
+      '<div style="font-family:system-ui,sans-serif;line-height:1.6">',
+      '<p>Bonjour,</p>',
+      `<p>Cette adresse e-mail est bien enregistrée dans votre fiche client chez ${organizationName}.</p>`,
+      '<p>Pour prendre vos rendez-vous en ligne, utilisez cette adresse e-mail.</p>',
+      '<p>Merci de confirmer au personnel du salon que vous avez bien reçu ce message.</p>',
+      `<p><a href="${portalUrl}" style="display:inline-block;padding:12px 18px;background:#3730a3;color:#fff;text-decoration:none;border-radius:8px">Réserver en ligne</a></p>`,
+      `<p>À bientôt,<br>${organizationName}</p>`,
+      '</div>',
+    ].join(''),
+  })
+
+  if (result.error) throw new Error(`Resend failed to send customer saved email: ${result.error.message}`)
+}
+
 export async function sendCustomerPortalDisabledEmail(input: {
   to: string
   organizationName: string

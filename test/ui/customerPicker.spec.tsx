@@ -103,14 +103,13 @@ describe('CustomerPicker', () => {
     })
   })
 
-  it('auto-selects existing customer on 409 duplicate phone', async () => {
+  it('creates and selects a separate customer when the phone is already used', async () => {
     const mockCreate = vi.mocked(createCustomerAndReturn)
     mockCreate.mockResolvedValue({
-      success: false,
-      error: 'Un client avec ce numéro existe déjà',
-      existing: { id: 'c1', firstName: 'Alice', lastName: 'Dupont', phone: '0600000000' }
+      success: true,
+      customer: { id: 'new1', firstName: 'Test', lastName: 'Dup', phone: '0600000000' }
     })
-    const { onSelectAction } = renderPicker()
+    const { onSelectAction, onCreatedAction } = renderPicker()
 
     fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
     fireEvent.change(screen.getByPlaceholderText('Taper un nom...'), { target: { value: 'Fan' } })
@@ -121,7 +120,13 @@ describe('CustomerPicker', () => {
     fireEvent.mouseDown(screen.getByText('Créer et sélectionner'))
 
     await waitFor(() => {
-      expect(onSelectAction).toHaveBeenCalledWith('c1')
+      expect(onSelectAction).toHaveBeenCalledWith('new1')
+      expect(onCreatedAction).toHaveBeenCalledWith({
+        id: 'new1',
+        firstName: 'Test',
+        lastName: 'Dup',
+        phone: '0600000000',
+      })
     })
   })
 
@@ -137,4 +142,3 @@ describe('CustomerPicker', () => {
     expect(screen.queryByPlaceholderText('Prénom *')).not.toBeInTheDocument()
   })
 })
-

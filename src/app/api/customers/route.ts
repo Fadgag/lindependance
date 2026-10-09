@@ -112,20 +112,6 @@ export async function POST(request: Request) {
 
     const { firstName, lastName, phone, email, notes } = parse.data;
 
-    // Vérifier les doublons par téléphone au sein de l'organisation (seulement si phone fourni)
-    if (phone) {
-      const existing = await prisma.customer.findFirst({
-        where: { phone, organizationId: orgId }
-      });
-
-      if (existing) {
-        return NextResponse.json(
-            { error: 'Un client avec ce numéro existe déjà', existing },
-            { status: 409 }
-        );
-      }
-    }
-
     const created = await prisma.customer.create({
       data: {
         firstName,

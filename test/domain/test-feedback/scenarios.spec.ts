@@ -57,10 +57,12 @@ describe('parseScenarioGuide', () => {
     const adminGuide = readFileSync(join(process.cwd(), 'quality/recette-beta-admin.md'), 'utf8')
     const userGuide = readFileSync(join(process.cwd(), 'quality/recette-beta-customer.md'), 'utf8')
 
-    expect(parseScenarioGuide(adminGuide, 'ADMIN')).toHaveLength(14)
+    expect(parseScenarioGuide(adminGuide, 'ADMIN')).toHaveLength(16)
     expect(parseScenarioGuide(userGuide, 'USER')).toHaveLength(16)
     expect(parseScenarioGuide(adminGuide, 'ADMIN').map(({ id }) => id)).toContain('ADM-13')
     expect(parseScenarioGuide(adminGuide, 'ADMIN').map(({ id }) => id)).toContain('ADM-14')
+    expect(parseScenarioGuide(adminGuide, 'ADMIN').map(({ id }) => id)).toContain('ADM-15')
+    expect(parseScenarioGuide(adminGuide, 'ADMIN').map(({ id }) => id)).toContain('ADM-16')
   })
 })
 
@@ -82,7 +84,7 @@ describe('test scenario groups', () => {
       'STAFF_ADMINISTRATION',
     ])
     expect(testScenarioGroups.find(({ id }) => id === 'STAFF_ADMINISTRATION')?.range)
-      .toBe('ADM-01 à ADM-14')
+      .toBe('ADM-01 à ADM-16')
     expect(filterScenariosByGroups(userScenarios, ['ONLINE_BOOKING']).map(({ id }) => id)).toEqual(
       userScenarios
         .filter(({ id }) => Number(id.slice(-2)) <= 10)
