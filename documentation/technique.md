@@ -41,6 +41,12 @@ specs/                  Spécifications fonctionnelles et backlog produit
 documentation/          Ce dossier
 ```
 
+Le seed Prisma initialise l'organisation locale sans identifiants prédéfinis. Pour créer un
+compte administrateur local, définir `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME` et
+`SEED_ADMIN_PASSWORD` (16 caractères minimum) ; le seed refuse une base distante ou
+`NODE_ENV=production` et ne modifie jamais un compte existant. Pour une base distante,
+utiliser la procédure de bootstrap vérifiée `pnpm create-admin`.
+
 ## 3. Modèle de données (résumé)
 
 Entités principales (`prisma/schema.prisma`) : `Organization`, `User` (+ `Account`, `Session`,
@@ -70,10 +76,12 @@ taille du domaine). Convention (voir aussi `src/domain/README.md`, `AGENTS.md`, 
 
 Sous-domaines existants :
 - `src/domain/billing/vat.ts` — calcul de TVA sur montants TTC (`computeVatFromTtc`,
-  `computeSoldProductLine`). Utilisé à la fois par `CheckoutModal.tsx` (UI) et
-  `dashboard.service.ts` (agrégation), pour éviter toute divergence de calcul.
-- `src/domain/appointment/policies.ts` — `canDeleteAppointment` (règle de suppression),
-  `hasSchedulingConflict` / `findFirstSchedulingConflict` (détection de chevauchement horaire).
+  `computeSoldProductLine`, `computeCheckoutTotal`). L'encaissement recalcule le total
+  depuis les tarifs du service et des produits persistés ; les suppléments libres sont
+  réservés aux comptes `ADMIN`.
+- `src/domain/appointment/policies.ts` — `isAppointmentPaid` et `canDeleteAppointment`
+  (règles de paiement/suppression), `hasSchedulingConflict` / `findFirstSchedulingConflict`
+  (détection de chevauchement horaire).
 - `src/domain/package/sessionCredit.ts` — `canConsumeSession` / `consumeSession` (règle de
   crédit de séances d'un forfait client).
 

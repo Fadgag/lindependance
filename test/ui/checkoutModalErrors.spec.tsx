@@ -6,8 +6,10 @@ const toastMock = vi.hoisted(() => ({
   error: vi.fn(),
   success: vi.fn(),
 }));
+const sessionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("sonner", () => ({ toast: toastMock }));
+vi.mock("next-auth/react", () => ({ useSession: sessionMock }));
 vi.mock("@/components/dashboard/ProductPicker", () => ({ default: () => null }));
 
 import CheckoutModal from "@/components/dashboard/CheckoutModal";
@@ -28,6 +30,7 @@ const jsonResponse = (status: number, payload: unknown) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionMock.mockReturnValue({ data: { user: { role: "ADMIN" } }, status: "authenticated" });
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -67,5 +70,15 @@ describe("CheckoutModal error feedback", () => {
         expect.stringContaining("Vérifiez votre connexion"),
       );
     });
+  });
+
+  it("hides custom extras editing for non-admin staff", async () => {
+    sessionMock.mockReturnValue({ data: { user: { role: "USER" } }, status: "authenticated" });
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, []));
+
+    render(<CheckoutModal appointment={appointment} onClose={vi.fn()} onRefresh={vi.fn()} />);
+
+    expect(await screen.findByText("Suppléments")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^\+\s*AJOUTER$/i })).not.toBeInTheDocument();
   });
 });

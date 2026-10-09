@@ -39,6 +39,11 @@ describe("checkout error messages", () => {
     expect(message).not.toContain("secret database host");
   });
 
+  it("explains when the appointment has already been paid", () => {
+    expect(getCheckoutErrorMessage("payment", 409, { error: "Rendez-vous déjà payé" }))
+      .toContain("déjà été encaissé");
+  });
+
   it("suggests signing in again when the session has expired", () => {
     expect(getCheckoutErrorMessage("delete", 401, null)).toContain("Reconnectez-vous");
   });

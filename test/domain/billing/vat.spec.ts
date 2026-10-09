@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeVatFromTtc, computeSoldProductLine, roundToCents } from '@/domain/billing/vat'
+import { computeCheckoutTotal, computeVatFromTtc, computeSoldProductLine, roundToCents } from '@/domain/billing/vat'
 
 describe('computeVatFromTtc', () => {
   it('retourne 0 quand le taux est nul', () => {
@@ -30,6 +30,16 @@ describe('roundToCents', () => {
     expect(roundToCents(1.005)).toBe(1)
     expect(roundToCents(1.006)).toBe(1.01)
     expect(roundToCents(19.999999)).toBe(20)
+  })
+})
+
+describe('computeCheckoutTotal', () => {
+  it('additionne le service, les suppléments et les produits puis arrondit au centime', () => {
+    expect(computeCheckoutTotal(30, [10, 2.5], [12.5, 10])).toBe(65)
+  })
+
+  it('calcule le total d’un rendez-vous sans supplément ni produit', () => {
+    expect(computeCheckoutTotal(30, [], [])).toBe(30)
   })
 })
 
