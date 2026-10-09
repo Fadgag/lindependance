@@ -10,7 +10,8 @@ branche de production. Seule une PR issue de `preprod` peut être fusionnée dan
 
 1. Les branches de fonctionnalité ouvrent une PR vers `preprod`.
 2. GitHub Actions exécute ESLint sur les fichiers JavaScript/TypeScript modifiés,
-   TypeScript, Vitest et le build pour les PR vers `preprod` et `main`.
+   TypeScript, Vitest, le build et la validation des migrations Prisma pour les PR vers
+   `preprod` et `main`. La validation des migrations utilise PostgreSQL éphémère.
 3. Vercel génère un Preview éphémère pour chaque PR. Après validation, fusionner
    la PR dans `preprod` ; Vercel déploie alors cette branche sur le domaine
    Preview stable `https://lindependance-testing.vercel.app`.
@@ -35,6 +36,8 @@ branche de production. Seule une PR issue de `preprod` peut être fusionnée dan
   afin de bloquer les pushes directs et les PR depuis d’autres branches.
 - Les migrations Prisma restent manuelles et doivent cibler explicitement la
   base de l’environnement concerné.
+- La CI vérifie les règles statiques des migrations et applique l'historique complet sur
+  une base PostgreSQL éphémère ; elle n'accède pas aux bases partagées et ne les modifie pas.
 
 ## Hors périmètre
 
@@ -47,6 +50,7 @@ branche de production. Seule une PR issue de `preprod` peut être fusionnée dan
 ## Critères d’acceptation
 
 - Les PR vers `preprod` et `main` passent les contrôles de qualité CI.
+- Les migrations s'appliquent sur une base PostgreSQL vide dans la CI, sans secret partagé.
 - Une PR vers `main` depuis une branche autre que `preprod` échoue au contrôle
   `Main promotion source / Only preprod may target main`.
 - Les pushes directs et les merges sans PR vers `main` sont bloqués.
