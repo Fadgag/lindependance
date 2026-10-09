@@ -13,6 +13,16 @@ export function roundToCents(value: number): number {
   return Math.round(value * 100) / 100
 }
 
+export function computeCheckoutTotal(
+  servicePrice: number,
+  extraPrices: readonly number[],
+  productTotals: readonly number[],
+): number {
+  const extrasTotal = extraPrices.reduce((sum, price) => sum + price, 0)
+  const productsTotal = productTotals.reduce((sum, total) => sum + total, 0)
+  return roundToCents(servicePrice + extrasTotal + productsTotal)
+}
+
 /**
  * Calcule la TVA incluse dans un montant TTC pour un taux donné.
  * Formule: totalTTC - totalTTC / (1 + taxRate/100)

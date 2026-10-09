@@ -22,10 +22,13 @@ export function canCancelPortalAppointment(startTime: Date, now: Date): boolean 
  * indépendante du statut).
  */
 export function canDeleteAppointment(appointment: AppointmentPaymentInfo): boolean {
-  const isPaid = appointment.status === 'PAID'
+  return !isAppointmentPaid(appointment)
+}
+
+export function isAppointmentPaid(appointment: AppointmentPaymentInfo): boolean {
+  return appointment.status === 'PAID'
     || appointment.status === 'PAYED'
     || (appointment.finalPrice ? Number(appointment.finalPrice) : 0) > 0
-  return !isPaid
 }
 
 export interface TimeRange {

@@ -39,6 +39,14 @@ export function getCheckoutErrorMessage(
       : "Le stock d'un ou plusieurs produits est insuffisant. Ajustez les quantités puis réessayez.";
   }
 
+  if (operation === "payment" && status === 409 && error === "Rendez-vous déjà payé") {
+    return "Ce rendez-vous a déjà été encaissé. Actualisez la page pour voir son état.";
+  }
+
+  if (operation === "payment" && status === 409 && error === "Produit non trouvé") {
+    return "Un produit n'est plus disponible. Actualisez la page puis vérifiez la sélection.";
+  }
+
   if (status === 400) {
     return operation === "payment"
       ? "Les informations du règlement ne sont pas valides. Vérifiez le montant et les produits puis réessayez."

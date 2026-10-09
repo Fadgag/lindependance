@@ -17,6 +17,50 @@ livré en une seule fois.
 
 ## À traiter
 
+### Constats de l'audit global du 9 octobre 2026
+
+#### Retirer les identifiants prévisibles du seed administrateur
+
+- **Type :** Bug
+- **Statut :** Réalisé — seed admin facultatif limité aux bases locales, secret d'environnement requis et compte existant inchangé.
+- **Priorité proposée :** P1
+- **Constat :** Le seed définit un mot de passe administrateur constant et réapplique ce mot de passe, le rôle `ADMIN` et l'organisation à chaque exécution pour le même compte.
+- **Comportement attendu :** Un seed ne doit ni créer ni réinitialiser un compte administrateur avec un secret connu ou partagé.
+- **Impact :** Si le seed est exécuté sur une base accessible à l'application, le compte administrateur concerné peut être pris en charge avec les identifiants présents dans le dépôt.
+- **Critères d'acceptation :**
+  - Aucun mot de passe administrateur réutilisable n'est codé dans le seed.
+  - Le seed n'attribue ni ne réinitialise silencieusement les identifiants d'un compte administrateur existant.
+  - L'initialisation d'un compte privilégié utilise un secret propre à l'environnement et vérifie sa cible avant toute écriture.
+- **Résultat :** Le seed n'accepte l'initialisation admin qu'avec `SEED_ADMIN_*`, refuse les bases distantes et `NODE_ENV=production`, et ne fait qu'une création. Le contrôle de refus d'une base distante a été validé le 9 octobre 2026.
+
+#### Rendre l'encaissement idempotent et vérifier ses montants côté serveur
+
+- **Type :** Bug
+- **Statut :** Réalisé — total recalculé côté serveur, suppléments libres réservés aux comptes `ADMIN` et répétitions bloquées.
+- **Priorité proposée :** P1
+- **Constat :** La route d'encaissement accepte les valeurs de prix fournies par le navigateur et ne vérifie pas que le rendez-vous n'est pas déjà payé avant de décrémenter le stock et de le marquer payé.
+- **Comportement observé :** Une requête répétée pour un rendez-vous déjà payé peut décrémenter une nouvelle fois le stock ; un client modifié peut aussi enregistrer des montants qui ne correspondent pas aux tarifs enregistrés.
+- **Comportement attendu :** Les montants enregistrés sont validés ou calculés à partir des données persistées, et une seule transition vers l'état payé peut décrémenter le stock.
+- **Impact :** Les quantités en stock et les montants de chiffre d'affaires peuvent devenir inexacts.
+- **Critères d'acceptation :**
+  - Une seconde requête d'encaissement sur un rendez-vous déjà payé échoue sans modifier le stock ni les données financières.
+  - Les prix et taxes des produits sont récupérés côté serveur ; les montants reçus du navigateur ne sont pas considérés comme source de vérité.
+  - Des tests couvrent la répétition concurrente ou séquentielle d'une requête et la falsification des montants.
+- **Résultat :** Le serveur recalcule le prix du service et des produits depuis la base, refuse les champs financiers envoyés par le navigateur, réserve les suppléments libres aux comptes `ADMIN` et empêche atomiquement un second encaissement. La suite Vitest complète (531 tests réussis, 1 ignoré), le type-check et le lint ciblé ont réussi le 9 octobre 2026.
+
+#### Limiter les tentatives de connexion et de réinitialisation du mot de passe
+
+- **Type :** Amélioration
+- **Statut :** À traiter
+- **Priorité proposée :** P2
+- **Constat :** Les points d'entrée publics de connexion par mot de passe et de demande de réinitialisation n'appliquent pas de limitation de tentatives dans le code applicatif.
+- **Comportement attendu :** Les tentatives répétées sont ralenties ou bloquées sans révéler l'existence d'un compte.
+- **Impact :** La connexion est exposée aux essais automatisés ; les demandes de réinitialisation peuvent être utilisées pour solliciter des e-mails répétés et invalider les liens précédemment envoyés.
+- **Critères d'acceptation :**
+  - Les tentatives de connexion et de réinitialisation sont limitées selon une politique documentée.
+  - Les réponses publiques ne révèlent pas si une adresse possède un compte.
+  - Les demandes répétées ne peuvent pas envoyer indéfiniment des e-mails ni invalider le lien de réinitialisation sans contrôle.
+
 ### Vérifications manuelles bêta restantes
 
 Les développements concernés sont implémentés. Il reste à effectuer les

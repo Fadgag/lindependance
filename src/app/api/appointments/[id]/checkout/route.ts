@@ -4,6 +4,8 @@ import { auth } from "@/auth"
 import { logger } from '@/lib/logger'
 import { CheckoutInputSchema } from '@/schemas/appointments'
 import { rejectPendingRequestsForAppointment } from '@/services/appointmentChangeRequests.service'
+import { computeCheckoutTotal, computeSoldProductLine } from '@/domain/billing/vat'
+import { isAppointmentPaid } from '@/domain/appointment/policies'
 
 export async function POST(
     request: Request,
@@ -24,34 +26,92 @@ export async function POST(
         if (!parsed.success) {
             return NextResponse.json({ error: 'Données invalides', details: parsed.error.format() }, { status: 400 })
         }
-        const { totalPrice, extras, note, paymentMethod, soldProducts } = parsed.data
+        if ((parsed.data.extras?.length ?? 0) > 0 && session.user.role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+        const { extras, note, paymentMethod, soldProducts } = parsed.data
 
-        // Apply stock decrement and update appointment atomically
         await prisma.$transaction(async (tx) => {
-            if (Array.isArray(soldProducts) && soldProducts.length > 0) {
-                for (const line of soldProducts) {
-                    const qty = Number(line.quantity || 0)
-                    if (qty <= 0) continue
-                    const res = await tx.product.updateMany({
-                        where: { id: line.productId, organizationId: organizationId, stock: { gte: qty } },
-                        data: { stock: { decrement: qty } }
-                    })
-                    if (res.count === 0) {
-                        throw new Error(`INSUFFICIENT_STOCK:${line.productId}`)
-                    }
+            const appointment = await tx.appointment.findFirst({
+                where: { id, organizationId },
+                select: {
+                    status: true,
+                    finalPrice: true,
+                    service: { select: { organizationId: true, price: true } },
+                },
+            })
+            if (!appointment || appointment.service.organizationId !== organizationId) {
+                throw new Error('NOT_FOUND')
+            }
+            if (isAppointmentPaid(appointment)) {
+                throw new Error('ALREADY_PAID')
+            }
+
+            const requestedProducts = soldProducts ?? []
+            const productIds = [...new Set(requestedProducts.map((line) => line.productId))]
+            const products = productIds.length > 0
+                ? await tx.product.findMany({
+                    where: { id: { in: productIds }, organizationId },
+                    select: { id: true, name: true, iconName: true, priceTTC: true, taxRate: true },
+                })
+                : []
+            const productsById = new Map(products.map((product) => [product.id, product]))
+            const persistedSoldProducts = requestedProducts.map((line) => {
+                const product = productsById.get(line.productId)
+                if (!product) throw new Error('PRODUCT_NOT_FOUND')
+
+                const { totalTTC, totalTax } = computeSoldProductLine(
+                    product.priceTTC,
+                    line.quantity,
+                    product.taxRate,
+                )
+                return {
+                    productId: product.id,
+                    name: product.name,
+                    iconName: product.iconName,
+                    quantity: line.quantity,
+                    priceTTC: product.priceTTC,
+                    taxRate: product.taxRate,
+                    totalTTC,
+                    totalTax,
+                }
+            })
+
+            for (const line of persistedSoldProducts) {
+                const result = await tx.product.updateMany({
+                    where: {
+                        id: line.productId,
+                        organizationId,
+                        stock: { gte: line.quantity },
+                    },
+                    data: { stock: { decrement: line.quantity } },
+                })
+                if (result.count === 0) {
+                    throw new Error(`INSUFFICIENT_STOCK:${line.productId}`)
                 }
             }
 
+            const finalPrice = computeCheckoutTotal(
+                Number(appointment.service.price),
+                (extras ?? []).map((extra) => extra.price),
+                persistedSoldProducts.map((product) => product.totalTTC),
+            )
             const updateResult = await tx.appointment.updateMany({
                 where: {
-                    id: id,
-                    organizationId: organizationId
+                    id,
+                    organizationId,
+                    AND: [
+                        { status: { notIn: ['PAID', 'PAYED'] } },
+                        { OR: [{ finalPrice: null }, { finalPrice: { lte: 0 } }] },
+                    ],
                 },
                 data: {
                     status: "PAID",
-                    finalPrice: totalPrice,
+                    finalPrice,
                     extras: extras ? JSON.stringify(extras) : null,
-                    soldProducts: soldProducts ? JSON.stringify(soldProducts) : null,
+                    soldProducts: persistedSoldProducts.length > 0
+                        ? JSON.stringify(persistedSoldProducts)
+                        : null,
                     note: note,
                     paymentMethod: paymentMethod,
                     updatedAt: new Date(),
@@ -59,7 +119,7 @@ export async function POST(
             })
 
             if (updateResult.count === 0) {
-                throw new Error('NOT_FOUND')
+                throw new Error('ALREADY_PAID')
             }
 
             await rejectPendingRequestsForAppointment(tx, {
@@ -79,6 +139,8 @@ export async function POST(
             return NextResponse.json({ error: 'Stock insuffisant', productId }, { status: 409 })
         }
         if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'Non trouvé' }, { status: 404 })
+        if (msg === 'PRODUCT_NOT_FOUND') return NextResponse.json({ error: 'Produit non trouvé' }, { status: 409 })
+        if (msg === 'ALREADY_PAID') return NextResponse.json({ error: 'Rendez-vous déjà payé' }, { status: 409 })
         return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 }

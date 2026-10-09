@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, CreditCard, X, CheckCircle2, StickyNote, Save, Banknote, Landmark, Package, Droplet, Sparkles, Scissors, FlaskConical, Wind, Heart, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import type { CheckoutAppointment, Extra, AppointmentSummary, SoldProduct, Product } from "@/types/models";
 import { parseJsonField } from "@/lib/parseAppointmentJson";
 import { getCheckoutErrorMessage, getCheckoutNetworkErrorMessage } from "@/lib/checkoutErrorMessage";
@@ -47,15 +48,16 @@ interface ExtraRowProps {
     extra: Extra
     index: number
     isPaid: boolean
+    canEdit: boolean
     onUpdate: (index: number, field: keyof Extra, value: string | number) => void
     onRemove: (index: number) => void
 }
 
-const ExtraRow = ({ extra, index, isPaid, onUpdate, onRemove }: ExtraRowProps) => (
+const ExtraRow = ({ extra, index, isPaid, canEdit, onUpdate, onRemove }: ExtraRowProps) => (
     <div className="flex gap-2 items-center group">
         <input
             type="text"
-            disabled={isPaid}
+            disabled={isPaid || !canEdit}
             placeholder="Désignation"
             className="flex-1 p-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-1 focus:ring-indigo-500/20 disabled:bg-transparent disabled:font-medium"
             value={extra.label}
@@ -64,14 +66,14 @@ const ExtraRow = ({ extra, index, isPaid, onUpdate, onRemove }: ExtraRowProps) =
         <div className="relative">
             <input
                 type="number"
-                disabled={isPaid}
+                disabled={isPaid || !canEdit}
                 className="w-20 p-2.5 bg-gray-50 border-none rounded-xl text-sm text-right pr-6 focus:ring-1 focus:ring-indigo-500/20 disabled:bg-transparent disabled:font-bold"
                 value={extra.price ?? ""}
                 onChange={(e) => onUpdate(index, "price", Number(e.target.value))}
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">€</span>
         </div>
-        {!isPaid && (
+        {!isPaid && canEdit && (
             <button onClick={() => onRemove(index)} className="p-2 text-red-300 hover:text-red-500 rounded-xl transition-all">
                 <Trash2 size={16} />
             </button>
@@ -88,6 +90,8 @@ interface CheckoutModalProps {
 }
 
 export default function CheckoutModal({ appointment, onClose, onRefresh }: CheckoutModalProps) {
+    const { data: session } = useSession()
+    const canManageExtras = session?.user?.role === 'ADMIN'
     const [extras, setExtras] = useState<Extra[]>([]);
     const [soldProducts, setSoldProducts] = useState<SoldProduct[]>([]);
     const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
@@ -206,7 +210,12 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
             res = await fetch(`/api/appointments/${appointment.id}/checkout`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ totalPrice: displayPrice, extras, soldProducts, note, paymentMethod }),
+                body: JSON.stringify({
+                    extras,
+                    soldProducts: soldProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+                    note,
+                    paymentMethod,
+                }),
             });
         } catch {
             toast.error(getCheckoutNetworkErrorMessage("payment"));
@@ -369,7 +378,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                     <div className="space-y-3 pt-4 border-t border-gray-50">
                         <div className="flex justify-between items-center">
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Suppléments</h3>
-                            {!isPaid && (
+                            {!isPaid && canManageExtras && (
                                 <button onClick={() => setExtras([...extras, { label: "", price: 0 }])} className="text-[10px] bg-gray-900 text-white px-3 py-1 rounded-full">+ AJOUTER</button>
                             )}
                         </div>
@@ -380,6 +389,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                                 extra={extra}
                                 index={index}
                                 isPaid={isPaid}
+                                canEdit={canManageExtras}
                                 onRemove={(i: number) => setExtras(extras.filter((_, idx) => idx !== i))}
                                 onUpdate={(i: number, f: keyof Extra, v: string | number) => {
                                     const next = [...extras]; next[i] = { ...next[i], [f]: v }; setExtras(next);
