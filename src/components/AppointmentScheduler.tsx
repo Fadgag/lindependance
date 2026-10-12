@@ -19,13 +19,21 @@ import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/shift-away.css';
 import { BanIcon } from 'lucide-react';
 import PortalBookingCounter from '@/components/customer-portal/PortalBookingCounter'
+import styles from './AppointmentScheduler.module.css'
 
 export default function AppointmentScheduler() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedRange, setSelectedRange] = useState<DateSelectArg | null>(null)
     const [editingEvent, setEditingEvent] = useState<InitialAppointmentData | null>(null)
     const [mounted, setMounted] = useState(false)
-    useEffect(() => { const id = setTimeout(() => setMounted(true), 0); return () => clearTimeout(id) }, [])
+    const [initialView] = useState<'timeGridDay' | 'timeGridWeek'>(() => {
+        if (typeof window === 'undefined') return 'timeGridWeek'
+        return window.matchMedia('(max-width: 639px)').matches ? 'timeGridDay' : 'timeGridWeek'
+    })
+    useEffect(() => {
+        const id = setTimeout(() => setMounted(true), 0)
+        return () => clearTimeout(id)
+    }, [])
     const lastRangeRef = useRef<{ start?: string; end?: string } | null>(null)
     const rangeControllerRef = useRef<AbortController | null>(null)
     const calendarRef = useRef<{ getApi?: () => CalendarApi } | null>(null)
@@ -44,9 +52,9 @@ export default function AppointmentScheduler() {
     const allEvents = [...events, ...unavailabilities]
 
     return (
-        <div className="flex-1 flex flex-col h-full w-full p-6 min-h-0">
+        <div className="flex-1 flex flex-col h-full w-full p-2 sm:p-6 min-h-0 min-w-0">
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
                 <PortalBookingCounter />
                 <button
                     onClick={() => {
@@ -81,13 +89,18 @@ export default function AppointmentScheduler() {
                 </button>
             </div>
 
-            <div className="studio-card flex-1 p-6 min-h-0 overflow-hidden bg-white rounded-4xl border border-studio-border shadow-sm">
+            <p className={`${styles.scrollHint} text-xs text-slate-500`}>
+                En vue Semaine, faites défiler le calendrier horizontalement pour voir les autres jours.
+            </p>
+
+            <div className={`studio-card flex-1 p-2 sm:p-6 min-h-0 min-w-0 overflow-hidden bg-white rounded-4xl border border-studio-border shadow-sm ${styles.calendar}`}>
                 {mounted ? (
                     <FullCalendar
                         ref={calendarRef}
                         key={`${openingTime}-${closingTime}`}
                         plugins={[timeGridPlugin, interactionPlugin, dayGridPlugin]}
-                        initialView="timeGridWeek"
+                        initialView={initialView}
+                        dayMinWidth={64}
                         height="100%"
                         contentHeight="100%"
                         expandRows={true}

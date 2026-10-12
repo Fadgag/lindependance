@@ -377,6 +377,22 @@ vérifient l'isolation par organisation. La vérification complète sur les deux
 organisations reste à effectuer en bêta.
 **Résultat / preuve :** `________`
 
+#### [ ] ADM-20 — Consulter l'agenda sur un téléphone
+**Priorité : P1 · Exigence :** [Req: user-confirmed — issue #80]
+
+**Étapes :** sur un téléphone, ou en réduisant la fenêtre à 320 px de large,
+ouvrez l'agenda. Vérifiez les boutons Jour et Semaine. Passez en vue Jour,
+puis en vue Semaine et faites défiler le calendrier horizontalement pour
+voir les autres jours.
+
+**Attendu :** le titre et les boutons de navigation restent visibles et
+utilisables. En vue Semaine, les jours restent distincts et le défilement
+permet de consulter toute la semaine sans masquer les commandes.
+
+**Automatisé :** `test/ui/appointmentScheduler.spec.tsx` vérifie la vue initiale
+et les commandes Jour/Semaine. Le défilement réel reste à vérifier en bêta.
+**Résultat / preuve :** `________`
+
 ## Couverture automatisée relue
 
 Les suites automatisées pertinentes sont indiquées sous chaque scénario. Elles

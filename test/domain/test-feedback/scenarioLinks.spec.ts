@@ -37,6 +37,9 @@ describe('test scenario links', () => {
     expect(getTestScenarioLinks('ADMIN', 'ADM-07', 'osez-le-tre', false)).toEqual([
       { href: '/agenda', label: 'Ouvrir l’agenda staff' },
     ])
+    expect(getTestScenarioLinks('ADMIN', 'ADM-20', 'osez-le-tre', false)).toEqual([
+      { href: '/agenda', label: 'Ouvrir l’agenda staff' },
+    ])
     expect(getTestScenarioLinks('ADMIN', 'ADM-03', 'osez-le-tre', false)).toEqual([
       { href: '/change-requests', label: 'Ouvrir les demandes de changement' },
     ])
