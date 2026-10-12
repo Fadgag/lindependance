@@ -41,6 +41,10 @@ describe('TestCampaignDashboard', () => {
         id: 'campaign-1',
         name: 'Recette réservation complète',
         publicToken: 'a'.repeat(43),
+        projectCard: {
+          status: 'created',
+          issueUrl: 'https://github.com/Fadgag/lindependance/issues/100',
+        },
         invitations: { sent: 1, failedRecipients: [], deliveryError: null },
       }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify(emptyDashboard), { status: 200 }))
@@ -95,6 +99,35 @@ describe('TestCampaignDashboard', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/test-campaigns?organizationId=org-1')
     expect(screen.queryByLabelText('Build ou commit testé')).not.toBeInTheDocument()
     expect(await screen.findByText('La campagne a été créée. 1 invitation envoyée sur 1.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ouvrir l’Issue de recette dans GitHub' }))
+      .toHaveAttribute('href', 'https://github.com/Fadgag/lindependance/issues/100')
+  })
+
+  it('keeps the campaign and warns when GitHub Project integration is not configured', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(emptyDashboard), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: 'campaign-1',
+        name: 'Recette bêta',
+        publicToken: 'a'.repeat(43),
+        projectCard: { status: 'not_configured', issueUrl: null },
+        invitations: { sent: 0, failedRecipients: [], deliveryError: null },
+      }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(emptyDashboard), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<TestCampaignDashboard />)
+    await screen.findByText(/Aucune campagne/)
+    await screen.findByText(/Aucun compte ou client/)
+    fireEvent.change(screen.getByLabelText('Nom de la campagne'), {
+      target: { value: 'Recette bêta' },
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Créer la campagne' })[1])
+
+    expect(await screen.findByText('La campagne a été créée.')).toBeInTheDocument()
+    expect(await screen.findByRole('alert'))
+      .toHaveTextContent('GITHUB_PROJECT_TOKEN n’est pas configuré')
   })
 
   it('requires an explicit organization when multiple domains are selected', async () => {

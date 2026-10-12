@@ -68,6 +68,10 @@ export const TestCampaignRecipientListResponseSchema = z.array(z.discriminatedUn
 ]))
 
 export const TestCampaignCreationResponseSchema = z.object({
+  projectCard: z.object({
+    status: z.enum(['created', 'not_configured', 'failed']),
+    issueUrl: z.string().url().nullable(),
+  }),
   invitations: z.object({
     sent: z.number().int().nonnegative(),
     failedRecipients: z.array(z.string()),

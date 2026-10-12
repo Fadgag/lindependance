@@ -86,6 +86,7 @@ export default function TestCampaignDashboard() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [projectIssueUrl, setProjectIssueUrl] = useState<string | null>(null)
 
   const loadCampaigns = useCallback(async () => {
     const requestId = ++latestCampaignRequest.current
@@ -163,6 +164,7 @@ export default function TestCampaignDashboard() {
     event.preventDefault()
     setError('')
     setNotice('')
+    setProjectIssueUrl(null)
     const draft: CampaignDraft = {
       name: campaignName,
       organizationId,
@@ -191,23 +193,33 @@ export default function TestCampaignDashboard() {
       const payload: unknown = await response.json()
       const parsedResponse = TestCampaignCreationResponseSchema.safeParse(payload)
       if (!parsedResponse.success) throw new Error('Réponse invalide à la création de la campagne')
-      const { sent, failedRecipients, deliveryError } = parsedResponse.data.invitations
+      const { projectCard, invitations } = parsedResponse.data
+      const { sent, failedRecipients, deliveryError } = invitations
       setCampaignName('')
       setSelectedRecipientIds([])
       setEmailSubject(DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT)
       setEmailMessage(DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE)
       await loadCampaigns()
-      if (selectedRecipientIds.length === 0) {
-        setNotice('La campagne a été créée.')
+      const noticeParts = ['La campagne a été créée.']
+      if (selectedRecipientIds.length > 0) {
+        noticeParts.push(`${sent} invitation${sent === 1 ? '' : 's'} envoyée${sent === 1 ? '' : 's'} sur ${selectedRecipientIds.length}.`)
+      }
+      if (projectCard.issueUrl) {
+        setProjectIssueUrl(projectCard.issueUrl)
+      }
+      if (projectCard.status === 'not_configured') {
+        setError('La campagne a été créée, mais la carte GitHub Project n’a pas été générée : GITHUB_PROJECT_TOKEN n’est pas configuré.')
       } else {
-        const invitationSummary = `${sent} invitation${sent === 1 ? '' : 's'} envoyée${sent === 1 ? '' : 's'} sur ${selectedRecipientIds.length}.`
-        setNotice(`La campagne a été créée. ${invitationSummary}`)
-        if (deliveryError) {
-          setError(`Échec global de l’envoi : ${deliveryError}. Vous pouvez copier le lien testeur depuis le suivi.`)
-        } else if (failedRecipients.length > 0) {
-          setError(`Échec d’envoi pour : ${failedRecipients.join(', ')}. Vous pouvez copier le lien testeur depuis le suivi.`)
+        if (projectCard.status === 'failed') {
+          setError('La campagne a été créée, mais la carte GitHub Project n’a pas pu être générée complètement. Vérifiez l’Issue GitHub et la configuration du Project.')
         }
       }
+      if (deliveryError) {
+        setError((current) => [current, `Échec global de l’envoi : ${deliveryError}. Vous pouvez copier le lien testeur depuis le suivi.`].filter(Boolean).join(' '))
+      } else if (failedRecipients.length > 0) {
+        setError((current) => [current, `Échec d’envoi pour : ${failedRecipients.join(', ')}. Vous pouvez copier le lien testeur depuis le suivi.`].filter(Boolean).join(' '))
+      }
+      setNotice(noticeParts.join(' '))
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : 'Impossible de créer la campagne')
     } finally {
@@ -308,6 +320,13 @@ export default function TestCampaignDashboard() {
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
       {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
+      {projectIssueUrl && (
+        <p className="rounded-xl bg-green-50 p-4 text-sm text-green-800">
+          <a href={projectIssueUrl} target="_blank" rel="noreferrer" className="font-semibold underline">
+            Ouvrir l’Issue de recette dans GitHub
+          </a>
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[

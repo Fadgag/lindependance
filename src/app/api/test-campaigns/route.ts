@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { apiErrorResponse } from '@/lib/api'
+import { logger } from '@/lib/logger'
 import { getTestCampaignAdminAccess } from '@/lib/testCampaignAccess'
 import { CreateTestCampaignSchema } from '@/schemas/testFeedback'
 import { TechAdminOrganizationFilterSchema } from '@/schemas/techAdmin'
@@ -9,6 +10,10 @@ import {
   listTestCampaignRecipients,
 } from '@/services/testFeedback.service'
 import { sendTestCampaignInvitationEmails } from '@/services/testCampaignInvitationEmail.service'
+import {
+  createTestCampaignProjectCard,
+  TestCampaignProjectCardError,
+} from '@/services/testCampaignProject.service'
 
 export async function GET(request: Request) {
   try {
@@ -73,6 +78,31 @@ export async function POST(request: Request) {
     const campaign = await createTestCampaign(campaignInput)
     if (!campaign) return NextResponse.json({ error: 'Organisation introuvable' }, { status: 404 })
 
+    let projectCard: {
+      status: 'created' | 'not_configured' | 'failed'
+      issueUrl: string | null
+    }
+    try {
+      const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
+      if (!appBaseUrl) {
+        throw new Error('Set NEXT_PUBLIC_APP_URL or NEXTAUTH_URL before creating campaign cards.')
+      }
+      const dashboardUrl = new URL(
+        `/test-campaigns/${encodeURIComponent(campaign.id)}`,
+        appBaseUrl,
+      ).toString()
+      projectCard = await createTestCampaignProjectCard({
+        campaignId: campaign.id,
+        dashboardUrl,
+      })
+    } catch (error: unknown) {
+      logger.error('Could not create GitHub Project card for test campaign', error)
+      projectCard = {
+        status: 'failed',
+        issueUrl: error instanceof TestCampaignProjectCardError ? error.issueUrl : null,
+      }
+    }
+
     const campaignUrl = new URL(`/retour-test/${campaign.publicToken}`, campaignBaseUrl).toString()
     const delivery = await sendTestCampaignInvitationEmails({
       recipients: recipients.map(({ email, name }) => ({ to: email, recipientName: name })),
@@ -88,6 +118,7 @@ export async function POST(request: Request) {
       .map((recipient) => recipient.name || recipient.email)
     return NextResponse.json({
       ...campaign,
+      projectCard,
       invitations: {
         sent: recipients.length - failedRecipients.length,
         failedRecipients,
