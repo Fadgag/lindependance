@@ -1,0 +1,52 @@
+.scrollHint {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .scrollHint {
+    display: block;
+    margin: 0 0 0.4rem;
+  }
+
+  .calendar :global(.fc-header-toolbar) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "navigation"
+      "views";
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .calendar :global(.fc-header-toolbar > .fc-toolbar-chunk:nth-child(1)) {
+    grid-area: navigation;
+  }
+
+  .calendar :global(.fc-header-toolbar > .fc-toolbar-chunk:nth-child(2)) {
+    grid-area: title;
+  }
+
+  .calendar :global(.fc-header-toolbar > .fc-toolbar-chunk:nth-child(3)) {
+    grid-area: views;
+  }
+
+  .calendar :global(.fc-toolbar-chunk) {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .calendar :global(.fc-toolbar-title) {
+    overflow-wrap: anywhere;
+    font-size: 1rem;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .calendar :global(.fc .fc-button) {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.75rem;
+  }
+}

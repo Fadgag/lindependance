@@ -96,8 +96,8 @@ en cours de traitement.
 #### [#73](https://github.com/Fadgag/lindependance/issues/73) Investiguer l'échec de chargement des produits en préproduction
 
 - **Type :** Bug
-- **Statut :** À investiguer — le GET `/api/products` renvoie HTTP 500 de façon répétée en préproduction ; l'origine (code, schéma ou données de l'environnement) n'est pas déterminée.
-- **GitHub Project :** Issue ouverte — Backlog.
+- **Statut :** Corrigé et vérifié en préproduction le 12 octobre 2026. L'erreur Prisma `P2022` indiquait que `Product.stockMinimum` manquait dans la base. Après application de `20261009100000_product_stock_movements`, `prisma migrate status` confirme que le schéma est à jour et `GET /api/products` répond `200` avec une liste JSON vide pour l'organisation testée.
+- **GitHub Project :** Issue clôturée — Done.
 - **Priorité proposée :** P1
 - **Comportement observé :** La page « Produits » affiche une erreur de chargement et ne présente pas le catalogue.
 - **Comportement attendu :** La page charge les produits du salon ou affiche un état vide lorsque le catalogue ne contient aucun produit.
@@ -110,7 +110,7 @@ en cours de traitement.
 #### [#80](https://github.com/Fadgag/lindependance/issues/80) Rendre l'agenda utilisable sur petit écran
 
 - **Type :** Bug
-- **Statut :** À traiter — constat confirmé en préproduction à 320 × 740 px avec un compte ADMIN ; hors du diff de la branche revue.
+- **Statut :** Implémenté localement — tests automatisés ciblés réussis ; validation visuelle en bêta à effectuer après déploiement.
 - **GitHub Project :** Issue ouverte — Backlog.
 - **Priorité proposée :** P1
 - **Comportement observé :** En vue semaine, les sept colonnes sont si étroites que les noms et dates des jours se chevauchent. En vue jour, le titre de la date se replie sur plusieurs lignes et les contrôles de changement de vue sont partiellement coupés.

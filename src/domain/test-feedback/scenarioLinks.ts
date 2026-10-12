@@ -27,7 +27,7 @@ export function getTestScenarioLinks(
     if ((number >= 1 && number <= 6) || (number >= 11 && number <= 12)) {
       return [{ href: '/change-requests', label: 'Ouvrir les demandes de changement' }]
     }
-    if (number >= 7 && number <= 10) {
+    if ((number >= 7 && number <= 10) || number === 20) {
       return [{ href: '/agenda', label: 'Ouvrir l’agenda staff' }]
     }
     return []
