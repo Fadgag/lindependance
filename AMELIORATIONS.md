@@ -15,7 +15,184 @@ chantier. Chaque amélioration conserve toutefois son propre résultat attendu,
 son statut et ses critères : un regroupement ne signifie pas que tout doit être
 livré en une seule fois.
 
+Pour éviter une numérotation parallèle, les entrées déjà suivies dans le GitHub
+Project reprennent le numéro de leur issue GitHub. Le statut du Project est
+indiqué séparément ; « Backlog » signifie que l'issue est créée mais pas encore
+en cours de traitement.
+
 ## À traiter
+
+### Revue UI/UX du 12 octobre 2026
+
+#### Rendre visible le lien vers la création d'une campagne
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé sur le tableau de bord TECH_ADMIN en préproduction ; hors du diff de la branche revue.
+- **Priorité proposée :** P2
+- **Comportement observé :** Sur `/test-campaigns`, le lien « Nouvelle campagne » affiche un texte blanc sans fond visible. Sa classe utilise `bg-(--studio-text)`, mais cette variable n'est pas définie ; la palette expose `--color-studio-text`.
+- **Comportement attendu :** Le lien est visuellement identifiable comme une action et conserve un contraste lisible.
+- **Étapes de reproduction :** Se connecter avec un compte TECH_ADMIN sur `https://testing.osezletre.fr/test-campaigns` et observer le lien en haut du tableau de bord.
+- **Impact :** L'action d'accès au formulaire est difficile à repérer, même si le formulaire reste accessible plus bas sur la page.
+- **Critères d'acceptation :**
+  - Le lien dispose d'un fond visible avec un contraste suffisant pour son texte.
+  - Le lien conserve son accès au formulaire de création aux tailles desktop et mobile.
+
+#### Augmenter le contraste du bouton de création de campagne
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé sur le tableau de bord TECH_ADMIN en préproduction ; hors du diff de la branche revue.
+- **Priorité proposée :** P2
+- **Comportement observé :** Le texte blanc du bouton « Créer la campagne » est affiché sur le rose `#D4A3A1`. Le contraste mesuré dans le navigateur est d’environ 2,2:1.
+- **Comportement attendu :** Le libellé du bouton principal reste lisible conformément au contraste minimal WCAG AA de 4,5:1 pour du texte de cette taille.
+- **Étapes de reproduction :** Se connecter avec un compte TECH_ADMIN sur `https://testing.osezletre.fr/test-campaigns` et observer le bouton en bas du formulaire de création.
+- **Impact :** Le libellé de l'action principale est difficile à lire pour les personnes ayant une déficience visuelle ou consultant l'interface dans des conditions de contraste limitées.
+- **Critères d'acceptation :**
+  - Le texte du bouton principal atteint au moins un contraste de 4,5:1 avec son fond à l'état actif.
+  - Le bouton reste distinct et lisible à ses variantes desktop et mobile, ainsi qu'à l'état désactivé.
+
+#### Empêcher l'action fixe de recouvrir le contenu et le menu mobile
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé dans des viewports responsives de 390 × 844 px et 320 × 740 px en préproduction ; hors du diff de la branche revue.
+- **Priorité proposée :** P2
+- **Comportement observé :** Le bouton fixe « Créer la campagne » reste au premier plan pendant le défilement et lorsque le menu mobile est ouvert. À 320 px, il recouvre notamment le bouton « Clôturer » d'une campagne ; dans le menu, il recouvre le bord inférieur du tiroir.
+- **Comportement attendu :** L'action fixe ne masque ni les commandes des campagnes ni le menu mobile ouvert.
+- **Étapes de reproduction :** Sur `/test-campaigns` à 320 px de large, faire défiler jusqu'aux cartes et observer le bouton « Clôturer » près du bas de l'écran ; ouvrir ensuite le menu hamburger.
+- **Impact :** Les commandes des cartes peuvent être masquées et le bouton principal de la page se superpose à la navigation.
+- **Critères d'acceptation :**
+  - À 320 px, l'action fixe ne recouvre aucune commande de campagne affichée à l'écran.
+  - L'ouverture du menu masque ou place derrière le tiroir le bouton fixe de création.
+  - Les actions du menu restent visibles et activables lorsque le tiroir est ouvert.
+
+#### Éviter le débordement du titre des destinataires sur petit écran
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé à 320 × 740 px en préproduction ; hors du diff de la branche revue.
+- **Priorité proposée :** P2
+- **Comportement observé :** Le titre « Envoyer le lien à des comptes ou clients existants (facultatif) » dépasse la largeur de son champ et la zone de défilement principale s'étend à 345 px dans un viewport de 320 px.
+- **Comportement attendu :** Le titre se replie dans la largeur disponible sans créer de défilement horizontal ni couper du texte.
+- **Étapes de reproduction :** Sur `/test-campaigns` à 320 px de large, descendre au formulaire et observer le titre de la section des destinataires.
+- **Impact :** Une partie du contenu peut être coupée et le défilement horizontal peut gêner la lecture et l'utilisation sur un petit écran.
+- **Critères d'acceptation :**
+  - À 320 px, le titre tient dans le champ et se replie sur plusieurs lignes si nécessaire.
+  - Le contenu du tableau de bord n'induit aucun défilement horizontal au breakpoint mobile.
+
+#### [#76](https://github.com/Fadgag/lindependance/issues/76) Ajouter la déconnexion à la navigation mobile
+
+- **Type :** Bug
+- **Statut :** À traiter — confirmé dans le code et dans les menus mobiles TECH_ADMIN et ADMIN en préproduction ; hors du diff de la branche revue.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Comportement observé :** Le bouton « Quitter » n'est présent que dans la barre latérale desktop, masquée sous le breakpoint `md`. Le menu mobile ne propose pas de déconnexion.
+- **Comportement attendu :** Une personne connectée peut fermer sa session depuis le menu mobile.
+- **Étapes de reproduction :** Avec un compte TECH_ADMIN ou ADMIN en largeur mobile, ouvrir le menu hamburger et chercher l'action de déconnexion.
+- **Impact :** Une personne utilisant uniquement un téléphone ne peut pas se déconnecter depuis la navigation.
+- **Critères d'acceptation :**
+  - Le menu mobile offre une action « Quitter » qui ferme la session et redirige vers la page de connexion.
+  - Cette action reste accessible clavier et n'est pas recouverte par le bouton fixe de création.
+
+### Revue UI/UX du profil ADMIN — 12 octobre 2026
+
+#### [#73](https://github.com/Fadgag/lindependance/issues/73) Investiguer l'échec de chargement des produits en préproduction
+
+- **Type :** Bug
+- **Statut :** À investiguer — le GET `/api/products` renvoie HTTP 500 de façon répétée en préproduction ; l'origine (code, schéma ou données de l'environnement) n'est pas déterminée.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P1
+- **Comportement observé :** La page « Produits » affiche une erreur de chargement et ne présente pas le catalogue.
+- **Comportement attendu :** La page charge les produits du salon ou affiche un état vide lorsque le catalogue ne contient aucun produit.
+- **Étapes de reproduction :** Avec un compte ADMIN sur `https://testing.osezletre.fr/settings/products`, recharger la page et constater l'échec de `/api/products`.
+- **Impact :** La gestion du catalogue de produits est indisponible sur la préproduction.
+- **Critères d'acceptation :**
+  - L'origine du HTTP 500 est identifiée et corrigée ou documentée comme un problème propre à l'environnement.
+  - L'API répond avec les produits du salon ou une liste vide, et la page affiche le résultat sans erreur.
+
+#### [#80](https://github.com/Fadgag/lindependance/issues/80) Rendre l'agenda utilisable sur petit écran
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé en préproduction à 320 × 740 px avec un compte ADMIN ; hors du diff de la branche revue.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P1
+- **Comportement observé :** En vue semaine, les sept colonnes sont si étroites que les noms et dates des jours se chevauchent. En vue jour, le titre de la date se replie sur plusieurs lignes et les contrôles de changement de vue sont partiellement coupés.
+- **Comportement attendu :** L'agenda conserve des jours, une date et des contrôles lisibles et utilisables sur petit écran.
+- **Étapes de reproduction :** Ouvrir `/agenda` à 320 px de large, observer la vue semaine, puis passer en vue jour.
+- **Impact :** La consultation et la navigation dans l'agenda deviennent difficiles sur téléphone.
+- **Critères d'acceptation :**
+  - Les jours et dates restent distincts en vue semaine, ou une vue mobile adaptée est proposée.
+  - Le titre et les contrôles des vues jour/semaine restent visibles et activables à 320 px.
+
+#### [#75](https://github.com/Fadgag/lindependance/issues/75) Garder les filtres de période du tableau de bord dans la zone visible
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé en préproduction sur viewport mobile ; hors du diff de la branche revue.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Comportement observé :** Le groupe de filtres du tableau de bord est plus large que l'écran ; le bouton « 30 derniers jours » est partiellement coupé et le groupe n'est pas défilable horizontalement.
+- **Comportement attendu :** Chaque période peut être lue et sélectionnée sur mobile.
+- **Étapes de reproduction :** Ouvrir le tableau de bord ADMIN sur un viewport de 320 à 384 px et observer la rangée de périodes.
+- **Impact :** Le choix de période devient difficile ou impossible selon la largeur disponible.
+- **Critères d'acceptation :**
+  - Tous les filtres restent visibles, ou leur rangée permet un défilement horizontal évident et utilisable.
+  - Aucun libellé de période n'est coupé à 320 px.
+
+#### [#79](https://github.com/Fadgag/lindependance/issues/79) Préserver une largeur utilisable pour la recherche de clients sur mobile
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé en préproduction à 320 px avec un compte ADMIN ; hors du diff de la branche revue.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Comportement observé :** Dans l'en-tête de la liste des clients, le champ de recherche rétrécit à environ 80 px et le bouton « Nouveau client » devient étroit.
+- **Comportement attendu :** Le champ de recherche et l'action de création restent assez larges pour être utilisés sans difficulté.
+- **Étapes de reproduction :** Ouvrir `/customers` à 320 px de large et observer les contrôles de l'en-tête.
+- **Impact :** La recherche et la création de clients sont difficiles à utiliser sur téléphone.
+- **Critères d'acceptation :**
+  - L'en-tête se réorganise ou défile de façon contrôlée au lieu de comprimer les commandes.
+  - Le champ de recherche conserve une largeur suffisante et le bouton reste lisible et activable à 320 px.
+
+#### [#74](https://github.com/Fadgag/lindependance/issues/74) Rendre le formulaire de rendez-vous accessible au clavier et aux lecteurs d'écran
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé par inspection DOM du formulaire ADMIN en préproduction ; aucun rendez-vous n'a été soumis.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Comportement observé :** Les libellés visibles des champs ne sont pas associés programmatiquement aux champs. Le sélecteur de client est un `div` activé par `onMouseDown`, sans rôle ni prise en charge du clavier.
+- **Comportement attendu :** Les champs ont des noms accessibles et le client peut être recherché et sélectionné au clavier.
+- **Étapes de reproduction :** Ouvrir « Nouveau RDV » depuis l'agenda, inspecter les champs Date, Début, Durée, Service et Note, puis tenter d'atteindre et d'ouvrir le sélecteur de client au clavier.
+- **Impact :** Les technologies d'assistance n'associent pas les consignes visibles aux champs et le sélecteur de client ne peut pas être utilisé au clavier.
+- **Critères d'acceptation :**
+  - Chaque champ possède un libellé programmatique associé.
+  - Le sélecteur de client est focalisable, s'ouvre/se ferme au clavier et annonce son état et sa sélection.
+
+#### [#77](https://github.com/Fadgag/lindependance/issues/77) Rendre les champs et actions de prestations accessibles
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé par inspection DOM du réglage Prestations en préproduction ; aucune prestation n'a été modifiée.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Comportement observé :** Les champs Durée, Prix et Couleur n'ont pas de libellé programmatique associé. Les boutons icône de modification et suppression n'ont pas de nom accessible et leur conteneur n'apparaît qu'au survol.
+- **Comportement attendu :** Les champs et actions sont identifiables et utilisables au clavier, au tactile et avec un lecteur d'écran.
+- **Étapes de reproduction :** Ouvrir Réglages > Prestations, inspecter les champs du formulaire et les actions des cartes sans survoler celles-ci.
+- **Impact :** Des informations de formulaire et des actions de gestion peuvent être inaccessibles ou difficiles à découvrir hors souris.
+- **Critères d'acceptation :**
+  - Les champs Durée, Prix et Couleur ont chacun un libellé associé.
+  - Les boutons modifier/supprimer ont des noms accessibles, un état de focus visible et ne dépendent pas du survol pour être découverts.
+
+### Revue UI/UX du portail client sans connexion — 12 octobre 2026
+
+#### [#78](https://github.com/Fadgag/lindependance/issues/78) Utiliser l'identité du salon dans l'en-tête mobile du portail
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé en préproduction sur les pages Réserver et Mes rendez-vous à 320 × 740 px.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Comportement observé :** L'en-tête mobile fixe affiche le libellé générique « Atelier. », puis la page affiche une seconde fois l'identité personnalisée du salon (logo et nom).
+- **Comportement attendu :** Le portail client présente une identité cohérente avec celle du salon, sans en-tête générique ni répétition du nom/logo.
+- **Étapes de reproduction :** Ouvrir `/portail/osezletre/reserver` ou `/portail/osezletre/mes-rdv` à 320 px de large et comparer l'en-tête fixe avec l'identité affichée dans la page.
+- **Impact :** La double identité peut donner l'impression de quitter le portail du salon ou de consulter une page incomplètement personnalisée.
+- **Critères d'acceptation :**
+  - L'en-tête mobile utilise l'identité configurée du salon ou est masqué sur le portail client.
+  - Le nom et le logo du salon ne sont pas présentés deux fois sur les pages de réservation et Mes rendez-vous.
+  - L'affichage reste correct à 320 px et sur écran large.
 
 ### Constats de l'audit global du 9 octobre 2026
 
@@ -229,6 +406,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Aucune information de salon, invitation, lien public de test ou retour de testeur n’est publiée dans l’Issue, car le dépôt est public.
   - Une erreur d’intégration est signalée sans annuler la création de la campagne.
 - **Mise à jour :** L’API de création et l’interface gèrent la génération et le résultat de la carte. L’activation réelle dépend de la configuration serveur documentée dans `docs/github-project-automation.md`.
+
+#### Clarifier et renforcer l’anonymat des retours de campagne
+
+- **Type :** Amélioration
+- **Statut :** À cadrer — vérification du 12 octobre 2026.
+- **Priorité proposée :** P2
+- **Constat :** Les retours ne sont pas associés à un compte ni à un destinataire d'invitation, et aucun nom, e-mail ou adresse IP n'est enregistré avec eux. En revanche, les commentaires libres et l'appareil sont saisis sans expurgation ; le rôle déclaré et l'heure précise sont conservés et affichés avec chaque retour. Dans une campagne avec peu de répondants, ces éléments peuvent permettre une ré-identification par recoupement, et un testeur peut saisir son nom ou ses coordonnées malgré l'avertissement.
+- **Amélioration souhaitée :** Aligner la promesse d'« anonymat » sur les données effectivement collectées et affichées, réduire les possibilités de ré-identification et rappeler de ne saisir aucune donnée personnelle dans chaque champ libre.
+- **Critères d'acceptation :**
+  - L'interface explique clairement que les retours ne sont pas reliés à un compte ou à un destinataire, sans garantir un anonymat absolu si des métadonnées ou du texte libre peuvent identifier la personne.
+  - Chaque champ de commentaire et d'appareil rappelle de ne pas inclure de nom, de coordonnées ou d'informations permettant d'identifier quelqu'un.
+  - Les métadonnées visibles et exportées sont minimisées afin de réduire l'identification indirecte dans les campagnes avec peu de répondants ; la règle retenue est documentée et testée.
+  - Aucun identifiant direct de testeur n'est ajouté aux enregistrements ou aux exports.
 
 ### Gestion des stocks — produits revendus
 

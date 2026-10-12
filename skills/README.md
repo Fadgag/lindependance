@@ -22,6 +22,10 @@ présentée dans `AGENTS.md` et `CLAUDE.md` est générée par
 
 - [GitHub Agentic Workflows](agentic-workflow.agent.md) — création et maintenance de workflows `gh-aw`.
 - [Draw.io](draw-io-diagram-generator.skill.md) — création et modification de diagrammes `.drawio`.
+- [Product-Driven UI/UX](anti-ui-slop.skill.md) — conception d’interfaces cohérentes avec les utilisateurs et l’identité du produit.
+- [Web Application Testing](webapp-testing.skill.md) — vérification des parcours navigateur avec Playwright.
+- [Web Design Reviewer](web-design-reviewer.skill.md) — revue visuelle, responsive et accessibilité de l’interface.
+- [Revue UX préproduction](preprod-ux-review.skill.md) — revue manuelle sur la préproduction des profils TECH_ADMIN, ADMIN et client.
 
 ## Modèles et exemples
 
