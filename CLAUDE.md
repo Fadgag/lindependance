@@ -10,13 +10,17 @@ Tu as accès à une forge d'automatisation de la qualité via les commandes suiv
 
 Liste générée depuis `skills/`. Voir `skills/README.md` pour les rôles et l’utilisation.
 - `skills/agentic-workflow.agent.md`
+- `skills/anti-ui-slop.skill.md`
 - `skills/auto-fixer.skill.md`
 - `skills/builder.skill.md`
 - `skills/draw-io-diagram-generator.skill.md`
 - `skills/global-rules.md`
+- `skills/preprod-ux-review.skill.md`
 - `skills/quality-guide-updater.skill.md`
 - `skills/quality-playbook.skill.md`
 - `skills/reviewer.skill.md`
+- `skills/web-design-reviewer.skill.md`
+- `skills/webapp-testing.skill.md`
 <!-- END:skills-list -->
 
 ## ⚡ Automations de Qualité (Slash Commands)
