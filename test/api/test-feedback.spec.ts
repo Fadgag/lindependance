@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getAdminAccess: vi.fn(),
   listCampaigns: vi.fn(),
   listCampaignRecipients: vi.fn(),
   createCampaign: vi.fn(),
+  createCampaignProjectCard: vi.fn(),
   sendCampaignInvitations: vi.fn(),
   getPublicCampaign: vi.fn(),
   loadScenarioCatalog: vi.fn(),
@@ -30,6 +31,12 @@ vi.mock('@/services/techAdmin.service', () => ({
 vi.mock('@/services/testCampaignInvitationEmail.service', () => ({
   sendTestCampaignInvitationEmails: mocks.sendCampaignInvitations,
 }))
+vi.mock('@/services/testCampaignProject.service', () => ({
+  createTestCampaignProjectCard: mocks.createCampaignProjectCard,
+  TestCampaignProjectCardError: class extends Error {
+    issueUrl = ''
+  },
+}))
 vi.mock('@/services/customerPortal.service', () => ({ consumePortalRateLimits: mocks.consumeRateLimits }))
 vi.mock('@/lib/customerPortalSecurity', () => ({
   getCustomerPortalSecret: mocks.getSecret,
@@ -52,6 +59,7 @@ import {
 import { consumePortalRateLimits } from '@/services/customerPortal.service'
 import { getCustomerPortalSecret, hashRateLimitKey } from '@/lib/customerPortalSecurity'
 import { sendTestCampaignInvitationEmails } from '@/services/testCampaignInvitationEmail.service'
+import { createTestCampaignProjectCard } from '@/services/testCampaignProject.service'
 
 const campaignToken = 'a'.repeat(43)
 const scenarioCatalog = {
@@ -82,6 +90,7 @@ const scenarioCatalog = {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.stubEnv('NEXTAUTH_URL', 'https://example.test')
   vi.mocked(getTestCampaignAdminAccess).mockResolvedValue({
     authorized: true,
     session: { user: { role: 'TECH_ADMIN', accountType: 'STAFF' } },
@@ -94,6 +103,10 @@ beforeEach(() => {
     organization: { name: 'Osez le T’re', slug: 'osez-le-tre', portalEnabled: true },
   } as never)
   vi.mocked(listTestCampaignRecipients).mockResolvedValue([])
+  vi.mocked(createTestCampaignProjectCard).mockResolvedValue({
+    status: 'created',
+    issueUrl: 'https://github.com/Fadgag/lindependance/issues/100',
+  })
   vi.mocked(mocks.listTechAdminOrganizations).mockResolvedValue([])
   vi.mocked(listTestCampaigns).mockResolvedValue({ organizations: [], campaigns: [] })
   vi.mocked(sendTestCampaignInvitationEmails).mockResolvedValue({ failedIndexes: [], error: null })
@@ -102,6 +115,10 @@ beforeEach(() => {
   vi.mocked(getCustomerPortalSecret).mockReturnValue('test-secret')
   vi.mocked(hashRateLimitKey).mockReturnValue('hashed-campaign-token')
   vi.mocked(createTestFeedback).mockResolvedValue(true)
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 describe('test campaign management API', () => {
@@ -228,6 +245,14 @@ describe('test campaign management API', () => {
     expect(await response.json()).toMatchObject({
       id: 'campaign-id',
       invitations: { sent: 0, failedRecipients: [], deliveryError: null },
+      projectCard: {
+        status: 'created',
+        issueUrl: 'https://github.com/Fadgag/lindependance/issues/100',
+      },
+    })
+    expect(createTestCampaignProjectCard).toHaveBeenCalledWith({
+      campaignId: 'campaign-id',
+      dashboardUrl: expect.any(String),
     })
   })
 

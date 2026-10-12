@@ -216,6 +216,20 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
     - Les scénarios sont inclus dans les groupes de campagne correspondant aux profils client et staff/admin.
 - **Mise à jour :** `CUS-05`, `CUS-10` et `ADM-13` couvrent maintenant ces vérifications ; `ADM-13` est inclus dans le groupe « Administration staff ». Les résultats réels restent à renseigner pendant la campagne bêta.
 
+#### Créer automatiquement une carte GitHub pour chaque campagne de recette
+
+- **Type :** Amélioration
+- **Statut :** Implémentée localement — activer `GITHUB_PROJECT_TOKEN` sur l’hébergement et vérifier les options du champ `Statut de recette` avant la première création en bêta.
+- **Priorité proposée :** P2
+- **Constat :** Les campagnes sont créées et suivies dans l’application, mais leur lancement et leur validation ne disposent pas d’une carte dédiée dans le GitHub Project.
+- **Amélioration souhaitée :** Créer une Issue de suivi pour chaque nouvelle campagne et l’ajouter au Project avec un statut de recette indépendant du statut de développement.
+- **Critères d’acceptation :**
+  - Chaque nouvelle campagne crée une carte dans le Project avec `Statut de recette` à « À lancer » ; le suivi utilise les états « À lancer », « À suivre » et « Validé ».
+  - La carte renvoie au suivi de la campagne, réservé aux administrateurs techniques.
+  - Aucune information de salon, invitation, lien public de test ou retour de testeur n’est publiée dans l’Issue, car le dépôt est public.
+  - Une erreur d’intégration est signalée sans annuler la création de la campagne.
+- **Mise à jour :** L’API de création et l’interface gèrent la génération et le résultat de la carte. L’activation réelle dépend de la configuration serveur documentée dans `docs/github-project-automation.md`.
+
 ### Gestion des stocks — produits revendus
 
 - **Type :** Amélioration

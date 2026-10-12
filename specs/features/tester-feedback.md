@@ -25,6 +25,15 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   message texte de l'invitation ; le gabarit HTML, le prénom, le résumé de la
   campagne et le bouton vers les scénarios restent gérés par l'application.
   La campagne est active à sa création ; aucun hash de commit n'est requis.
+- Après la création d'une campagne, l'application crée automatiquement une
+  Issue dans le dépôt et l'ajoute au GitHub Project #1 avec le champ
+  `Statut de recette` initialisé à « À lancer ». Les statuts de suivi sont
+  « À lancer », « À suivre » et « Validé » ; ils restent distincts du statut
+  général de développement, notamment « In preprod ». Comme le dépôt est
+  public, l'Issue ne contient ni nom de salon ou de campagne, ni lien public
+  de test, ni invitation ou retour. Si l'intégration GitHub échoue ou n'est
+  pas configurée, ou si l'adresse canonique de l'application manque, la
+  campagne est conservée et l'administrateur technique en est averti.
 - La campagne possède un lien public dédié `/retour-test/[campaignToken]`.
   Le jeton est aléatoire et opaque ; il ne révèle pas l'identifiant interne de
   l'organisation. Il est stocké pour permettre de réafficher et copier le lien
