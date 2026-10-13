@@ -24,10 +24,11 @@ en cours de traitement.
 
 ### Revue UI/UX du 12 octobre 2026
 
-#### Rendre visible le lien vers la création d'une campagne
+#### [#83](https://github.com/Fadgag/lindependance/issues/83) Rendre visible le lien vers la création d'une campagne
 
 - **Type :** Bug
 - **Statut :** À traiter — constat confirmé sur le tableau de bord TECH_ADMIN en préproduction ; hors du diff de la branche revue.
+- **GitHub Project :** Issue ouverte — Backlog.
 - **Priorité proposée :** P2
 - **Comportement observé :** Sur `/test-campaigns`, le lien « Nouvelle campagne » affiche un texte blanc sans fond visible. Sa classe utilise `bg-(--studio-text)`, mais cette variable n'est pas définie ; la palette expose `--color-studio-text`.
 - **Comportement attendu :** Le lien est visuellement identifiable comme une action et conserve un contraste lisible.
@@ -37,10 +38,11 @@ en cours de traitement.
   - Le lien dispose d'un fond visible avec un contraste suffisant pour son texte.
   - Le lien conserve son accès au formulaire de création aux tailles desktop et mobile.
 
-#### Augmenter le contraste du bouton de création de campagne
+#### [#84](https://github.com/Fadgag/lindependance/issues/84) Augmenter le contraste du bouton de création de campagne
 
 - **Type :** Bug
 - **Statut :** À traiter — constat confirmé sur le tableau de bord TECH_ADMIN en préproduction ; hors du diff de la branche revue.
+- **GitHub Project :** Issue ouverte — Backlog.
 - **Priorité proposée :** P2
 - **Comportement observé :** Le texte blanc du bouton « Créer la campagne » est affiché sur le rose `#D4A3A1`. Le contraste mesuré dans le navigateur est d’environ 2,2:1.
 - **Comportement attendu :** Le libellé du bouton principal reste lisible conformément au contraste minimal WCAG AA de 4,5:1 pour du texte de cette taille.
@@ -50,10 +52,11 @@ en cours de traitement.
   - Le texte du bouton principal atteint au moins un contraste de 4,5:1 avec son fond à l'état actif.
   - Le bouton reste distinct et lisible à ses variantes desktop et mobile, ainsi qu'à l'état désactivé.
 
-#### Empêcher l'action fixe de recouvrir le contenu et le menu mobile
+#### [#88](https://github.com/Fadgag/lindependance/issues/88) Empêcher l'action fixe de recouvrir le contenu et le menu mobile
 
 - **Type :** Bug
-- **Statut :** À traiter — constat confirmé dans des viewports responsives de 390 × 844 px et 320 × 740 px en préproduction ; hors du diff de la branche revue.
+- **Statut :** Corrigé localement — le bouton de création mobile reste dans le flux du formulaire ; tests automatisés réussis. Vérification visuelle en bêta à effectuer après mise à disposition.
+- **GitHub Project :** Issue ouverte — In progress.
 - **Priorité proposée :** P2
 - **Comportement observé :** Le bouton fixe « Créer la campagne » reste au premier plan pendant le défilement et lorsque le menu mobile est ouvert. À 320 px, il recouvre notamment le bouton « Clôturer » d'une campagne ; dans le menu, il recouvre le bord inférieur du tiroir.
 - **Comportement attendu :** L'action fixe ne masque ni les commandes des campagnes ni le menu mobile ouvert.
@@ -64,10 +67,11 @@ en cours de traitement.
   - L'ouverture du menu masque ou place derrière le tiroir le bouton fixe de création.
   - Les actions du menu restent visibles et activables lorsque le tiroir est ouvert.
 
-#### Éviter le débordement du titre des destinataires sur petit écran
+#### [#87](https://github.com/Fadgag/lindependance/issues/87) Éviter le débordement du titre des destinataires sur petit écran
 
 - **Type :** Bug
 - **Statut :** À traiter — constat confirmé à 320 × 740 px en préproduction ; hors du diff de la branche revue.
+- **GitHub Project :** Issue ouverte — Backlog.
 - **Priorité proposée :** P2
 - **Comportement observé :** Le titre « Envoyer le lien à des comptes ou clients existants (facultatif) » dépasse la largeur de son champ et la zone de défilement principale s'étend à 345 px dans un viewport de 320 px.
 - **Comportement attendu :** Le titre se replie dans la largeur disponible sans créer de défilement horizontal ni couper du texte.
@@ -110,8 +114,8 @@ en cours de traitement.
 #### [#80](https://github.com/Fadgag/lindependance/issues/80) Rendre l'agenda utilisable sur petit écran
 
 - **Type :** Bug
-- **Statut :** Implémenté localement — tests automatisés ciblés réussis ; validation visuelle en bêta à effectuer après déploiement.
-- **GitHub Project :** Issue ouverte — Backlog.
+- **Statut :** Implémenté et fusionné dans `preprod` le 12 octobre 2026 — tests automatisés ciblés réussis ; validation visuelle en bêta encore à effectuer.
+- **GitHub Project :** Issue ouverte — In preprod.
 - **Priorité proposée :** P1
 - **Comportement observé :** En vue semaine, les sept colonnes sont si étroites que les noms et dates des jours se chevauchent. En vue jour, le titre de la date se replie sur plusieurs lignes et les contrôles de changement de vue sont partiellement coupés.
 - **Comportement attendu :** L'agenda conserve des jours, une date et des contrôles lisibles et utilisables sur petit écran.
@@ -407,10 +411,27 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Une erreur d’intégration est signalée sans annuler la création de la campagne.
 - **Mise à jour :** L’API de création et l’interface gèrent la génération et le résultat de la carte. L’activation réelle dépend de la configuration serveur documentée dans `docs/github-project-automation.md`.
 
-#### Clarifier et renforcer l’anonymat des retours de campagne
+#### [#86](https://github.com/Fadgag/lindependance/issues/86) Guider tous les tests par mission et questions étape par étape
+
+- **Type :** Amélioration
+- **Statut :** À cadrer — proposition discutée le 12 octobre 2026.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P3
+- **Constat :** Le testeur suit une checklist de scénarios et renseigne leurs résultats, puis peut répondre à un questionnaire général. Pour un parcours comme la réservation, cela lui demande de se repérer dans plusieurs consignes et de rapporter le résultat après coup.
+- **Amélioration souhaitée :** Appliquer le même principe à tous les tests des campagnes, côté client comme côté personnel : présenter une mission concrète adaptée au scénario, laisser le testeur l'effectuer ou la tenter, puis lui poser une à une des questions courtes sur les étapes réellement vécues. Pour une réservation, par exemple, vérifier s'il a pu choisir une prestation, voir les membres du personnel, trouver un créneau et terminer la réservation. Adapter les questions suivantes à ses réponses et lui permettre de décrire un blocage.
+- **Impact :** Réduire l'effort de compréhension pour tous les testeurs et faciliter des retours précis sur les étapes réellement vécues, quel que soit le parcours testé.
+- **Critères d'acceptation :**
+  - Tous les tests proposés dans les campagnes, pour les profils client et personnel, sont présentés comme des missions formulées en résultat attendu ; les liens utiles vers le site à tester sont fournis.
+  - Après sa tentative, le testeur répond aux questions une par une en repassant les étapes pertinentes de la mission ; chaque réponse distingue une étape réussie, impossible ou non rencontrée.
+  - Un blocage permet de décrire ce qui s'est passé et n'oblige pas le testeur à répondre aux questions devenues sans objet.
+  - Les réponses restent rattachées à la mission et permettent à l'équipe de repérer précisément l'étape réussie ou bloquante pour chacun des tests.
+  - La mission prévient le testeur lorsqu'une action crée une donnée réelle, comme une réservation, et précise quoi faire avec celle-ci après le test.
+
+#### [#85](https://github.com/Fadgag/lindependance/issues/85) Clarifier et renforcer l’anonymat des retours de campagne
 
 - **Type :** Amélioration
 - **Statut :** À cadrer — vérification du 12 octobre 2026.
+- **GitHub Project :** Issue ouverte — Backlog.
 - **Priorité proposée :** P2
 - **Constat :** Les retours ne sont pas associés à un compte ni à un destinataire d'invitation, et aucun nom, e-mail ou adresse IP n'est enregistré avec eux. En revanche, les commentaires libres et l'appareil sont saisis sans expurgation ; le rôle déclaré et l'heure précise sont conservés et affichés avec chaque retour. Dans une campagne avec peu de répondants, ces éléments peuvent permettre une ré-identification par recoupement, et un testeur peut saisir son nom ou ses coordonnées malgré l'avertissement.
 - **Amélioration souhaitée :** Aligner la promesse d'« anonymat » sur les données effectivement collectées et affichées, réduire les possibilités de ré-identification et rappeler de ne saisir aucune donnée personnelle dans chaque champ libre.
