@@ -42,42 +42,61 @@ describe('CustomerPicker', () => {
 
   it('shows existing customers list on open', () => {
     renderPicker()
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
     expect(screen.getByText('Alice Dupont')).toBeInTheDocument()
     expect(screen.getByText('Bob Martin')).toBeInTheDocument()
   })
 
   it('calls onSelectAction when an existing customer is clicked', () => {
     const { onSelectAction } = renderPicker()
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
-    fireEvent.mouseDown(screen.getByText('Alice Dupont'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
+    fireEvent.click(screen.getByText('Alice Dupont'))
     expect(onSelectAction).toHaveBeenCalledWith('c1')
   })
 
   it('shows create button when no customer matches search', () => {
     renderPicker()
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
     const input = screen.getByPlaceholderText('Taper un nom...')
     fireEvent.change(input, { target: { value: 'Fanny' } })
     expect(screen.getByText(/Créer "Fanny"/i)).toBeInTheDocument()
   })
 
+  it('keeps the create action outside the listbox and exposes the creation dialog', () => {
+    renderPicker()
+    const trigger = screen.getByRole('button', { name: 'Client' })
+    fireEvent.click(trigger)
+    fireEvent.change(screen.getByPlaceholderText('Taper un nom...'), { target: { value: 'Fanny' } })
+
+    const listbox = screen.getByRole('listbox', { name: 'Clients' })
+    const createButton = screen.getByRole('button', { name: 'Créer "Fanny"' })
+    expect(listbox).not.toContainElement(createButton)
+
+    fireEvent.click(createButton)
+
+    const creationDialog = screen.getByRole('dialog', { name: 'Nouveau client' })
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(trigger).toHaveAttribute('aria-controls', creationDialog.id)
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+
   it('shows inline form when create is clicked', () => {
     renderPicker()
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
     const input = screen.getByPlaceholderText('Taper un nom...')
     fireEvent.change(input, { target: { value: 'Fanny' } })
-    fireEvent.mouseDown(screen.getByText(/Créer "Fanny"/i))
+    fireEvent.click(screen.getByText(/Créer "Fanny"/i))
     expect(screen.getByPlaceholderText('Prénom *')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Nom *')).toBeInTheDocument()
   })
 
   it('shows validation error when creating without lastName', async () => {
     renderPicker()
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
     fireEvent.change(screen.getByPlaceholderText('Taper un nom...'), { target: { value: 'Fanny' } })
-    fireEvent.mouseDown(screen.getByText(/Créer "Fanny"/i))
-    fireEvent.mouseDown(screen.getByText('Créer et sélectionner'))
+    fireEvent.click(screen.getByText(/Créer "Fanny"/i))
+    fireEvent.click(screen.getByText('Créer et sélectionner'))
     await waitFor(() => {
       expect(screen.getByText('Prénom et nom requis')).toBeInTheDocument()
     })
@@ -88,13 +107,13 @@ describe('CustomerPicker', () => {
     mockCreate.mockResolvedValue({ success: true, customer: { id: 'new1', firstName: 'Fanny', lastName: 'Test', phone: null } })
     const { onSelectAction, onCreatedAction } = renderPicker()
 
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
     fireEvent.change(screen.getByPlaceholderText('Taper un nom...'), { target: { value: 'Fan' } })
-    fireEvent.mouseDown(screen.getByText(/Créer "Fan"/i))
+    fireEvent.click(screen.getByText(/Créer "Fan"/i))
 
     fireEvent.change(screen.getByPlaceholderText('Prénom *'), { target: { value: 'Fanny' } })
     fireEvent.change(screen.getByPlaceholderText('Nom *'), { target: { value: 'Test' } })
-    fireEvent.mouseDown(screen.getByText('Créer et sélectionner'))
+    fireEvent.click(screen.getByText('Créer et sélectionner'))
 
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledWith({ firstName: 'Fanny', lastName: 'Test', phone: null })
@@ -111,13 +130,13 @@ describe('CustomerPicker', () => {
     })
     const { onSelectAction, onCreatedAction } = renderPicker()
 
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
     fireEvent.change(screen.getByPlaceholderText('Taper un nom...'), { target: { value: 'Fan' } })
-    fireEvent.mouseDown(screen.getByText(/Créer "Fan"/i))
+    fireEvent.click(screen.getByText(/Créer "Fan"/i))
     fireEvent.change(screen.getByPlaceholderText('Prénom *'), { target: { value: 'Test' } })
     fireEvent.change(screen.getByPlaceholderText('Nom *'), { target: { value: 'Dup' } })
     fireEvent.change(screen.getByPlaceholderText('Téléphone (optionnel)'), { target: { value: '0600000000' } })
-    fireEvent.mouseDown(screen.getByText('Créer et sélectionner'))
+    fireEvent.click(screen.getByText('Créer et sélectionner'))
 
     await waitFor(() => {
       expect(onSelectAction).toHaveBeenCalledWith('new1')
@@ -132,13 +151,53 @@ describe('CustomerPicker', () => {
 
   it('cancels creation and returns to search', () => {
     renderPicker()
-    fireEvent.mouseDown(screen.getByText('Rechercher un client...'))
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
     fireEvent.change(screen.getByPlaceholderText('Taper un nom...'), { target: { value: 'Fanny' } })
-    fireEvent.mouseDown(screen.getByText(/Créer "Fanny"/i))
+    fireEvent.click(screen.getByText(/Créer "Fanny"/i))
     expect(screen.getByPlaceholderText('Prénom *')).toBeInTheDocument()
     // click cancel (X button)
-    const cancelBtn = screen.getByRole('button', { name: '' }) // X icon button
-    fireEvent.mouseDown(cancelBtn)
+    const cancelBtn = screen.getByRole('button', { name: 'Annuler la création' })
+    fireEvent.click(cancelBtn)
     expect(screen.queryByPlaceholderText('Prénom *')).not.toBeInTheDocument()
+  })
+
+  it('opens and closes from the keyboard and announces its expanded state', () => {
+    renderPicker()
+    const trigger = screen.getByRole('button', { name: 'Client' })
+
+    trigger.focus()
+    fireEvent.keyDown(trigger, { key: 'Enter' })
+    fireEvent.click(trigger)
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('combobox', { name: 'Rechercher un client' })).toHaveFocus()
+
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' })
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).toHaveFocus()
+  })
+
+  it('selects a customer with the keyboard and announces the selection', () => {
+    const { onSelectAction } = renderPicker()
+    fireEvent.click(screen.getByRole('button', { name: 'Client' }))
+    const search = screen.getByRole('combobox', { name: 'Rechercher un client' })
+
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+
+    expect(onSelectAction).toHaveBeenCalledWith('c1')
+    expect(screen.getByRole('status')).toHaveTextContent('Client sélectionné : Alice Dupont')
+  })
+
+  it('exposes the selected customer in the trigger description and listbox', () => {
+    renderPicker({ selectedId: 'c1' })
+    const trigger = screen.getByRole('button', { name: 'Client' })
+
+    expect(trigger).toHaveAccessibleDescription('Client sélectionné : Alice Dupont')
+
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole('option', { name: 'Alice Dupont' })).toHaveAttribute('aria-selected', 'true')
   })
 })
