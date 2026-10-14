@@ -47,6 +47,10 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   les organisations proposées à la création. Une organisation cible est
   préremplie à la création uniquement si une seule est sélectionnée ; en vue
   globale ou multi-organisation, le `TECH_ADMIN` choisit explicitement la cible.
+  Les destinataires restent en chargement tant que la liste de l'organisation
+  choisie n'a pas été reçue ; sans organisation sélectionnée, l'interface
+  indique qu'il faut en choisir une. Le message d'absence de destinataires
+  apparaît seulement après une réponse vide pour l'organisation active.
   La vue détaillée regroupe les résultats par scénario ; pour la progression et
   le statut courant, seul le résultat le plus récent de chaque couple
   profil/scénario compte. L'historique conserve tous les envois.

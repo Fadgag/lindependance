@@ -440,6 +440,7 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Chaque champ de commentaire et d'appareil rappelle de ne pas inclure de nom, de coordonnées ou d'informations permettant d'identifier quelqu'un.
   - Le suivi et l'export n'exposent que le profil déclaré et le jour de réception comme métadonnées contextuelles ; l'heure précise et l'appareil sont omis. L'horodatage exact reste en base pour ordonner les retours.
   - Aucun identifiant direct de testeur n'est ajouté aux enregistrements ou aux exports.
+- **Mise à jour :** Le 14 octobre, le diagnostic CI a confirmé que l'état vide des destinataires pouvait s'afficher avant la sélection d'une organisation et la fin de leur chargement. Le formulaire distingue maintenant l'absence de sélection, le chargement et une réponse vide pour l'organisation active ; un test UI couvre ces états.
 
 ### Gestion des stocks — produits revendus
 
