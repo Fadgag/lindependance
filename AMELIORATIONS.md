@@ -22,6 +22,24 @@ en cours de traitement.
 
 ## À traiter
 
+### Portail client — annulation des rendez-vous
+
+#### [#94](https://github.com/Fadgag/lindependance/issues/94) Bloquer l’annulation client des rendez-vous déjà payés
+
+- **Type :** Bug
+- **Statut :** Correctif appliqué et tests automatisés vérifiés localement le 14 octobre 2026 ; validation manuelle en bêta à effectuer avant clôture de l'issue.
+- **Priorité proposée :** P1
+- **Comportement observé :** L'éligibilité à l'annulation en ligne ne tenait compte que du délai de 24 heures. Un rendez-vous payé (`PAID`, `PAYED` ou associé à un `finalPrice` positif) pouvait donc être proposé pour annulation ; pour un rendez-vous lié à un forfait, cela pouvait recréditer une séance sans annuler le paiement.
+- **Comportement attendu :** Un rendez-vous payé ne peut jamais être annulé par le client en ligne. Le statut du rendez-vous et les crédits associés restent inchangés après un refus.
+- **Étapes de reproduction :** Dans l'environnement bêta, ouvrir l'espace client avec un rendez-vous de test payé prévu à plus de 24 heures et vérifier qu'aucune annulation en ligne n'est proposée. Si un forfait est lié, relever son solde avant et après le test.
+- **Impact :** L'état du rendez-vous, le paiement enregistré et les crédits du forfait peuvent ne plus correspondre.
+- **Critères d'acceptation :**
+  - Les statuts payés `PAID` et `PAYED`, ainsi qu'un `finalPrice` positif, ne sont pas annulables en ligne, y compris au-delà de 24 heures.
+  - Un refus ne modifie ni le rendez-vous ni le solde du forfait associé.
+  - Un rendez-vous non payé reste annulable uniquement lorsqu'il est prévu à plus de 24 heures.
+  - Les règles sont couvertes par des tests de domaine et de service.
+- **Résultat :** Le domaine et la mise à jour transactionnelle bloquent les rendez-vous payés, y compris si seul `finalPrice` indique le paiement. Les tests ciblés, le lint et le type-check réussissent ; une vérification manuelle en bêta reste nécessaire.
+
 ### Revue UI/UX du 12 octobre 2026
 
 #### [#83](https://github.com/Fadgag/lindependance/issues/83) Rendre visible le lien vers la création d'une campagne

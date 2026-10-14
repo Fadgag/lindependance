@@ -69,6 +69,7 @@ export async function getCustomerPortalAppointments(input: CustomerPortalAppoint
       startTime: true,
       endTime: true,
       status: true,
+      finalPrice: true,
       serviceId: true,
       staffId: true,
       customer: { select: { firstName: true, lastName: true } },
@@ -95,7 +96,12 @@ export async function getCustomerPortalAppointments(input: CustomerPortalAppoint
       customer: appointment.customer,
       service: appointment.service,
       staff: appointment.staff,
-      canCancel: canCancelPortalAppointment(appointment.startTime, now),
+      canCancel: canCancelPortalAppointment(
+        appointment.startTime,
+        now,
+        appointment.status,
+        appointment.finalPrice,
+      ),
       changeRequest: appointment.changeRequests[0] ?? null,
     })),
   }
@@ -134,15 +140,22 @@ export async function cancelCustomerPortalAppointment(input: CustomerPortalAppoi
       select: {
         id: true,
         startTime: true,
+        status: true,
+        finalPrice: true,
         customerId: true,
         customerPackageId: true,
       },
     })
     if (!appointment) throw new CustomerPortalHttpError(404, 'Appointment not found')
-    if (!canCancelPortalAppointment(appointment.startTime, now)) {
+    if (!canCancelPortalAppointment(
+      appointment.startTime,
+      now,
+      appointment.status,
+      appointment.finalPrice,
+    )) {
       throw new CustomerPortalHttpError(
         409,
-        'L’annulation en ligne n’est possible que plus de 24 heures à l’avance. Contactez votre établissement.',
+        'Ce rendez-vous ne peut pas être annulé en ligne. Contactez votre établissement.',
       )
     }
 
@@ -150,7 +163,11 @@ export async function cancelCustomerPortalAppointment(input: CustomerPortalAppoi
       where: {
         id: appointment.id,
         organizationId: organization.id,
-        status: { not: 'CANCELLED' },
+        status: { notIn: ['CANCELLED', 'PAID', 'PAYED'] },
+        OR: [
+          { finalPrice: null },
+          { finalPrice: { lte: 0 } },
+        ],
         startTime: { gt: cancellationCutoff },
         customer: {
           is: {
