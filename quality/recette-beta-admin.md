@@ -32,6 +32,7 @@ Préparer dans l'interface staff et avec l'équipe technique :
 |---|---|
 | `ORG-A` / `ORG-B` | Deux organisations actives distinctes ; compte staff dédié dans chacune. |
 | `TECH-ADMIN` | Compte technique habilité à consulter et traiter les signalements de toutes les organisations ; préparer des signalements `Nouveau`, `En cours` et `Résolu` dans `ORG-A` et `ORG-B`. |
+| `RATE-LIMIT-STAFF` / `UNKNOWN-EMAIL` | Compte staff de test avec boîte e-mail contrôlée, adresse de test sans compte, et IP dédiée pour vérifier les limites sans affecter les autres testeurs. |
 | Portail `ORG-A` | Activé avec slug et fuseau connus ; préparer aussi `ORG-SOLO` si le test des praticiens mono-staff est nécessaire. |
 | Praticiens et services | Deux praticiens actifs, un inactif, services de 30 et 60 minutes, horaires connus. |
 | Demandes | Plusieurs demandes `PENDING`, une demande déjà rejetée et une demande approuvée. |
@@ -391,6 +392,28 @@ permet de consulter toute la semaine sans masquer les commandes.
 
 **Automatisé :** `test/ui/appointmentScheduler.spec.tsx` vérifie la vue initiale
 et les commandes Jour/Semaine. Le défilement réel reste à vérifier en bêta.
+**Résultat / preuve :** `________`
+
+#### [ ] ADM-21 — Vérifier les limites de connexion et de réinitialisation
+**Priorité : P1 · Exigence :** [Req: formal — issue #67]
+
+**Étapes :** avec le compte `RATE-LIMIT-STAFF` et l'IP dédiée, saisissez un
+mot de passe incorrect cinq fois en moins de 15 minutes, puis essayez le bon
+mot de passe. Attendez 15 minutes et vérifiez que le bon mot de passe permet
+de se connecter. Demandez ensuite une réinitialisation pour ce compte et
+répétez la demande ; comparez le message affiché avec celui obtenu pour
+`UNKNOWN-EMAIL`.
+
+**Attendu :** les essais répétés sont bloqués temporairement sans message
+indiquant si le compte existe. Les demandes connues et inconnues affichent la
+même confirmation. Un seul e-mail de réinitialisation est envoyé pendant que
+le lien reste actif, et ce lien fonctionne toujours après les demandes
+répétées.
+
+**Automatisé :** `test/services/auth-rate-limit.service.spec.ts` et
+`test/api/auth-rate-limit.spec.ts`. Les seuils réels, l'envoi par Resend et
+l'expiration du lien restent à vérifier en bêta avec le compte, la boîte et
+l'IP dédiés.
 **Résultat / preuve :** `________`
 
 ## Couverture automatisée relue

@@ -149,7 +149,9 @@ pnpm run start                     # démarre next start (par défaut sur le por
 ```
 
 Configurer un process manager (systemd, PM2, ou équivalent) pour superviser `pnpm run start`,
-et exposer le port via un reverse proxy (nginx/Caddy) en HTTPS.
+et exposer le port via un reverse proxy (nginx/Caddy) en HTTPS. Pour appliquer les quotas par
+IP, le proxy doit écraser les en-têtes entrants `x-real-ip` et `x-forwarded-for` avec l'adresse
+client vérifiée ; sans IP fiable, les quotas par adresse e-mail ou token restent appliqués.
 
 ## 8. Checklist avant mise en production
 
