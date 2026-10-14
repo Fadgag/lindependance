@@ -52,7 +52,7 @@ export async function sendTestCampaignInvitationEmails(input: {
           '<div style="margin:28px 0;text-align:center">',
           `<a href="${escapeHtml(input.campaignUrl)}" style="display:inline-block;border-radius:8px;background:#D4A3A1;padding:13px 22px;color:#2D2424;font-weight:700;text-decoration:none">Découvrir les scénarios</a>`,
           '</div>',
-          '<p style="margin:0;color:#6B625F;font-size:13px">Les réponses sont anonymes et ne nécessitent pas de connexion.</p>',
+          '<p style="margin:0;color:#6B625F;font-size:13px">Ces réponses ne sont reliées ni à un compte ni à cette invitation. Un commentaire ou le nom d’un appareil peut toutefois vous identifier. N’indiquez pas votre nom ni vos coordonnées.</p>',
           '</div>',
           '</div>',
           '<p style="margin:16px auto 0;max-width:600px;color:#948B89;text-align:center;font-size:12px">Invitation à une campagne de recette</p>',

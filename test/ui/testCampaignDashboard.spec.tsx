@@ -52,6 +52,7 @@ describe('TestCampaignDashboard', () => {
 
     render(<TestCampaignDashboard />)
     await screen.findByText(/Aucune campagne/)
+    expect(screen.getByText(/Les réponses ne sont rattachées ni aux comptes ni aux invitations envoyées/)).toBeInTheDocument()
     fireEvent.click(await screen.findByRole('checkbox', { name: /Léa Martin \(lea@example\.test\)/ }))
 
     const campaignNameInput = screen.getByLabelText('Nom de la campagne')

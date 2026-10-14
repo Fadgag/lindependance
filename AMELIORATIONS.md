@@ -430,15 +430,15 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 #### [#85](https://github.com/Fadgag/lindependance/issues/85) Clarifier et renforcer l’anonymat des retours de campagne
 
 - **Type :** Amélioration
-- **Statut :** À cadrer — vérification du 12 octobre 2026.
-- **GitHub Project :** Issue ouverte — Backlog.
+- **Statut :** Implémentée localement — validation du 13 octobre 2026, en attente de revue et de mise en ligne.
+- **GitHub Project :** Issue ouverte — En cours.
 - **Priorité proposée :** P2
-- **Constat :** Les retours ne sont pas associés à un compte ni à un destinataire d'invitation, et aucun nom, e-mail ou adresse IP n'est enregistré avec eux. En revanche, les commentaires libres et l'appareil sont saisis sans expurgation ; le rôle déclaré et l'heure précise sont conservés et affichés avec chaque retour. Dans une campagne avec peu de répondants, ces éléments peuvent permettre une ré-identification par recoupement, et un testeur peut saisir son nom ou ses coordonnées malgré l'avertissement.
+- **Constat :** Les retours ne sont pas associés à un compte ni à un destinataire d'invitation, et aucun nom, e-mail ou adresse IP n'est demandé dans un champ dédié. Les commentaires libres et l'appareil restent toutefois conservés tels que saisis ; ils peuvent contenir des éléments identifiants. Le profil déclaré et l'heure précise peuvent également permettre une ré-identification par recoupement dans une petite campagne.
 - **Amélioration souhaitée :** Aligner la promesse d'« anonymat » sur les données effectivement collectées et affichées, réduire les possibilités de ré-identification et rappeler de ne saisir aucune donnée personnelle dans chaque champ libre.
 - **Critères d'acceptation :**
   - L'interface explique clairement que les retours ne sont pas reliés à un compte ou à un destinataire, sans garantir un anonymat absolu si des métadonnées ou du texte libre peuvent identifier la personne.
   - Chaque champ de commentaire et d'appareil rappelle de ne pas inclure de nom, de coordonnées ou d'informations permettant d'identifier quelqu'un.
-  - Les métadonnées visibles et exportées sont minimisées afin de réduire l'identification indirecte dans les campagnes avec peu de répondants ; la règle retenue est documentée et testée.
+  - Le suivi et l'export n'exposent que le profil déclaré et le jour de réception comme métadonnées contextuelles ; l'heure précise et l'appareil sont omis. L'horodatage exact reste en base pour ordonner les retours.
   - Aucun identifiant direct de testeur n'est ajouté aux enregistrements ou aux exports.
 
 ### Gestion des stocks — produits revendus

@@ -8,7 +8,7 @@ afterEach(() => {
 })
 
 describe('TestCampaignDetail', () => {
-  it('shows campaign-level anonymous feedback with readable answer labels', async () => {
+  it('shows feedback with readable answers and reduced metadata', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       campaign: {
         id: 'campaign-1',
@@ -30,8 +30,32 @@ describe('TestCampaignDetail', () => {
         remaining: 10,
         currentResults: [],
       },
-      scenarios: [],
-      history: [],
+      scenarios: [{
+        id: 'CUS-01',
+        profile: 'USER',
+        title: 'Ouvrir la réservation',
+        priority: 'P1',
+        steps: 'Ouvrir le lien.',
+        expected: 'Le formulaire apparaît.',
+        result: {
+          id: 'feedback-1',
+          status: 'FAIL',
+          comment: 'Le lien affiche une erreur.',
+          environment: 'Safari sur iPhone',
+          createdAt: '2026-10-04T09:30:00.000Z',
+        },
+      }],
+      history: [{
+        id: 'feedback-1',
+        profile: 'USER',
+        scenarioId: 'CUS-01',
+        scenarioTitle: 'Ouvrir la réservation',
+        scenarioPriority: 'P1',
+        status: 'FAIL',
+        environment: 'Safari sur iPhone',
+        comment: 'Le lien affiche une erreur.',
+        createdAt: '2026-10-04T09:30:00.000Z',
+      }],
       campaignReviews: [{
         id: 'review-1',
         profile: 'USER',
@@ -40,7 +64,7 @@ describe('TestCampaignDetail', () => {
         links: 'VERY_USEFUL',
         satisfaction: 'SATISFIED',
         comment: 'Les liens directs m’ont aidé.',
-        createdAt: '2026-10-04T09:30:00.000Z',
+        createdAt: '2026-10-04T09:35:00.000Z',
       }],
     }), { status: 200 })))
 
@@ -52,6 +76,10 @@ describe('TestCampaignDetail', () => {
     expect(screen.getByText('Oui, très utiles')).toBeInTheDocument()
     expect(screen.getByText('Plutôt satisfaisante')).toBeInTheDocument()
     expect(screen.getByText('Les liens directs m’ont aidé.')).toBeInTheDocument()
+    expect(screen.getByText(/Profil déclaré : Utilisateur · 4 oct\. 2026/)).toBeInTheDocument()
+    expect(screen.getByText(/Utilisateur · P1 · 4 oct\. 2026/)).toBeInTheDocument()
+    expect(screen.queryByText(/09:30|09:35|Safari sur iPhone/)).not.toBeInTheDocument()
+    expect(screen.getByText(/le suivi affiche le profil déclaré et le jour de réception/i)).toBeInTheDocument()
   })
 
   it('downloads the current campaign feedback as a JSON file', async () => {

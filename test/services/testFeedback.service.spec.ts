@@ -274,7 +274,7 @@ describe('test feedback service', () => {
     })
   })
 
-  it('returns anonymous campaign review answers in the technical campaign detail', async () => {
+  it('returns campaign review answers with minimized display metadata', async () => {
     mocks.campaignFindUnique.mockResolvedValueOnce({
       id: 'campaign-1',
       name: 'Recette bêta',
@@ -285,7 +285,17 @@ describe('test feedback service', () => {
       createdAt: new Date('2026-10-04T09:00:00.000Z'),
       closedAt: null,
       organization: { name: 'Osez le T’re' },
-      feedback: [],
+      feedback: [{
+        id: 'feedback-1',
+        profile: 'USER',
+        scenarioId: 'CUS-01',
+        scenarioTitle: 'Ouvrir la réservation',
+        scenarioPriority: 'P1',
+        status: 'FAIL',
+        environment: 'Safari sur iPhone',
+        comment: 'Le lien affiche une erreur.',
+        createdAt: new Date('2026-10-04T09:30:00.000Z'),
+      }],
       campaignReviews: [{
         id: 'review-1',
         profile: 'USER',
@@ -294,7 +304,7 @@ describe('test feedback service', () => {
         links: 'VERY_USEFUL',
         satisfaction: 'SATISFIED',
         comment: 'Les liens directs m’ont aidé.',
-        createdAt: new Date('2026-10-04T09:30:00.000Z'),
+        createdAt: new Date('2026-10-04T09:35:00.000Z'),
       }],
     })
 
@@ -308,7 +318,29 @@ describe('test feedback service', () => {
       links: 'VERY_USEFUL',
       satisfaction: 'SATISFIED',
       comment: 'Les liens directs m’ont aidé.',
-      createdAt: new Date('2026-10-04T09:30:00.000Z'),
+      createdAt: '2026-10-04',
+    }])
+    expect(detail?.history).toEqual([{
+      id: 'feedback-1',
+      profile: 'USER',
+      scenarioId: 'CUS-01',
+      scenarioTitle: 'Ouvrir la réservation',
+      scenarioPriority: 'P1',
+      status: 'FAIL',
+      comment: 'Le lien affiche une erreur.',
+      createdAt: '2026-10-04',
+    }])
+    expect(detail?.scenarios.find(({ id }) => id === 'CUS-01')?.result).toEqual({
+      id: 'feedback-1',
+      status: 'FAIL',
+      comment: 'Le lien affiche une erreur.',
+      createdAt: '2026-10-04',
+    })
+    expect(detail?.progress.currentResults).toEqual([{
+      profile: 'USER',
+      scenarioId: 'CUS-01',
+      status: 'FAIL',
+      createdAt: '2026-10-04',
     }])
     expect(mocks.campaignFindUnique).toHaveBeenCalledWith(expect.objectContaining({
       include: expect.objectContaining({

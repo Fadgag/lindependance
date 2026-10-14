@@ -44,6 +44,11 @@ describe('PublicTestFeedbackForm', () => {
     expect(await screen.findByText('Osez le T’re')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('radio', { name: /Client du salon/ }))
 
+    expect(await screen.findByText(/Vos retours ne sont reliés ni à un compte ni à l’invitation reçue/)).toBeInTheDocument()
+    expect(screen.getAllByText(/N’indiquez pas votre nom, vos coordonnées ni aucune autre information/)).toHaveLength(3)
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Ouvrir la réservation du bon salon/ }))
+    expect(screen.getAllByText(/N’indiquez pas votre nom, vos coordonnées ni aucune autre information/)).toHaveLength(4)
+
     await waitFor(() => {
       expect(screen.getByRole('link', { name: 'Ouvrir le portail de réservation' })).toHaveAttribute(
         'href',

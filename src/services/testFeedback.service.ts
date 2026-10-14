@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { toFeedbackCalendarDay } from '@/domain/test-feedback/anonymity'
 import {
   getScenarioProgress,
   parseScenarioGuide,
@@ -237,11 +238,18 @@ export async function getTestCampaignDetail(id: string) {
   const scenarioGroups = parseScenarioGroups(campaign.scenarioGroups, profiles)
   const catalog = loadScenarioCatalog()
   const feedback = mapFeedbackRows(campaign.feedback)
-  const progress = getScenarioProgress(
+  const calculatedProgress = getScenarioProgress(
     profiles,
     getScenarioCounts(catalog, scenarioGroups),
     feedback,
   )
+  const progress = {
+    ...calculatedProgress,
+    currentResults: calculatedProgress.currentResults.map((result) => ({
+      ...result,
+      createdAt: toFeedbackCalendarDay(result.createdAt),
+    })),
+  }
   const latestFeedback = new Map<string, (typeof campaign.feedback)[number]>()
   for (const result of campaign.feedback) {
     const key = `${result.profile}:${result.scenarioId}`
@@ -262,10 +270,18 @@ export async function getTestCampaignDetail(id: string) {
     },
     progress,
     scenarios: profiles.flatMap((profile) => (
-      filterScenariosByGroups(catalog[profile], scenarioGroups).map((scenario) => ({
-        ...scenario,
-        result: latestFeedback.get(`${profile}:${scenario.id}`) ?? null,
-      }))
+      filterScenariosByGroups(catalog[profile], scenarioGroups).map((scenario) => {
+        const latestResult = latestFeedback.get(`${profile}:${scenario.id}`)
+        return {
+          ...scenario,
+          result: latestResult ? {
+            id: latestResult.id,
+            status: FeedbackStatusSchema.parse(latestResult.status),
+            comment: latestResult.comment,
+            createdAt: toFeedbackCalendarDay(latestResult.createdAt),
+          } : null,
+        }
+      })
     )),
     history: campaign.feedback.map((entry) => ({
       id: entry.id,
@@ -274,9 +290,8 @@ export async function getTestCampaignDetail(id: string) {
       scenarioTitle: entry.scenarioTitle,
       scenarioPriority: entry.scenarioPriority,
       status: FeedbackStatusSchema.parse(entry.status),
-      environment: entry.environment,
       comment: entry.comment,
-      createdAt: entry.createdAt,
+      createdAt: toFeedbackCalendarDay(entry.createdAt),
     })),
     campaignReviews: campaign.campaignReviews.map((review) => ({
       id: review.id,
@@ -286,7 +301,7 @@ export async function getTestCampaignDetail(id: string) {
       links: review.links,
       satisfaction: review.satisfaction,
       comment: review.comment,
-      createdAt: review.createdAt,
+      createdAt: toFeedbackCalendarDay(review.createdAt),
     })),
   }
 }

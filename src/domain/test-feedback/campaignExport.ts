@@ -12,8 +12,12 @@ export function buildTestCampaignExport({
 }) {
   return {
     format: 'lindependance-test-campaign-feedback',
-    version: 1,
+    version: 2,
     exportedAt,
+    privacy: {
+      feedbackDatePrecision: 'calendar-day',
+      environmentIncluded: false,
+    },
     campaign: {
       name: data.campaign.name,
       organizationName: data.campaign.organizationName,
@@ -41,7 +45,6 @@ export function buildTestCampaignExport({
       result: scenario.result ? {
         status: scenario.result.status,
         comment: scenario.result.comment,
-        environment: scenario.result.environment,
         createdAt: scenario.result.createdAt,
       } : null,
     })),
@@ -51,7 +54,6 @@ export function buildTestCampaignExport({
       scenarioTitle: entry.scenarioTitle,
       scenarioPriority: entry.scenarioPriority,
       status: entry.status,
-      environment: entry.environment,
       comment: entry.comment,
       createdAt: entry.createdAt,
     })),

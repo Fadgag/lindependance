@@ -431,7 +431,7 @@ export default function TestCampaignDashboard() {
           <fieldset className="grid gap-2 md:col-span-2">
             <legend className="text-sm font-medium text-(--studio-text)">Envoyer le lien à des comptes ou clients existants (facultatif)</legend>
             <p className="text-xs text-(--studio-muted)">
-              Sélectionnez jusqu’à 50 adresses e-mail de comptes staff/admin ou de fiches client. Une seule invitation est envoyée par adresse ; les retours restent anonymes.
+              Sélectionnez jusqu’à 50 adresses e-mail de comptes staff/admin ou de fiches client. Une seule invitation est envoyée par adresse. Les réponses ne sont rattachées ni aux comptes ni aux invitations envoyées, mais un texte libre ou un appareil peut identifier un testeur.
             </p>
             {loadingRecipients && <p role="status" className="text-xs text-(--studio-muted)">Chargement des comptes…</p>}
             {recipientsError && <p role="alert" className="text-xs text-red-700">{recipientsError}</p>}
