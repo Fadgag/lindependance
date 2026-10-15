@@ -78,11 +78,12 @@ export default function AppointmentModal({
 
           {/* CLIENT */}
           <div>
-            <label className="text-[11px] font-bold text-studio-muted mb-2 block uppercase">Client</label>
+            <label id="appointment-customer-label" className="text-[11px] font-bold text-studio-muted mb-2 block uppercase">Client</label>
             <CustomerPicker
               customers={customers}
               onSelectAction={(id: string) => setSelectedCustomer(customers.find(c => c.id === id) || null)}
               selectedId={selectedCustomer?.id}
+              labelledBy="appointment-customer-label"
               onCreatedAction={(cust) => {
                 // RAISON: `cust` est l'objet JSON renvoyé par `/api/customers` — correspond au type CustomerType
                 setSelectedCustomer(cust as CustomerType)
@@ -92,8 +93,9 @@ export default function AppointmentModal({
 
           {/* DATE */}
           <div className="mb-3 p-4 bg-white rounded-xl border border-slate-200">
-            <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase">Date</label>
+            <label htmlFor="appointment-date" className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase">Date</label>
             <input
+              id="appointment-date"
               type="date"
               value={date}
               onChange={(e) => { setDate(e.target.value); setCollision(false) }}
@@ -127,19 +129,20 @@ export default function AppointmentModal({
           {/* SERVICE & NOTE */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-studio-muted flex items-center gap-1.5 uppercase">
+              <label htmlFor="appointment-service" className="text-[10px] font-bold text-studio-muted flex items-center gap-1.5 uppercase">
                 Service
                 {serviceId && <span className="w-2.5 h-2.5 rounded-full border border-black/10" style={{ backgroundColor: currentServiceColor }} />}
               </label>
-              <select value={serviceId} onChange={(e) => handleServiceChange(e.target.value)} className="p-2.5 rounded-xl border border-slate-200 outline-none bg-white text-sm">
+              <select id="appointment-service" value={serviceId} onChange={(e) => handleServiceChange(e.target.value)} className="p-2.5 rounded-xl border border-slate-200 outline-none bg-white text-sm">
                 <option value="">Choisir un service...</option>
                 {services.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.durationMinutes} min)</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-studio-muted uppercase">Note</label>
+              <label htmlFor="appointment-note" className="text-[10px] font-bold text-studio-muted uppercase">Note</label>
               <div className="flex items-center gap-2">
                 <input
+                  id="appointment-note"
                   type="text"
                   data-testid="appointment-note"
                   placeholder="Ex: Cheveux pais, caf noir..."
