@@ -48,6 +48,8 @@ describe('test campaign invitation email', () => {
     expect(mocks.batchSend.mock.calls[0][0][0].html).toContain('Merci de tester le parcours &lt;réservation&gt;.')
     expect(mocks.batchSend.mock.calls[0][0][0].html).toContain('background:#FAF9F6')
     expect(mocks.batchSend.mock.calls[0][0][0].html).toContain('Découvrir les scénarios')
+    expect(mocks.batchSend.mock.calls[0][0][0].html).toContain('Ces réponses ne sont reliées ni à un compte ni à cette invitation.')
+    expect(mocks.batchSend.mock.calls[0][0][0].html).not.toContain('Les réponses sont anonymes')
     expect(delivery).toEqual({ failedIndexes: [], error: null })
   })
 

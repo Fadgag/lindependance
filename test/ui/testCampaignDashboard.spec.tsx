@@ -52,6 +52,7 @@ describe('TestCampaignDashboard', () => {
 
     render(<TestCampaignDashboard />)
     await screen.findByText(/Aucune campagne/)
+    expect(screen.getByText(/Les réponses ne sont rattachées ni aux comptes ni aux invitations envoyées/)).toBeInTheDocument()
     fireEvent.click(await screen.findByRole('checkbox', { name: /Léa Martin \(lea@example\.test\)/ }))
 
     const campaignNameInput = screen.getByLabelText('Nom de la campagne')
@@ -157,5 +158,33 @@ describe('TestCampaignDashboard', () => {
 
     await screen.findByText(/Aucune campagne/)
     expect(screen.getByLabelText('Organisation')).toHaveValue('')
+  })
+
+  it('shows recipient loading states until an organization is selected and its recipients are loaded', async () => {
+    domainSelection.ids = []
+    let resolveRecipients: ((response: Response) => void) | undefined
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(emptyDashboard), { status: 200 }))
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => {
+        resolveRecipients = resolve
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<TestCampaignDashboard />)
+
+    await screen.findByText(/Aucune campagne/)
+    expect(screen.getByRole('status'))
+      .toHaveTextContent('Sélectionnez une organisation pour afficher les destinataires à inviter.')
+    expect(screen.queryByText(/Aucun compte ou client/)).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Organisation'), { target: { value: 'org-1' } })
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('status')).toHaveTextContent('Chargement des comptes…')
+    expect(screen.queryByText(/Aucun compte ou client/)).not.toBeInTheDocument()
+
+    if (!resolveRecipients) throw new Error('La requête des destinataires ne démarre pas')
+    resolveRecipients(new Response(JSON.stringify([]), { status: 200 }))
+
+    expect(await screen.findByText(/Aucun compte ou client/)).toBeInTheDocument()
   })
 })

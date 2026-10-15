@@ -73,6 +73,7 @@ export default function TestCampaignDashboard() {
   const [emailSubject, setEmailSubject] = useState(DEFAULT_TEST_CAMPAIGN_EMAIL_SUBJECT)
   const [emailMessage, setEmailMessage] = useState(DEFAULT_TEST_CAMPAIGN_EMAIL_MESSAGE)
   const [recipients, setRecipients] = useState<CampaignRecipient[]>([])
+  const [recipientsOrganizationId, setRecipientsOrganizationId] = useState<string | null>(null)
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([])
   const [loadingRecipients, setLoadingRecipients] = useState(false)
   const [recipientsError, setRecipientsError] = useState('')
@@ -125,6 +126,7 @@ export default function TestCampaignDashboard() {
   useEffect(() => {
     let active = true
     setRecipients([])
+    setRecipientsOrganizationId(null)
     setSelectedRecipientIds([])
     setRecipientsError('')
     if (!organizationId) {
@@ -145,7 +147,10 @@ export default function TestCampaignDashboard() {
         const payload: unknown = await response.json()
         const parsed = TestCampaignRecipientListResponseSchema.safeParse(payload)
         if (!parsed.success) throw new Error('Réponse invalide pour les comptes de l’organisation')
-        if (active) setRecipients(parsed.data)
+        if (active) {
+          setRecipients(parsed.data)
+          setRecipientsOrganizationId(organizationId)
+        }
       } catch (cause: unknown) {
         if (active) setRecipientsError(
           cause instanceof Error ? cause.message : 'Impossible de charger les comptes de l’organisation',
@@ -304,6 +309,9 @@ export default function TestCampaignDashboard() {
     failed: summary.failed + campaign.progress.failed,
     blocked: summary.blocked + campaign.progress.blocked,
   }), { active: 0, passed: 0, failed: 0, blocked: 0 })
+  const recipientsLoadedForOrganization = Boolean(organizationId)
+    && recipientsOrganizationId === organizationId
+    && !loadingRecipients
 
   return (
     <section className="mx-auto max-w-6xl space-y-8 p-5 md:p-10">
@@ -431,14 +439,19 @@ export default function TestCampaignDashboard() {
           <fieldset className="grid gap-2 md:col-span-2">
             <legend className="text-sm font-medium text-(--studio-text)">Envoyer le lien à des comptes ou clients existants (facultatif)</legend>
             <p className="text-xs text-(--studio-muted)">
-              Sélectionnez jusqu’à 50 adresses e-mail de comptes staff/admin ou de fiches client. Une seule invitation est envoyée par adresse ; les retours restent anonymes.
+              Sélectionnez jusqu’à 50 adresses e-mail de comptes staff/admin ou de fiches client. Une seule invitation est envoyée par adresse. Les réponses ne sont rattachées ni aux comptes ni aux invitations envoyées, mais un texte libre ou un appareil peut identifier un testeur.
             </p>
-            {loadingRecipients && <p role="status" className="text-xs text-(--studio-muted)">Chargement des comptes…</p>}
-            {recipientsError && <p role="alert" className="text-xs text-red-700">{recipientsError}</p>}
-            {!loadingRecipients && !recipientsError && recipients.length === 0 && (
+            {!organizationId && (
+              <p role="status" className="text-xs text-(--studio-muted)">Sélectionnez une organisation pour afficher les destinataires à inviter.</p>
+            )}
+            {organizationId && !recipientsError && !recipientsLoadedForOrganization && (
+              <p role="status" className="text-xs text-(--studio-muted)">Chargement des comptes…</p>
+            )}
+            {organizationId && recipientsError && <p role="alert" className="text-xs text-red-700">{recipientsError}</p>}
+            {recipientsLoadedForOrganization && !recipientsError && recipients.length === 0 && (
               <p className="text-xs text-(--studio-muted)">Aucun compte ou client avec une adresse e-mail valide pour cette organisation.</p>
             )}
-            {recipients.map((recipient) => (
+            {recipientsLoadedForOrganization && recipients.map((recipient) => (
               <label key={recipientKey(recipient)} className="flex items-center gap-2 text-sm text-(--studio-muted)">
                 <input
                   type="checkbox"

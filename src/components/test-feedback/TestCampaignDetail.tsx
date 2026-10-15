@@ -43,6 +43,11 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
+function formatFeedbackDate(value: string): string {
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'UTC' })
+    .format(new Date(`${value.slice(0, 10)}T00:00:00.000Z`))
+}
+
 function statusLabel(status: string | null): string {
   if (status === 'PASS') return 'Réussi'
   if (status === 'FAIL') return 'Échec'
@@ -214,6 +219,9 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>}
       {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
+      <p className="rounded-xl bg-white p-4 text-sm text-(--studio-muted)">
+        Pour limiter les recoupements, le suivi affiche le profil déclaré et le jour de réception, sans l’heure précise ni le nom de l’appareil. Un commentaire libre peut toutefois contenir des éléments identifiants.
+      </p>
 
       <section aria-label="Avancement" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
@@ -270,10 +278,9 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
               </div>
               <p className="mt-1 text-xs text-(--studio-muted)">
                 {scenario.profile === 'ADMIN' ? 'Administration' : 'Utilisateur'} · {scenario.priority}
-                {scenario.result && ` · Dernier retour : ${formatDate(scenario.result.createdAt)}`}
+                {scenario.result && ` · Dernier retour : ${formatFeedbackDate(scenario.result.createdAt)}`}
               </p>
               {scenario.result?.comment && <p className="mt-3 whitespace-pre-wrap text-sm text-(--studio-text)">{scenario.result.comment}</p>}
-              {scenario.result?.environment && <p className="mt-2 text-xs text-(--studio-muted)">Navigateur/appareil : {scenario.result.environment}</p>}
             </article>
           ))}
           {visibleScenarios.length === 0 && <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Aucun scénario ne correspond aux filtres.</p>}
@@ -291,10 +298,9 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(entry.status)}`}>{statusLabel(entry.status)}</span>
               </div>
               <p className="mt-1 text-xs text-(--studio-muted)">
-                {entry.profile === 'ADMIN' ? 'Administration' : 'Utilisateur'} · {entry.scenarioPriority} · {formatDate(entry.createdAt)}
+                {entry.profile === 'ADMIN' ? 'Administration' : 'Utilisateur'} · {entry.scenarioPriority} · {formatFeedbackDate(entry.createdAt)}
               </p>
               {entry.comment && <p className="mt-3 whitespace-pre-wrap text-sm text-(--studio-text)">{entry.comment}</p>}
-              {entry.environment && <p className="mt-2 text-xs text-(--studio-muted)">Navigateur/appareil : {entry.environment}</p>}
             </article>
           ))}
         </div>
@@ -303,7 +309,7 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
       <section aria-labelledby="campaign-reviews-title" className="space-y-3">
         <div>
           <h2 id="campaign-reviews-title" className="font-serif text-2xl text-(--studio-text)">Avis général des testeurs</h2>
-          <p className="mt-1 text-sm text-(--studio-muted)">Retours anonymes sur la clarté, la durée et l’expérience de la campagne.</p>
+          <p className="mt-1 text-sm text-(--studio-muted)">Réponses sur la clarté, la durée et l’expérience de la campagne.</p>
         </div>
         {data.campaignReviews.length === 0 && (
           <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Aucun avis général reçu pour le moment.</p>
@@ -312,7 +318,7 @@ export default function TestCampaignDetail({ campaignId }: { campaignId: string 
           {data.campaignReviews.map((review) => (
             <article key={review.id} className="rounded-xl border border-(--studio-border) bg-white p-4">
               <p className="text-xs text-(--studio-muted)">
-                Profil déclaré : {review.profile === 'ADMIN' ? 'Administration' : 'Utilisateur'} · {formatDate(review.createdAt)}
+                Profil déclaré : {review.profile === 'ADMIN' ? 'Administration' : 'Utilisateur'} · {formatFeedbackDate(review.createdAt)}
               </p>
               <dl className="mt-3 grid gap-3 sm:grid-cols-2">
                 {review.clarity && (
