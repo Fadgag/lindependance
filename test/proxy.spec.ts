@@ -5,13 +5,17 @@ let mockSession: unknown = null
 
 vi.mock('../src/auth', () => ({
   // auth(callback) retourne un handler qui injecte req.auth avant d'appeler le callback
-  // _ctx est requis par next-auth v5 AppRouteHandlerFn mais non utilisé dans les tests unitaires
-  auth: (callback: (req: unknown) => unknown) => async (req: unknown, _ctx?: unknown) => {
+  auth: (callback: (req: unknown) => unknown) => async (req: unknown) => {
     return callback({ ...(req as object), auth: mockSession })
   },
 }))
 
 import { middleware } from '../src/proxy'
+
+// RAISON: les requêtes minimales suffisent aux champs lus par le proxy dans ces tests.
+function invokeMiddleware(req: { nextUrl: URL; url: string }) {
+  return middleware(req as never)
+}
 
 beforeEach(() => {
   mockSession = null
@@ -24,7 +28,7 @@ describe('proxy middleware', () => {
       nextUrl: new URL('http://localhost/auth/signin'),
       url: 'http://localhost/auth/signin',
     }
-    const res = await middleware(req as any, {} as any)
+    const res = await invokeMiddleware(req)
     // Pas de redirection — path public
     expect(res).toBeUndefined()
   })
@@ -35,7 +39,7 @@ describe('proxy middleware', () => {
       nextUrl: new URL('http://localhost/dashboard'),
       url: 'http://localhost/dashboard',
     }
-    const res = await middleware(req as any, {} as any)
+    const res = await invokeMiddleware(req)
     // Pas de redirection
     expect(res).toBeUndefined()
   })
@@ -46,11 +50,24 @@ describe('proxy middleware', () => {
       nextUrl: new URL('http://localhost/dashboard'),
       url: 'http://localhost/dashboard',
     }
-    const res = await middleware(req as any, {} as any)
+    const res = await invokeMiddleware(req)
     // Redirection vers signin
     expect(res?.status).toBeGreaterThanOrEqual(301)
     expect(res?.status).toBeLessThanOrEqual(308)
     expect(res?.headers?.get('location')).toContain('/auth/signin')
   })
-})
 
+  it('redirige une session d’erreur Auth.js truthy vers /auth/signin', async () => {
+    mockSession = { error: 'Configuration' }
+    const req = {
+      nextUrl: new URL('http://localhost/dashboard'),
+      url: 'http://localhost/dashboard',
+    }
+
+    const res = await invokeMiddleware(req)
+
+    expect(res?.status).toBeGreaterThanOrEqual(301)
+    expect(res?.status).toBeLessThanOrEqual(308)
+    expect(res?.headers?.get('location')).toContain('/auth/signin')
+  })
+})
