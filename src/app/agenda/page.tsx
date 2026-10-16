@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 
 export default async function AgendaPage() {
     const session = await auth()
-    if (!session) return redirect('/auth/signin')
+    if (!session?.user) return redirect('/auth/signin')
     return (
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
             <AppointmentScheduler />
