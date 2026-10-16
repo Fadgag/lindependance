@@ -4,11 +4,9 @@ const mocks = vi.hoisted(() => {
   const afterCallbacks: Array<() => Promise<void>> = []
   return {
     findUser: vi.fn(),
-    findResetToken: vi.fn(),
-    deleteResetToken: vi.fn(),
-    updateUser: vi.fn(),
     consumeRateLimit: vi.fn(),
     consumeIpRateLimit: vi.fn(),
+    consumePasswordResetToken: vi.fn(),
     createOrReuseResetToken: vi.fn(),
     deleteIssuedResetToken: vi.fn(),
     sendEmail: vi.fn(),
@@ -29,17 +27,14 @@ vi.mock('next/server', async () => {
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    user: { findUnique: mocks.findUser, update: mocks.updateUser },
-    passwordResetToken: {
-      findUnique: mocks.findResetToken,
-      delete: mocks.deleteResetToken,
-    },
+    user: { findUnique: mocks.findUser },
   },
 }))
 
 vi.mock('@/services/auth-rate-limit.service', () => ({
   consumeAuthRateLimit: mocks.consumeRateLimit,
   consumeClientIpRateLimit: mocks.consumeIpRateLimit,
+  consumePasswordResetToken: mocks.consumePasswordResetToken,
   createOrReusePasswordResetToken: mocks.createOrReuseResetToken,
   deletePasswordResetToken: mocks.deleteIssuedResetToken,
 }))
@@ -52,10 +47,6 @@ vi.mock('resend', () => ({
   Resend: class {
     emails = { send: mocks.sendEmail }
   },
-}))
-
-vi.mock('bcryptjs', () => ({
-  default: { hash: vi.fn().mockResolvedValue('new-hash') },
 }))
 
 import { POST as forgotPassword } from '@/app/api/auth/forgot-password/route'
@@ -81,7 +72,7 @@ describe('password recovery rate limits', () => {
     process.env.RESEND_API_KEY = 'test-api-key'
     mocks.consumeIpRateLimit.mockResolvedValue({ allowed: true, retryAfterSeconds: 60 })
     mocks.consumeRateLimit.mockResolvedValue({ allowed: true, retryAfterSeconds: 60 })
-    mocks.deleteResetToken.mockResolvedValue({ count: 1 })
+    mocks.consumePasswordResetToken.mockResolvedValue('invalid')
     mocks.deleteIssuedResetToken.mockResolvedValue(undefined)
     mocks.sendEmail.mockResolvedValue({ data: { id: 'email-1' }, error: null })
   })
@@ -134,10 +125,11 @@ describe('password recovery rate limits', () => {
   })
 
   it('sends only one email for a newly issued reset link', async () => {
+    const token = 'a'.repeat(64)
     mocks.findUser.mockResolvedValue({ email: 'person@example.com' })
     mocks.createOrReuseResetToken
-      .mockResolvedValueOnce({ token: 'issued-token', created: true })
-      .mockResolvedValueOnce({ token: 'issued-token', created: false })
+      .mockResolvedValueOnce({ token, created: true })
+      .mockResolvedValueOnce({ token, created: false })
 
     await forgotPassword(
       postRequest('/api/auth/forgot-password', { email: 'person@example.com' }),
@@ -149,6 +141,9 @@ describe('password recovery rate limits', () => {
     await runAfterCallbacks()
 
     expect(mocks.sendEmail).toHaveBeenCalledOnce()
+    expect(mocks.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ html: expect.stringContaining(`?token=${token}`) }),
+    )
   })
 
   it('removes the unsent token when the email provider throws', async () => {
@@ -197,7 +192,7 @@ describe('password recovery rate limits', () => {
 
     expect(response.status).toBe(429)
     expect(response.headers.get('Retry-After')).toBe('900')
-    expect(mocks.findResetToken).not.toHaveBeenCalled()
+    expect(mocks.consumePasswordResetToken).not.toHaveBeenCalled()
   })
 
   it('applies the token-specific reset-submission limit after the IP limit', async () => {
@@ -214,6 +209,45 @@ describe('password recovery rate limits', () => {
 
     expect(response.status).toBe(429)
     expect(response.headers.get('Retry-After')).toBe('600')
-    expect(mocks.findResetToken).not.toHaveBeenCalled()
+    expect(mocks.consumePasswordResetToken).not.toHaveBeenCalled()
+  })
+
+  it('resets the password after the reset token is consumed', async () => {
+    const token = 'a'.repeat(64)
+    mocks.consumePasswordResetToken.mockResolvedValue('updated')
+
+    const response = await resetPassword(
+      postRequest('/api/auth/reset-password', { token, password: 'new-password' }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ ok: true })
+    expect(mocks.consumePasswordResetToken).toHaveBeenCalledWith(token, 'new-password')
+  })
+
+  it('rejects an expired reset token', async () => {
+    mocks.consumePasswordResetToken.mockResolvedValue('expired')
+
+    const response = await resetPassword(
+      postRequest('/api/auth/reset-password', {
+        token: 'b'.repeat(64),
+        password: 'new-password',
+      }),
+    )
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ error: 'Token expired' })
+  })
+
+  it('rejects an invalid or already-consumed reset token', async () => {
+    const response = await resetPassword(
+      postRequest('/api/auth/reset-password', {
+        token: 'c'.repeat(64),
+        password: 'new-password',
+      }),
+    )
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ error: 'Invalid or expired token' })
   })
 })

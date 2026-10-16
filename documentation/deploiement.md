@@ -40,6 +40,7 @@ Voir `.env.example` pour le détail. Résumé :
 | `NEXTAUTH_SECRET` | **oui en production/CI** | Secret de signature des sessions Auth.js. Génère-le avec `openssl rand -hex 32`. Le build (`pnpm run prebuild` → `check-env`) échoue si absent en production/CI. |
 | `RESEND_API_KEY` | non | Envoi d'emails (ex. réinitialisation de mot de passe) via Resend, si utilisé |
 | `NEXT_PROXY_INJECTION_MODE` | non (défaut `A`) | Stratégie d'injection du header `x-org-id` par le proxy (`A` ou `B` — voir `README.md`) |
+| `TRUSTED_PROXY_IP` | non (auto-hébergement uniquement) | Active la lecture de `x-real-ip` pour les quotas IP ; à définir à `true` uniquement derrière un proxy qui remplace cet en-tête |
 
 ⚠️ Ne jamais committer `.env.local` (déjà exclu par `.gitignore`). Ne jamais committer de
 secret réel dans `.env.example`.
@@ -149,9 +150,23 @@ pnpm run start                     # démarre next start (par défaut sur le por
 ```
 
 Configurer un process manager (systemd, PM2, ou équivalent) pour superviser `pnpm run start`,
-et exposer le port via un reverse proxy (nginx/Caddy) en HTTPS. Pour appliquer les quotas par
-IP, le proxy doit écraser les en-têtes entrants `x-real-ip` et `x-forwarded-for` avec l'adresse
-client vérifiée ; sans IP fiable, les quotas par adresse e-mail ou token restent appliqués.
+et exposer le port via un reverse proxy (nginx/Caddy) en HTTPS. L'application ne fait confiance
+à aucune adresse IP d'en-tête par défaut sur un hébergement générique. Pour activer le quota IP,
+définir `TRUSTED_PROXY_IP=true` uniquement si le proxy est le seul accès à l'application et
+remplace `x-real-ip` par l'adresse du client qu'il a vérifiée ; `x-forwarded-for` n'est jamais
+utilisé par l'application. Sans cette configuration, le quota IP est ignoré sans regrouper les
+requêtes dans un compartiment commun, tandis que les quotas par adresse e-mail et par jeton
+restent appliqués. Cette règle s'applique aussi aux quotas par IP du portail OTP client ; la
+limite de demande par adresse e-mail et le nombre d'essais par code restent indépendants.
+
+Sur Vercel, activer l'accès aux variables système du projet afin que `VERCEL=1` soit défini.
+L'application lit alors uniquement `x-vercel-forwarded-for`. Vercel documente cette adresse
+comme l'IP publique du client et indique que son `x-forwarded-for` est remplacé pour empêcher
+l'usurpation ([en-têtes de requête](https://vercel.com/docs/headers/request-headers),
+[variables système](https://vercel.com/docs/environment-variables/system-environment-variables)).
+Ne pas activer `TRUSTED_PROXY_IP` sur Vercel ; si un proxy externe est placé devant la
+plateforme, vérifier la chaîne de confiance et ne pas transmettre au code une adresse fournie
+par le client.
 
 ## 8. Checklist avant mise en production
 

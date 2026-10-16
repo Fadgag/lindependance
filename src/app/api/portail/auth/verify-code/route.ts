@@ -33,12 +33,15 @@ export async function POST(request: Request) {
 
   const secret = getCustomerPortalSecret()
   const now = new Date()
-  const allowed = await consumePortalRateLimits([{
-    scope: 'otp-ip-request',
-    keyHash: hashRateLimitKey('ip', getRequestIp(request), secret),
-    limit: 10,
-    windowMilliseconds: IP_WINDOW_MS,
-  }], now)
+  const requestIp = getRequestIp(request)
+  const allowed = requestIp
+    ? await consumePortalRateLimits([{
+      scope: 'otp-ip-request',
+      keyHash: hashRateLimitKey('ip', requestIp, secret),
+      limit: 10,
+      windowMilliseconds: IP_WINDOW_MS,
+    }], now)
+    : true
   if (!allowed) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
   }
