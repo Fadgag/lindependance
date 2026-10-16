@@ -242,6 +242,32 @@ en cours de traitement.
   - Les réponses publiques ne révèlent pas si une adresse possède un compte.
   - Les demandes répétées ne peuvent pas envoyer indéfiniment des e-mails ni invalider le lien de réinitialisation sans contrôle.
 
+#### Stocker les jetons de réinitialisation sous forme de condensat (#102)
+
+- **Type :** Bug
+- **Statut :** Implémenté localement — migration des jetons historiques documentée pour chaque base déployée.
+- **Constat :** Les jetons de réinitialisation encore valides sont stockés en clair dans la base.
+- **Comportement attendu :** Seul un condensat SHA-256 est conservé ; le jeton aléatoire de 32 octets expire après une heure, reste à usage unique et ne peut être consommé qu'une fois même en cas de requêtes concurrentes.
+- **Impact :** Une lecture de la base ou d'une sauvegarde expose les liens de réinitialisation encore valides.
+- **Critères d'acceptation :**
+  - Les nouveaux jetons sont stockés sous forme de condensat et le lien envoyé conserve le jeton original.
+  - La mise à jour du mot de passe et la consommation du jeton sont atomiques.
+  - Un script idempotent condense les jetons historiques sans changer leur expiration ni invalider les liens déjà envoyés.
+- **Résultat :** Tests ciblés couvrant le stockage du condensat, les jetons expirés et deux consommations concurrentes ; voir `scripts/hash-password-reset-tokens.ts` pour la migration après déploiement.
+
+#### Fiabiliser l'adresse IP utilisée pour le rate limiting derrière un proxy (#106)
+
+- **Type :** Bug
+- **Statut :** Implémenté localement — la disponibilité de `VERCEL=1` dans le projet Vercel doit être confirmée au déploiement.
+- **Constat :** Les en-têtes IP reçus du client étaient utilisés sans déterminer s'ils provenaient d'un proxy de confiance.
+- **Comportement attendu :** Vercel utilise `x-vercel-forwarded-for` uniquement avec son indicateur système ; l'auto-hébergement ne lit `x-real-ip` qu'après activation explicite et remplacement de l'en-tête par un proxy de confiance. Sans IP fiable, les limites par e-mail et par jeton/code continuent sans compartiment IP partagé.
+- **Impact :** Un client pouvait forger les en-têtes IP et contourner les quotas par adresse.
+- **Critères d'acceptation :**
+  - Des en-têtes forgés sont ignorés si aucun proxy de confiance n'est configuré.
+  - Une IP invalide ou une chaîne d'IP n'est pas utilisée pour le quota.
+  - Les limites par e-mail et jeton restent appliquées en l'absence d'IP fiable, y compris le quota email et les essais par OTP du portail client.
+- **Résultat :** Les tests ciblés couvrent les en-têtes Vercel, l'activation explicite auto-hébergée, l'absence d'IP fiable et les quotas OTP du portail ; voir `documentation/deploiement.md`.
+
 ### Vérifications manuelles bêta restantes
 
 Les développements concernés sont implémentés. Il reste à effectuer les

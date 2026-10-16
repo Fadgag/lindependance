@@ -71,4 +71,14 @@ describe('POST /api/portail/auth/verify-code', () => {
     expect(response.status).toBe(400)
     expect(response.headers.get('set-cookie')).toBeNull()
   })
+
+  it('does not create a shared IP bucket when no trusted proxy IP is available', async () => {
+    vi.mocked(portalServiceMock.getRequestIp).mockReturnValue(null)
+
+    const response = await POST(verifyCode())
+
+    expect(response.status).toBe(200)
+    expect(consumePortalRateLimits).not.toHaveBeenCalled()
+    expect(consumeCustomerOtp).toHaveBeenCalledOnce()
+  })
 })

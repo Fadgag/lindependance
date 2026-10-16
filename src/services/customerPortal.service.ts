@@ -11,6 +11,7 @@ import {
   type CustomerPortalSession,
 } from '@/lib/customerPortalSecurity'
 import { prisma } from '@/lib/prisma'
+import { getTrustedClientIp } from '@/lib/trustedClientIp'
 
 export const CUSTOMER_PORTAL_SESSION_COOKIE = 'customer_portal_session'
 
@@ -180,12 +181,8 @@ export function clearCustomerPortalSessionCookie(response: Response): Response {
   return response
 }
 
-export function getRequestIp(request: Request): string {
-  const realIp = request.headers.get('x-real-ip')?.trim()
-  if (realIp && realIp.length <= 128) return realIp
-
-  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-  return forwardedFor && forwardedFor.length <= 128 ? forwardedFor : 'unknown'
+export function getRequestIp(request: Request): string | null {
+  return getTrustedClientIp(request)
 }
 
 function isSerializationFailure(error: unknown): boolean {
