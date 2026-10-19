@@ -507,6 +507,18 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 - **Amélioration souhaitée :** Conserver la vérification par code et aider le client à contacter le salon s'il ne reçoit pas son code, sans révéler si une fiche correspond à l'adresse saisie.
 - **Résultat :** Le téléphone et l'e-mail publics se configurent depuis les réglages du portail. Une aide neutre et les coordonnées disponibles sont affichées sans révéler si une fiche correspond à l'adresse saisie.
 
+#### Augmenter les quotas OTP pour les essais en préproduction
+
+- **Type :** Amélioration
+- **Statut :** Réalisée — limites vérifiées par les tests ciblés et le contrôle TypeScript.
+- **Priorité initiale :** P2
+- **Constat :** Les limites standard de demande de code ralentissent les essais répétés du parcours client en préproduction.
+- **Amélioration souhaitée :** Augmenter les quotas OTP uniquement sur la preview Vercel de la branche `preprod`, sans affaiblir la production.
+- **Critères d'acceptation :**
+  - La preview Vercel de `preprod` accepte 10 demandes par adresse sur 15 minutes et 30 demandes ou vérifications par IP sur une heure.
+  - La production, les autres previews et l'environnement local conservent les limites standard de 3 demandes par adresse et 10 opérations OTP par IP ; le maximum de 5 essais par code ne change pas.
+- **Résultat :** Les quotas sont sélectionnés côté serveur à partir de `VERCEL_ENV` et `VERCEL_GIT_COMMIT_REF` ; aucun réglage externe ou changement de quota en production n'est nécessaire.
+
 ### Afficher l'identité du salon sur la page de réservation
 
 - **Statut :** Réalisée

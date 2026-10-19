@@ -44,7 +44,10 @@ Créer ou demander les données de test suivantes dans l'interface staff :
 
 Utiliser une boîte e-mail contrôlée par l'équipe bêta pour recevoir les OTP et
 confirmations. Garder les scénarios de quota sur une adresse et une IP dédiées ;
-ne pas épuiser les quotas d'autres testeurs.
+ne pas épuiser les quotas d'autres testeurs. En préproduction, la limite de
+recette est de 10 demandes par adresse sur 15 minutes et 30 demandes par IP sur
+une heure (les demandes de code et vérifications sont comptées ensemble) ; en
+production, les limites restent de 3 par adresse et 10 par IP.
 
 **Fiche de campagne :** build/commit : `________` · testeur : `________` ·
 date : `________` · navigateur/appareil : `________` · organisation : `________`
