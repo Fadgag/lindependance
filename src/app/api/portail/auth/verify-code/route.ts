@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getCustomerPortalOtpRateLimits } from '@/domain/customer-portal/rateLimit'
 import { CustomerPortalOtpVerificationSchema } from '@/schemas/customerPortal'
 import {
   createCustomerPortalSession,
@@ -33,10 +34,14 @@ export async function POST(request: Request) {
 
   const secret = getCustomerPortalSecret()
   const now = new Date()
+  const limits = getCustomerPortalOtpRateLimits({
+    vercelEnvironment: process.env.VERCEL_ENV,
+    gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+  })
   const allowed = await consumePortalRateLimits([{
     scope: 'otp-ip-request',
     keyHash: hashRateLimitKey('ip', getRequestIp(request), secret),
-    limit: 10,
+    limit: limits.ipLimit,
     windowMilliseconds: IP_WINDOW_MS,
   }], now)
   if (!allowed) {

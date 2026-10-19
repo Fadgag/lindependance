@@ -128,10 +128,14 @@ client doit d'abord être créé par le staff.
      Aucune fiche n'est créée ou modifiée par le parcours public.
 - Politique de sécurité OTP : code numérique à usage unique, expiration courte
   (10 minutes), maximum 5 essais par code, invalidation du code précédent lors
-  d'un renvoi ; limiter l'envoi à **3 emails OTP par adresse sur 15 minutes**
-  et **10 demandes par IP sur une heure**. Les limites doivent être appliquées
-  côté serveur ; dépasser une limite retourne une erreur explicite sans révéler
-  si la fiche existe.
+  d'un renvoi ; les limites standard d'envoi sont **3 emails OTP par adresse
+  sur 15 minutes** et **10 demandes ou vérifications OTP par IP sur une
+  heure**. Seule la preview Vercel de la branche `preprod` utilise les plafonds
+  de recette de **10 demandes par adresse sur 15 minutes** et **30 demandes ou
+  vérifications par IP sur une heure**. Les autres environnements, notamment
+  Production, conservent les limites standard. Les limites doivent être
+  appliquées côté serveur ; dépasser une limite retourne une erreur explicite
+  sans révéler si la fiche existe.
 
 ### 3. Parcours de réservation (`/portail`)
 - `/portail/[organizationSlug]/reserver` : sélection obligatoire d'une
@@ -413,8 +417,11 @@ client doit d'abord être créé par le staff.
   fiches préexistantes sur lesquelles le staff a renseigné l'email vérifié
   peuvent être sélectionnées pour réserver ou consulter leurs rendez-vous.
 - [ ] Rate limiting sur `/api/portail/auth/request-code` et
-  `/api/portail/auth/verify-code` : maximum 3 emails OTP par adresse sur 15
-  minutes, 10 demandes par IP sur une heure et 5 essais par code.
+  `/api/portail/auth/verify-code` : limites standard de 3 emails OTP par
+  adresse sur 15 minutes, 10 demandes/vérifications par IP sur une heure et
+  5 essais par code ; seule la preview Vercel de `preprod` porte les plafonds
+  de recette de 10 demandes par adresse et 30 demandes/vérifications par IP,
+  sans changer les 5 essais par code.
 - [ ] Validation Zod stricte des créneaux côté serveur pour empêcher le
   double-booking, **au sein d'une transaction Serializable** (cf. §4bis) —
   revérification du conflit au moment de l'insertion et de l'approbation
@@ -455,8 +462,11 @@ client doit d'abord être créé par le staff.
   peuvent accéder au portail via OTP email.
 - Annulation client autorisée à plus de 24 heures ; à 24 heures ou moins,
   contacter le staff.
-- Quotas OTP : 3 envois par adresse sur 15 minutes, 10 demandes par IP/heure
-  et 5 essais par code.
+- Quotas OTP standard : 3 envois par adresse sur 15 minutes, 10 demandes par
+  IP/heure (demande ou vérification) et 5 essais par code. Seule la preview
+  Vercel de `preprod` utilise 10 envois par adresse/15 minutes et 30 demandes
+  ou vérifications par IP/heure pour la recette ; les autres environnements
+  conservent les limites standard.
 - Chaque praticien de l'organisation peut réaliser chaque prestation ; les
   spécialités/configurations Staff–Service sont reportées à une évolution
   ultérieure.

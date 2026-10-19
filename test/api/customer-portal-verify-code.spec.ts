@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { portalServiceMock } = vi.hoisted(() => ({
   portalServiceMock: {
@@ -48,6 +48,10 @@ beforeEach(() => {
   process.env.NEXTAUTH_SECRET = 'test-customer-portal-secret'
 })
 
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
 describe('POST /api/portail/auth/verify-code', () => {
   it('issues a signed CUSTOMER-only cookie after an OTP is atomically consumed', async () => {
     const response = await POST(verifyCode())
@@ -71,4 +75,29 @@ describe('POST /api/portail/auth/verify-code', () => {
     expect(response.status).toBe(400)
     expect(response.headers.get('set-cookie')).toBeNull()
   })
+
+  it.each([
+    { vercelEnvironment: 'preview', gitCommitRef: 'preprod', ipLimit: 30 },
+    { vercelEnvironment: 'production', gitCommitRef: 'preprod', ipLimit: 10 },
+    { vercelEnvironment: 'preview', gitCommitRef: 'feature/other', ipLimit: 10 },
+  ])(
+    'uses the expected IP limit for $vercelEnvironment on $gitCommitRef',
+    async ({ vercelEnvironment, gitCommitRef, ipLimit }) => {
+      vi.stubEnv('VERCEL_ENV', vercelEnvironment)
+      vi.stubEnv('VERCEL_GIT_COMMIT_REF', gitCommitRef)
+
+      await POST(verifyCode())
+
+      expect(consumePortalRateLimits).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({
+            scope: 'otp-ip-request',
+            limit: ipLimit,
+            windowMilliseconds: 60 * 60 * 1000,
+          }),
+        ],
+        expect.any(Date),
+      )
+    },
+  )
 })
