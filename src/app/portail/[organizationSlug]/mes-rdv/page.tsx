@@ -18,6 +18,7 @@ export default async function PortalAppointmentsPage({
         <PortalBrandIdentity organizationName={organization.name} branding={organization} />
       </div>
       <PortalAppointments
+        key={organizationSlug}
         organizationSlug={organizationSlug}
         organizationTimezone={organization.timezone}
       />

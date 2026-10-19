@@ -200,15 +200,18 @@ l'import dans une application calendrier sont à vérifier manuellement.
 **Résultat / preuve :** `________`
 
 #### [ ] CUS-11 — Retrouver vos prochains rendez-vous
-**Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2]
+**Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2, 6]
 
 **Étapes :** ouvrez la page « Mes rendez-vous » après avoir pris un rendez-vous
-et vérifiez la liste affichée. Comparez le nom et le logo du salon avec ceux
-de la page de réservation.
+dans `ORG-A` et vérifiez la liste affichée. Dans le même navigateur, ouvrez
+ensuite « Mes rendez-vous » pour `ORG-B` sans vous identifier auprès de ce
+salon, puis rechargez la page.
 
 **Attendu :** vos prochains rendez-vous apparaissent du plus proche au plus
-lointain, avec la bonne prestation, le bon coiffeur et le bon horaire. Le nom
-et le logo du salon conservent la même présentation que sur la réservation.
+lointain, avec les informations de `ORG-A`. Le portail de `ORG-B` n'affiche
+aucun rendez-vous de `ORG-A`, y compris après rechargement, et invite à
+vérifier votre adresse pour `ORG-B`. Le nom et le logo affichés restent ceux
+du portail consulté.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts`,
 `test/api/customer-portal-appointments.spec.ts`,

@@ -16,16 +16,21 @@ vi.mock('@/services/customerPortalAppointments.service', () => appointmentsServi
 
 import { GET } from '@/app/api/portail/rdv/route'
 import { DELETE } from '@/app/api/portail/rdv/[id]/route'
-import { getCustomerPortalSession } from '@/services/customerPortal.service'
+import {
+  CustomerPortalHttpError,
+  getCustomerPortalSession,
+} from '@/services/customerPortal.service'
 import {
   cancelCustomerPortalAppointment,
   getCustomerPortalAppointments,
 } from '@/services/customerPortalAppointments.service'
 
+const organizationA = { id: 'org-test-a', slug: 'salon-test-a' }
+const organizationB = { id: 'org-test-b', slug: 'salon-test-b' }
 const session = {
   accountType: 'CUSTOMER' as const,
-  organizationId: 'org-1',
-  verifiedEmail: 'parent@example.com',
+  organizationId: organizationA.id,
+  verifiedEmail: 'synthetic-customer@example.test',
   expiresAt: Date.now() + 60_000,
 }
 const routeContext = { params: Promise.resolve({ id: 'appointment-1' }) }
@@ -53,9 +58,12 @@ beforeEach(() => {
 
 describe('GET /api/portail/rdv', () => {
   it('returns a strict customer appointment projection scoped to session identity', async () => {
-    const response = await GET(new Request('https://example.test/api/portail/rdv?customerId=other-customer'))
+    const response = await GET(new Request(
+      `https://example.test/api/portail/rdv?organizationSlug=${organizationA.slug}&customerId=${organizationB.id}`,
+    ))
 
     expect(response.status).toBe(200)
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store')
     expect(await response.json()).toEqual({
       timezone: 'Europe/Paris',
       appointments: [{
@@ -73,9 +81,36 @@ describe('GET /api/portail/rdv', () => {
       }],
     })
     expect(getCustomerPortalAppointments).toHaveBeenCalledWith({
-      organizationId: 'org-1',
-      verifiedEmail: 'parent@example.com',
+      organizationId: organizationA.id,
+      organizationSlug: organizationA.slug,
+      verifiedEmail: 'synthetic-customer@example.test',
     })
+  })
+
+  it('rejects an organization A session when the requested portal is organization B', async () => {
+    vi.mocked(getCustomerPortalAppointments).mockRejectedValueOnce(
+      new CustomerPortalHttpError(404, 'Portal not found'),
+    )
+
+    const response = await GET(new Request(
+      `https://example.test/api/portail/rdv?organizationSlug=${organizationB.slug}`,
+    ))
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+    expect(await response.json()).toEqual({ error: 'Portal not found' })
+    expect(getCustomerPortalAppointments).toHaveBeenCalledWith({
+      organizationId: organizationA.id,
+      organizationSlug: organizationB.slug,
+      verifiedEmail: 'synthetic-customer@example.test',
+    })
+  })
+
+  it('requires a valid organization slug before querying appointments', async () => {
+    const response = await GET(new Request('https://example.test/api/portail/rdv'))
+
+    expect(response.status).toBe(400)
+    expect(getCustomerPortalAppointments).not.toHaveBeenCalled()
   })
 
   it('requires a customer-only session', async () => {
@@ -99,8 +134,8 @@ describe('DELETE /api/portail/rdv/[id]', () => {
     expect(await response.json()).toEqual({ ok: true })
     expect(cancelCustomerPortalAppointment).toHaveBeenCalledWith({
       appointmentId: 'appointment-1',
-      organizationId: 'org-1',
-      verifiedEmail: 'parent@example.com',
+      organizationId: organizationA.id,
+      verifiedEmail: 'synthetic-customer@example.test',
     })
   })
 

@@ -49,9 +49,19 @@ export default function PortalAppointments({
 
   useEffect(() => {
     const controller = new AbortController()
-    void fetch('/api/portail/rdv', { credentials: 'include', signal: controller.signal })
+    const query = new URLSearchParams({ organizationSlug }).toString()
+    setAppointments([])
+    setTimezone(organizationTimezone)
+    setLoading(true)
+    setAuthenticated(null)
+    setError('')
+    void fetch(`/api/portail/rdv?${query}`, {
+      cache: 'no-store',
+      credentials: 'include',
+      signal: controller.signal,
+    })
       .then(async (response) => {
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 404) {
           setAuthenticated(false)
           return
         }
@@ -74,7 +84,7 @@ export default function PortalAppointments({
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [])
+  }, [organizationSlug, organizationTimezone])
 
   async function cancelAppointment(appointmentId: string) {
     setCancellingId(appointmentId)
