@@ -491,6 +491,21 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Portail client — accès, réservation et coordonnées
 
+#### Empêcher l'affichage des rendez-vous d'un autre salon
+
+- **Type :** Bug
+- **Statut :** Correction implémentée et vérifiée par tests automatisés avec deux organisations synthétiques le 20 octobre 2026. L'incident exact n'a pas été rejoué dans la base de préproduction ; aucune donnée de cette base ni de production n'a été consultée.
+- **Priorité initiale :** P1 — confidentialité / isolation inter-organisation.
+- **Comportement rapporté :** La page « Mes rendez-vous » d'un salon affichait son identité visuelle avec les rendez-vous de l'organisation portée par une session client déjà ouverte, y compris après rechargement.
+- **Cause confirmée dans le code :** La page transmettait le slug du salon à son affichage, mais la requête `GET /api/portail/rdv` ne transmettait ni ne contrôlait ce slug. Le serveur filtrait bien les rendez-vous par l'organisation et l'adresse vérifiée de la session ; il pouvait donc retourner les rendez-vous de cette session sous l'identité visuelle d'un autre salon. Le symptôme rapporté n'a pas été reproduit sur les données réelles de préproduction.
+- **Comportement attendu :** La liste est retournée uniquement si le slug demandé correspond à l'organisation de la session OTP. Un décalage ne retourne aucune donnée et la page invite à s'identifier auprès du salon demandé.
+- **Reproduction automatisée :** Une session synthétique de `ORG-A` demande la liste de `ORG-B`; l'API refuse la réponse avant la recherche de rendez-vous et l'interface ne conserve aucune carte de `ORG-A` après navigation vers `ORG-B`.
+- **Critères de vérification :**
+  - Le slug du portail est validé et contrôlé côté serveur avec l'organisation de la session.
+  - Un décalage entre organisations ne retourne aucun rendez-vous.
+  - Une navigation ou un rechargement ne réaffiche jamais la liste de l'organisation précédente sous une autre identité visuelle.
+  - Les réponses contenant la liste ne sont pas mises en cache par le navigateur.
+
 #### Rendre le portail indisponible sans praticien actif
 
 - **Statut :** Réalisée

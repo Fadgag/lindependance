@@ -289,10 +289,12 @@ client doit d'abord être créé par le staff.
 - `GET /api/portail/[organizationSlug]/creneaux?serviceId=&staffId=&date=`
   (créneaux disponibles pour la prestation et, lorsque nécessaire, le
   praticien sélectionnés ; la durée est lue en base depuis `Service`).
-- `GET /api/portail/rdv` (client authentifié) : retourne uniquement les RDV
-  futurs non annulés des fiches reliées au couple
+- `GET /api/portail/rdv?organizationSlug=<slug>` (client authentifié) :
+  vérifie que le slug demandé correspond à l'organisation de la session avant
+  de retourner les RDV futurs non annulés des fiches reliées au couple
   `(session.organizationId, session.verifiedEmail)`, avec une projection
-  explicite des champs nécessaires à l'écran "Mes RDV".
+  explicite des champs nécessaires à l'écran "Mes RDV". Un décalage retourne
+  `404` sans rechercher de rendez-vous. La réponse n'est pas mise en cache.
 - `POST /api/portail/rdv` (création RDV pour une fiche choisie parmi celles
   reliées au couple `(session.organizationId, session.verifiedEmail)` ; le
   serveur valide cette appartenance, recharge le service et le staff depuis la
@@ -525,10 +527,11 @@ client doit d'abord être créé par le staff.
    demander un OTP email, consulter les rendez-vous de ces fiches après
    vérification et se reconnecter plus tard par un nouvel OTP. Une adresse sans
    fiche ne peut pas ouvrir de session ni réserver.
-2. `GET /api/portail/rdv` retourne uniquement les RDV futurs non annulés des
-   fiches reliées à l'email et l'organisation de la session OTP ; aucun
-   paramètre client ne peut élargir ce périmètre ni révéler les RDV d'autres
-   fiches.
+2. `GET /api/portail/rdv?organizationSlug=<slug>` retourne uniquement les RDV
+   futurs non annulés des fiches reliées à l'email et l'organisation de la
+   session OTP, et seulement si le slug demandé correspond à cette
+   organisation ; aucun paramètre client ne peut élargir ce périmètre ni
+   révéler les RDV d'autres fiches.
 3. Un client choisit une prestation ; le serveur calcule l'heure de fin depuis
    sa durée stockée et ne propose que les créneaux sans chevauchement avec les
    RDV actifs ou indisponibilités du praticien. Après réservation, le créneau

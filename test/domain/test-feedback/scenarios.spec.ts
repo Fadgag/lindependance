@@ -95,6 +95,8 @@ describe('test scenario groups', () => {
         .filter(({ id }) => Number(id.slice(-2)) <= 10)
         .map(({ id }) => id),
     )
+    expect(filterScenariosByGroups(userScenarios, ['APPOINTMENTS_AND_CHANGES'])
+      .map(({ id }) => id)).toContain('CUS-11')
     expect(filterScenariosByGroups(adminScenarios, ['STAFF_ADMINISTRATION'])).toEqual(adminScenarios)
   })
 
