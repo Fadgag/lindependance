@@ -562,6 +562,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ## Traités
 
+### [#103](https://github.com/Fadgag/lindependance/issues/103) Ne pas exposer les messages d'erreur internes dans les réponses API
+
+- **Type :** Bug
+- **Statut :** Corrigé localement ; tests ciblés, lint et vérification TypeScript réussis.
+- **Comportement observé :** Les réponses HTTP 500 centralisées renvoyaient le message de l'exception dans le champ `detail`.
+- **Comportement attendu :** La réponse 500 reste générique ; les erreurs métier explicitement prévues conservent leur réponse et les détails utiles restent dans les logs serveur.
+- **Étapes de reproduction :** Déclencher une erreur interne dans une route API utilisant `apiErrorResponse` et lire son corps JSON.
+- **Impact :** Un client API pouvait obtenir des détails techniques issus d'une exception serveur.
+- **Critères d'acceptation :**
+  - Les réponses 500 ne contiennent aucun message d'exception ni champ de détail interne.
+  - Les erreurs métier explicitement prévues conservent leur statut et leur message.
+  - L'exception reste journalisée côté serveur pour le diagnostic.
+
 ### Afficher des erreurs explicites dans les popups
 
 - **Parcours couverts :** Rendez-vous (création, modification, déplacement, suppression), encaissement, indisponibilités et paramètres d’horaires et d’objectif financier.
