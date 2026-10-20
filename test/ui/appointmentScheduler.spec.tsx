@@ -73,7 +73,7 @@ describe('AppointmentScheduler responsive layout', () => {
 
     const calendar = await screen.findByTestId('calendar')
     expect(calendar).toHaveAttribute('data-initial-view', 'timeGridDay')
-    expect(calendar).toHaveAttribute('data-day-min-width', '64')
+    expect(calendar).not.toHaveAttribute('data-day-min-width')
     expect(calendar).toHaveAttribute('data-header-view-controls', 'timeGridDay,timeGridWeek')
   })
 

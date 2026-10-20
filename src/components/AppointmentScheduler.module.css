@@ -1,13 +1,4 @@
-.scrollHint {
-  display: none;
-}
-
 @media (max-width: 639px) {
-  .scrollHint {
-    display: block;
-    margin: 0 0 0.4rem;
-  }
-
   .calendar :global(.fc-header-toolbar) {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
