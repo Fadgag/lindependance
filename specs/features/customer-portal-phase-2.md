@@ -11,9 +11,13 @@ associées à son email vérifié et d'annuler en ligne les rendez-vous admissib
 
 ## Scope
 - Page `/portail/[organizationSlug]/mes-rdv`.
-- `GET /api/portail/rdv` résout en base les fiches par
-  `(session.organizationId, session.verifiedEmail)` et ne retourne que leurs
-  rendez-vous futurs non annulés, triés du plus proche au plus lointain.
+- `GET /api/portail/rdv?organizationSlug=<slug>` vérifie que le slug demandé
+  correspond à l'organisation active de la session OTP avant de résoudre en
+  base les fiches par `(session.organizationId, session.verifiedEmail)`. Un
+  décalage entre le slug et la session retourne `404` sans lancer la recherche
+  de rendez-vous. La réponse est privée et non mise en cache.
+- La page « Mes rendez-vous » transmet son slug courant et ne conserve pas la
+  liste d'une autre organisation lors d'une navigation entre salons.
 - Afficher pour chaque rendez-vous le membre de la famille concerné, la
   prestation, le praticien, la date/heure dans le fuseau de l'organisation et
   le statut.
@@ -37,7 +41,8 @@ associées à son email vérifié et d'annuler en ligne les rendez-vous admissib
 ## Definition of Done — Phase 2
 1. Le client voit les rendez-vous futurs non annulés de toutes les fiches
    associées à son email dans cette organisation, et aucun rendez-vous d'une
-   fiche non associée.
+   fiche non associée. Le slug demandé correspond à l'organisation de la
+   session OTP.
 2. Les rendez-vous sont ordonnés chronologiquement et distinguent chaque
    membre de la famille.
 3. L'annulation à plus de 24h fonctionne ; à 24h ou moins, elle est refusée
@@ -46,3 +51,7 @@ associées à son email vérifié et d'annuler en ligne les rendez-vous admissib
    l'absence de forfait ou une annulation refusée ne modifie pas les crédits.
 5. Un client ne peut pas annuler un rendez-vous d'une autre organisation ou
    d'une fiche non reliée à son email vérifié.
+6. Une session de l'organisation A ne reçoit et n'affiche aucun rendez-vous
+   d'A sous le portail de l'organisation B, y compris après navigation et
+   rechargement ; le client doit s'identifier auprès de B pour consulter ses
+   rendez-vous.

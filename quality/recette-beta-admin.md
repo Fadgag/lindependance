@@ -33,6 +33,7 @@ Préparer dans l'interface staff et avec l'équipe technique :
 | `ORG-A` / `ORG-B` | Deux organisations actives distinctes ; compte staff dédié dans chacune. |
 | `TECH-ADMIN` | Compte technique habilité à consulter et traiter les signalements de toutes les organisations ; préparer des signalements `Nouveau`, `En cours` et `Résolu` dans `ORG-A` et `ORG-B`. |
 | `RATE-LIMIT-STAFF` / `UNKNOWN-EMAIL` | Compte staff de test avec boîte e-mail contrôlée, adresse de test sans compte, et IP dédiée pour vérifier les limites sans affecter les autres testeurs. |
+| `TEST-STAFF-INVITATION` | Avec `TECH-ADMIN`, créer un salon de test sur la preview de `preprod`, choisir le rôle `ADMIN` et une boîte de test contrôlée dont l'équipe autorise explicitement l'envoi. |
 | Portail `ORG-A` | Activé avec slug et fuseau connus ; préparer aussi `ORG-SOLO` si le test des praticiens mono-staff est nécessaire. |
 | Praticiens et services | Deux praticiens actifs, un inactif, services de 30 et 60 minutes, horaires connus. |
 | Demandes | Plusieurs demandes `PENDING`, une demande déjà rejetée et une demande approuvée. |
@@ -414,6 +415,24 @@ répétées.
 `test/api/auth-rate-limit.spec.ts`. Les seuils réels, l'envoi par Resend et
 l'expiration du lien restent à vérifier en bêta avec le compte, la boîte et
 l'IP dédiés.
+**Résultat / preuve :** `________`
+
+#### [ ] ADM-22 — Activer un compte staff créé pour un salon de test
+**Priorité : P1 · Exigence :** [Req: formal — `test-staff-provisioning.md`, critères 3–7]
+
+**Étapes :** utilisez l'e-mail d'activation reçu sur la boîte
+`TEST-STAFF-INVITATION`, définissez un mot de passe, puis connectez-vous au
+salon de test. Ouvrez de nouveau le même lien d'activation.
+
+**Attendu :** le lien permet de définir le mot de passe une seule fois. Le
+compte ouvre le salon de test prévu et n'affiche pas les données d'un autre
+salon ; le même lien ne permet pas de recommencer la configuration.
+
+**Automatisé :** `test/api/tech-admin-test-salons.spec.ts`,
+`test/services/testSalonProvisioning.service.spec.ts`,
+`test/services/testStaffActivationEmail.service.spec.ts` et
+`test/ui/TestSalonProvisioningCard.spec.tsx`. Ces tests simulent l'envoi ;
+la boîte contrôlée, le lien réel et la connexion restent à vérifier en bêta.
 **Résultat / preuve :** `________`
 
 ## Couverture automatisée relue

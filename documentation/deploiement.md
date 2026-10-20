@@ -118,6 +118,15 @@ de Production. Pour le domaine stable, `NEXTAUTH_URL` Preview doit être
 configurée spécifiquement pour la branche `preprod` ; aucune URL Preview ne doit
 rediriger vers le domaine Production.
 
+Le portail client conserve les limites OTP standard en Production et sur les
+autres déploiements : 3 demandes par adresse sur 15 minutes et 10 par IP sur
+une heure, ce dernier quota comptant ensemble les demandes de code et les
+vérifications. Seule une requête exécutée sur une Preview Vercel issue de la
+branche `preprod` utilise les plafonds de recette de 10 demandes par adresse
+sur 15 minutes et 30 demandes ou vérifications par IP sur une heure. Le
+maximum de 5 essais par code reste identique partout ; aucun quota n'est
+relevé en Production.
+
 Une fois la préprod validée, une PR de `preprod` vers `main` constitue la
 promotion. Le workflow **Main promotion source** échoue si une PR vers `main`
 ne provient pas de la branche `preprod` du même dépôt. Après fusion, Vercel

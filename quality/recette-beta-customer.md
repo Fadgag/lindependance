@@ -44,7 +44,10 @@ Créer ou demander les données de test suivantes dans l'interface staff :
 
 Utiliser une boîte e-mail contrôlée par l'équipe bêta pour recevoir les OTP et
 confirmations. Garder les scénarios de quota sur une adresse et une IP dédiées ;
-ne pas épuiser les quotas d'autres testeurs.
+ne pas épuiser les quotas d'autres testeurs. En préproduction, la limite de
+recette est de 10 demandes par adresse sur 15 minutes et 30 demandes par IP sur
+une heure (les demandes de code et vérifications sont comptées ensemble) ; en
+production, les limites restent de 3 par adresse et 10 par IP.
 
 **Fiche de campagne :** build/commit : `________` · testeur : `________` ·
 date : `________` · navigateur/appareil : `________` · organisation : `________`
@@ -197,15 +200,18 @@ l'import dans une application calendrier sont à vérifier manuellement.
 **Résultat / preuve :** `________`
 
 #### [ ] CUS-11 — Retrouver vos prochains rendez-vous
-**Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2]
+**Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2, 6]
 
 **Étapes :** ouvrez la page « Mes rendez-vous » après avoir pris un rendez-vous
-et vérifiez la liste affichée. Comparez le nom et le logo du salon avec ceux
-de la page de réservation.
+dans `ORG-A` et vérifiez la liste affichée. Dans le même navigateur, ouvrez
+ensuite « Mes rendez-vous » pour `ORG-B` sans vous identifier auprès de ce
+salon, puis rechargez la page.
 
 **Attendu :** vos prochains rendez-vous apparaissent du plus proche au plus
-lointain, avec la bonne prestation, le bon coiffeur et le bon horaire. Le nom
-et le logo du salon conservent la même présentation que sur la réservation.
+lointain, avec les informations de `ORG-A`. Le portail de `ORG-B` n'affiche
+aucun rendez-vous de `ORG-A`, y compris après rechargement, et invite à
+vérifier votre adresse pour `ORG-B`. Le nom et le logo affichés restent ceux
+du portail consulté.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts`,
 `test/api/customer-portal-appointments.spec.ts`,

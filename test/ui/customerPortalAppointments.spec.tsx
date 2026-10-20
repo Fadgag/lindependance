@@ -94,6 +94,31 @@ describe('PortalAppointments', () => {
     expect(await screen.findByText('Identifiez-vous pour consulter vos rendez-vous.')).toBeInTheDocument()
   })
 
+  it('does not keep organization A appointments when opening organization B portal', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockResolvedValueOnce(response(appointments))
+    fetchMock.mockResolvedValueOnce(response({ error: 'Portal not found' }, 404))
+
+    const renderPortal = (organizationSlug: string) => (
+      <PortalAppointments
+        key={organizationSlug}
+        organizationSlug={organizationSlug}
+        organizationTimezone="Europe/Paris"
+      />
+    )
+    const { rerender } = render(renderPortal('salon-test-a'))
+
+    expect(await screen.findAllByTestId('portal-appointment')).toHaveLength(2)
+    rerender(renderPortal('salon-test-b'))
+
+    expect(await screen.findByText('Identifiez-vous pour consulter vos rendez-vous.')).toBeInTheDocument()
+    expect(screen.queryByTestId('portal-appointment')).not.toBeInTheDocument()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/portail/rdv?organizationSlug=salon-test-b',
+      expect.objectContaining({ cache: 'no-store', credentials: 'include' }),
+    )
+  })
+
   it('does not offer a change request for a paid appointment', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(response({
       ...appointments,

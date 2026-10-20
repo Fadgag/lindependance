@@ -309,7 +309,7 @@ Les vérifications bêta restantes sont suivies dans l'[Issue de campagne](https
   - Le domaine est vérifié et associé à une seule organisation avant activation.
   - Le lien actuel avec slug reste utilisable jusqu'à l'activation du domaine personnalisé.
   - Le portail peut être résolu à partir du domaine personnalisé de chaque organisation, sans logique spécifique à un salon.
-  - Le prix et les modalités de facturation éventuels sont définis.
+  - Le prix et les modalités de facturation sont définis avant toute mise en vente de l'option.
 
 ### Portail client — identité visuelle
 
@@ -378,6 +378,20 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Qualité terrain — retours et validation
 
+#### Provisionner un compte staff avec un salon de test
+
+- **Type :** Amélioration
+- **Statut :** Implémentée localement — vérification manuelle en bêta avec une boîte de test contrôlée encore à effectuer.
+- **Priorité proposée :** P1
+- **Constat :** Le `TECH_ADMIN` peut créer un salon de test isolé, mais aucun compte staff ne permet de se connecter au salon pour en vérifier les parcours.
+- **Amélioration souhaitée :** Créer dans le même parcours un compte staff normal, puis lui envoyer un lien à usage unique pour définir son mot de passe.
+- **Critères d'acceptation :**
+  - Seul un `TECH_ADMIN` sur la preview de `preprod` peut lancer le provisionnement ; le compte est rattaché au salon créé côté serveur.
+  - Le rôle `USER` est proposé par défaut ; `ADMIN` peut être choisi explicitement et `TECH_ADMIN` ne peut jamais être attribué.
+  - L'adresse est confirmée comme boîte contrôlée avant l'envoi explicite ; aucun mot de passe ni jeton n'est exposé ou journalisé.
+  - L'échec d'envoi est présenté clairement et le parcours réel est vérifié en bêta avec une adresse de test autorisée.
+- **Mise à jour :** `specs/features/test-staff-provisioning.md` décrit le parcours et `ADM-22` couvre l'activation et la connexion. Tests automatisés ciblés validés ; l'envoi réel et la recette bêta restent à effectuer.
+
 #### Permettre à l'utilisateur de signaler un problème ou un bug
 
 - **Type :** Amélioration
@@ -436,6 +450,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Aucune information de salon, invitation, lien public de test ou retour de testeur n’est publiée dans l’Issue, car le dépôt est public.
   - Une erreur d’intégration est signalée sans annuler la création de la campagne.
 - **Mise à jour :** L’API de création et l’interface gèrent la génération et le résultat de la carte. L’activation réelle dépend de la configuration serveur documentée dans `docs/github-project-automation.md`.
+
+#### Figer les scénarios utilisés par une campagne
+
+- **Type :** Amélioration
+- **Statut :** À cadrer
+- **Priorité :** À définir
+- **Effort :** À évaluer
+- **Constat :** Les scénarios d'une campagne sont chargés depuis les guides de recette lors de chaque consultation. Une mise à jour d'un guide peut donc modifier les scénarios d'une campagne déjà lancée.
+- **Amélioration souhaitée :** Enregistrer au lancement la version des guides et un instantané des scénarios utilisés. Une mise à jour des guides ne s'applique qu'aux campagnes créées ensuite.
+- **Critères d'acceptation :**
+  - Une campagne conserve les scénarios et la version des guides utilisés à son lancement.
+  - Une mise à jour ultérieure des guides ne modifie pas les scénarios d'une campagne active ou clôturée.
+  - Une nouvelle campagne utilise les scénarios correspondant aux guides en vigueur lors de son lancement.
 
 #### [#86](https://github.com/Fadgag/lindependance/issues/86) Guider tous les tests par mission et questions étape par étape
 
@@ -517,6 +544,21 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Portail client — accès, réservation et coordonnées
 
+#### Empêcher l'affichage des rendez-vous d'un autre salon
+
+- **Type :** Bug
+- **Statut :** Correction implémentée et vérifiée par tests automatisés avec deux organisations synthétiques le 20 octobre 2026. L'incident exact n'a pas été rejoué dans la base de préproduction ; aucune donnée de cette base ni de production n'a été consultée.
+- **Priorité initiale :** P1 — confidentialité / isolation inter-organisation.
+- **Comportement rapporté :** La page « Mes rendez-vous » d'un salon affichait son identité visuelle avec les rendez-vous de l'organisation portée par une session client déjà ouverte, y compris après rechargement.
+- **Cause confirmée dans le code :** La page transmettait le slug du salon à son affichage, mais la requête `GET /api/portail/rdv` ne transmettait ni ne contrôlait ce slug. Le serveur filtrait bien les rendez-vous par l'organisation et l'adresse vérifiée de la session ; il pouvait donc retourner les rendez-vous de cette session sous l'identité visuelle d'un autre salon. Le symptôme rapporté n'a pas été reproduit sur les données réelles de préproduction.
+- **Comportement attendu :** La liste est retournée uniquement si le slug demandé correspond à l'organisation de la session OTP. Un décalage ne retourne aucune donnée et la page invite à s'identifier auprès du salon demandé.
+- **Reproduction automatisée :** Une session synthétique de `ORG-A` demande la liste de `ORG-B`; l'API refuse la réponse avant la recherche de rendez-vous et l'interface ne conserve aucune carte de `ORG-A` après navigation vers `ORG-B`.
+- **Critères de vérification :**
+  - Le slug du portail est validé et contrôlé côté serveur avec l'organisation de la session.
+  - Un décalage entre organisations ne retourne aucun rendez-vous.
+  - Une navigation ou un rechargement ne réaffiche jamais la liste de l'organisation précédente sous une autre identité visuelle.
+  - Les réponses contenant la liste ne sont pas mises en cache par le navigateur.
+
 #### Rendre le portail indisponible sans praticien actif
 
 - **Statut :** Réalisée
@@ -533,6 +575,18 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 - **Amélioration souhaitée :** Conserver la vérification par code et aider le client à contacter le salon s'il ne reçoit pas son code, sans révéler si une fiche correspond à l'adresse saisie.
 - **Résultat :** Le téléphone et l'e-mail publics se configurent depuis les réglages du portail. Une aide neutre et les coordonnées disponibles sont affichées sans révéler si une fiche correspond à l'adresse saisie.
 
+#### Augmenter les quotas OTP pour les essais en préproduction
+
+- **Type :** Amélioration
+- **Statut :** Réalisée — limites vérifiées par les tests ciblés et le contrôle TypeScript.
+- **Priorité initiale :** P2
+- **Constat :** Les limites standard de demande de code ralentissent les essais répétés du parcours client en préproduction.
+- **Amélioration souhaitée :** Augmenter les quotas OTP uniquement sur la preview Vercel de la branche `preprod`, sans affaiblir la production.
+- **Critères d'acceptation :**
+  - La preview Vercel de `preprod` accepte 10 demandes par adresse sur 15 minutes et 30 demandes ou vérifications par IP sur une heure.
+  - La production, les autres previews et l'environnement local conservent les limites standard de 3 demandes par adresse et 10 opérations OTP par IP ; le maximum de 5 essais par code ne change pas.
+- **Résultat :** Les quotas sont sélectionnés côté serveur à partir de `VERCEL_ENV` et `VERCEL_GIT_COMMIT_REF` ; aucun réglage externe ou changement de quota en production n'est nécessaire.
+
 ### Afficher l'identité du salon sur la page de réservation
 
 - **Statut :** Réalisée
@@ -546,6 +600,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 - **Résultat :** Les pages de campagne et les API de gestion et de retours sont accessibles uniquement sur la preview Vercel de la branche `preprod`. Les contrôles d'accès `TECH_ADMIN` existants restent appliqués aux API de gestion.
 
 ## Traités
+
+### [#103](https://github.com/Fadgag/lindependance/issues/103) Ne pas exposer les messages d'erreur internes dans les réponses API
+
+- **Type :** Bug
+- **Statut :** Corrigé localement ; tests ciblés, lint et vérification TypeScript réussis.
+- **Comportement observé :** Les réponses HTTP 500 centralisées renvoyaient le message de l'exception dans le champ `detail`.
+- **Comportement attendu :** La réponse 500 reste générique ; les erreurs métier explicitement prévues conservent leur réponse et les détails utiles restent dans les logs serveur.
+- **Étapes de reproduction :** Déclencher une erreur interne dans une route API utilisant `apiErrorResponse` et lire son corps JSON.
+- **Impact :** Un client API pouvait obtenir des détails techniques issus d'une exception serveur.
+- **Critères d'acceptation :**
+  - Les réponses 500 ne contiennent aucun message d'exception ni champ de détail interne.
+  - Les erreurs métier explicitement prévues conservent leur statut et leur message.
+  - L'exception reste journalisée côté serveur pour le diagnostic.
 
 ### Afficher des erreurs explicites dans les popups
 
