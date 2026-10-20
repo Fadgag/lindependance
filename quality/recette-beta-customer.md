@@ -56,7 +56,7 @@ date : `________` · navigateur/appareil : `________` · organisation : `_______
 
 ### Accès public et disponibilité
 
-#### [ ] CUS-01 — Ouvrir la réservation du bon salon
+#### [x] CUS-01 — Ouvrir la réservation du bon salon
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, DoD 1]
 
 **Étapes :** ouvrez le lien de réservation reçu et vérifiez que le nom et le
@@ -71,7 +71,9 @@ logo et son adaptation à l'écran. Vous ne voyez aucune information appartenant
 à un autre salon.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts` (lecture publique).
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — le portail Osez l'Etre affiche le nom du salon
+et son logo. Après actualisation, la réservation reste accessible et
+l'identité reste affichée. Campagne « Test Création de rdv 1 », 20/10/2026.
 
 #### [ ] CUS-02 — Choisir une prestation, un coiffeur et un horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, parcours de réservation]
@@ -199,7 +201,7 @@ pas de réservation supplémentaire.
 l'import dans une application calendrier sont à vérifier manuellement.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-11 — Retrouver vos prochains rendez-vous
+#### [x] CUS-11 — Retrouver vos prochains rendez-vous
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2, 6]
 
 **Étapes :** ouvrez la page « Mes rendez-vous » après avoir pris un rendez-vous
@@ -216,7 +218,10 @@ du portail consulté.
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts`,
 `test/api/customer-portal-appointments.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — les deux prochains rendez-vous du compte de test
+s'affichent dans l'ordre chronologique. Dans le portail du salon de test, aucun
+rendez-vous d'Osez l'Etre n'apparaît ; la vérification d'e-mail est demandée,
+y compris après actualisation. Campagne « Test Création de rdv 1 », 20/10/2026.
 
 #### [ ] CUS-12 — Annuler un rendez-vous
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 3–5]
@@ -279,7 +284,7 @@ pendant l'envoi. Vérifier la propagation réelle après décision.
 
 ### Sécurité et expérience
 
-#### [ ] CUS-16 — Vérifier la confidentialité de votre espace
+#### [x] CUS-16 — Vérifier la confidentialité de votre espace
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, sécurité]
 
 **Étapes :** connectez-vous à votre espace client et essayez d'ouvrir une page
@@ -293,7 +298,10 @@ espace client et les informations des autres clients restent privées.
 `test/api/customer-portal-booking.spec.ts`,
 `test/api/customer-portal-appointments.spec.ts`,
 `test/api/customer-portal-change-requests.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — depuis l'espace client, `/agenda` redirige vers
+la connexion staff. La liste client ne montre que les rendez-vous du compte et
+du profil familial de test ; le portail d'un autre salon n'expose aucune donnée
+après actualisation. Campagne « Test Création de rdv 1 », 20/10/2026.
 
 #### [ ] CUS-17 — Utiliser le service sur un téléphone et signaler un problème
 **Priorité : P2 · Exigence :** [Req: formal — `customer-portal.md`, UX et `issue-reporting.md`]

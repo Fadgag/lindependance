@@ -41,6 +41,7 @@ Une fois le code prêt localement, exécute les tests et contrôles ciblés. Si 
 - La liste des fichiers modifiés.
 - Un **CHANGELOG** succinct.
 - Demande le `GO` pour le push final et l'ouverture de la Pull Request.
+- Après le `GO` et la publication, vérifie la CI sur le commit poussé. Si elle échoue, consulte les logs, corrige les régressions confirmées liées au changement et relance la CI; pour les échecs préexistants ou externes, établis les faits et signale-les sans masquer l'échec.
 
 ### 4. Critères d'Acceptation (Validation)
 Ton travail n'est considéré comme terminé que si :

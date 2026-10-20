@@ -62,7 +62,7 @@ L'espace de gestion n'est pas accessible depuis un compte client.
 **Automatisé :** `test/api/appointment-change-requests.spec.ts`,
 `test/api/appointment-portal-count.spec.ts`,
 `test/proxy.portal.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** BLOQUÉ — compte staff connecté sur Osez l'Etre, sans compte staff disponible pour le second salon de test ni demandes prêtes dans les deux organisations. Le cloisonnement staff n'est pas validé.
 
 #### [ ] ADM-02 — Suivre les réservations et demandes
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 7]
@@ -78,7 +78,7 @@ recharger toute la page.
 **Automatisé :** `test/api/appointment-portal-count.spec.ts`,
 `test/ui/portalBookingCounter.spec.tsx`. La cadence et le calcul de frontière
 de journée sont à confirmer dans le navigateur.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** BLOQUÉ — le tableau de bord charge (5 rendez-vous affichés), mais aucune réservation ou demande n'a été créée pour vérifier la mise à jour des compteurs.
 
 #### [ ] ADM-03 — Consulter les demandes en attente
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3bis]
@@ -92,7 +92,7 @@ n'apparaît plus dans la liste des demandes en attente.
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
 `test/api/appointment-change-requests.spec.ts`,
 `test/ui/appointmentChangeRequests.spec.tsx`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** BLOQUÉ — la page des demandes s'ouvre, mais la liste est vide ; aucune demande en attente n'est disponible pour ce test.
 
 ### Décision des demandes
 
@@ -256,7 +256,7 @@ les messages par défaut sont de nouveau utilisés.
 `test/services/customerPortalSettings.spec.ts` et
 `test/services/customerPortalEmail.spec.ts`. L'enregistrement depuis l'interface
 staff doit aussi être essayé sur l'environnement bêta.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** BLOQUÉ — la page de réglages et les contrôles de personnalisation chargent, mais aucun changement n'a été enregistré ni e-mail envoyé ; la boîte de test contrôlée et les valeurs à restaurer ne sont pas confirmées.
 
 #### [ ] ADM-14 — Personnaliser le nom et le logo du portail client
 **Priorité : P2 · Exigence :** [Req: formal — `portal-branding-customization.md`, critères 1–7]
@@ -393,7 +393,7 @@ permet de consulter toute la semaine sans masquer les commandes.
 
 **Automatisé :** `test/ui/appointmentScheduler.spec.tsx` vérifie la vue initiale
 et les commandes Jour/Semaine. Le défilement réel reste à vérifier en bêta.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** BLOQUÉ — `/agenda` affiche « This page couldn’t load » après une navigation directe, un rechargement et un clic depuis le tableau de bord ; le parcours mobile n'a pas pu être essayé.
 
 #### [ ] ADM-21 — Vérifier les limites de connexion et de réinitialisation
 **Priorité : P1 · Exigence :** [Req: formal — issue #67]
@@ -418,22 +418,27 @@ l'IP dédiés.
 **Résultat / preuve :** `________`
 
 #### [ ] ADM-22 — Activer un compte staff créé pour un salon de test
-**Priorité : P1 · Exigence :** [Req: formal — `test-staff-provisioning.md`, critères 3–7]
+**Priorité : P1 · Exigence :** [Req: formal — `test-staff-provisioning.md`, critères 3–7 ; issue #116]
 
-**Étapes :** utilisez l'e-mail d'activation reçu sur la boîte
-`TEST-STAFF-INVITATION`, définissez un mot de passe, puis connectez-vous au
-salon de test. Ouvrez de nouveau le même lien d'activation.
+**Étapes :** depuis l'espace TECH_ADMIN, créez un salon de test avec une
+adresse contrôlée et le rôle demandé. Confirmez explicitement le contrôle de la
+boîte, utilisez le lien d'activation pour définir un mot de passe et connectez-vous
+au salon de test. Ouvrez de nouveau le même lien d'activation.
 
-**Attendu :** le lien permet de définir le mot de passe une seule fois. Le
-compte ouvre le salon de test prévu et n'affiche pas les données d'un autre
-salon ; le même lien ne permet pas de recommencer la configuration.
+**Attendu :** aucun mot de passe initial n'est envoyé ; le lien d'activation,
+à usage unique, expire après une heure. Le compte reçoit le rôle choisi, ouvre
+le salon de test prévu et n'affiche pas les données d'un autre salon ; le même
+lien ne permet pas de recommencer la configuration.
 
 **Automatisé :** `test/api/tech-admin-test-salons.spec.ts`,
 `test/services/testSalonProvisioning.service.spec.ts`,
 `test/services/testStaffActivationEmail.service.spec.ts` et
 `test/ui/TestSalonProvisioningCard.spec.tsx`. Ces tests simulent l'envoi ;
 la boîte contrôlée, le lien réel et la connexion restent à vérifier en bêta.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** BLOQUÉ — une tentative autorisée a renvoyé 500 et aucun
+e-mail d'activation n'est arrivé. Pas de nouvelle tentative avant vérification
+en lecture seule de l'existence du salon/compte et des événements d'envoi.
+Campagne « Test Création de rdv 1 », 20/10/2026.
 
 ## Couverture automatisée relue
 
