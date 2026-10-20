@@ -3,6 +3,7 @@ import { canProvisionTestSalon } from '@/domain/tech-admin/testSalonProvisioning
 import { apiErrorResponse } from '@/lib/api'
 import { getTestCampaignAdminAccess } from '@/lib/testCampaignAccess'
 import { CreateTestSalonSchema } from '@/schemas/techAdmin'
+import { sendTestStaffActivationEmail } from '@/services/testStaffActivationEmail.service'
 import { provisionTestSalon } from '@/services/testSalonProvisioning.service'
 
 export async function POST(request: Request) {
@@ -31,13 +32,21 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: 'Corps JSON invalide.' }, { status: 400 })
   }
-  if (!CreateTestSalonSchema.safeParse(body).success) {
+  const parsed = CreateTestSalonSchema.safeParse(body)
+  if (!parsed.success) {
     return NextResponse.json({ error: 'Les données de création sont invalides.' }, { status: 400 })
   }
 
   try {
-    const salon = await provisionTestSalon()
-    return NextResponse.json(salon, {
+    const salon = await provisionTestSalon({
+      email: parsed.data.email,
+      role: parsed.data.role,
+    })
+    const invitation = await sendTestStaffActivationEmail({
+      email: salon.staffAccount.email,
+      salonName: salon.name,
+    })
+    return NextResponse.json({ ...salon, invitation }, {
       status: 201,
       headers: { 'Cache-Control': 'private, no-store' },
     })

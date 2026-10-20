@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
+import type { CreateTestSalonInput } from '@/schemas/techAdmin'
 
-export async function provisionTestSalon() {
+export async function provisionTestSalon(input: Pick<CreateTestSalonInput, 'email' | 'role'>) {
   const token = randomUUID()
   const slug = `salon-test-${token}`
   const name = `Salon de test ${slug}`
@@ -31,6 +32,15 @@ export async function provisionTestSalon() {
         lastName: 'Test',
         active: true,
         organizationId: organization.id,
+      },
+      select: { id: true },
+    })
+    await transaction.user.create({
+      data: {
+        email: input.email,
+        role: input.role,
+        organizationId: organization.id,
+        hashedPassword: null,
       },
       select: { id: true },
     })
@@ -70,6 +80,10 @@ export async function provisionTestSalon() {
       name: organization.name,
       slug,
       customerEmail,
+      staffAccount: {
+        email: input.email,
+        role: input.role,
+      },
     }
   })
 }
