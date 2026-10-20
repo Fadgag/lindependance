@@ -44,20 +44,24 @@ export async function POST(request: Request) {
     vercelEnvironment: process.env.VERCEL_ENV,
     gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
   })
-  const allowed = await consumePortalRateLimits([
+  const rateLimitChecks = [
     {
       scope: 'otp-email-request',
       keyHash: hashRateLimitKey('email', email, secret),
       limit: limits.emailLimit,
       windowMilliseconds: EMAIL_WINDOW_MS,
     },
-    {
+  ]
+  const requestIp = getRequestIp(request)
+  if (requestIp) {
+    rateLimitChecks.push({
       scope: 'otp-ip-request',
-      keyHash: hashRateLimitKey('ip', getRequestIp(request), secret),
+      keyHash: hashRateLimitKey('ip', requestIp, secret),
       limit: limits.ipLimit,
       windowMilliseconds: IP_WINDOW_MS,
-    },
-  ], now)
+    })
+  }
+  const allowed = await consumePortalRateLimits(rateLimitChecks, now)
   if (!allowed) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
   }

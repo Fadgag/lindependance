@@ -108,22 +108,26 @@ l'organisation (mot de passe haché avec `bcryptjs`, `BCRYPT_ROUNDS`).
 ### `[...nextauth]` (Auth.js/NextAuth)
 Handler standard NextAuth (configuration dans `src/auth.ts` / `src/lib/nextAuthOptions.ts`).
 Les connexions par mot de passe sont limitées à 10 tentatives par IP fiable sur 15 minutes
-(lorsqu'elle est fournie par le proxy) et 5 par adresse email normalisée sur 15 minutes. Les
-limites sont stockées en base et les erreurs d'authentification restent génériques.
+(`x-vercel-forwarded-for` sur Vercel ou `x-real-ip` si `TRUSTED_PROXY_IP=true` en
+auto-hébergement) et 5 par adresse email normalisée sur 15 minutes. Si aucune IP fiable n'est
+disponible, le quota IP est ignoré sans compartiment partagé et le quota par adresse e-mail
+reste appliqué. Les limites sont stockées en base et les erreurs d'authentification restent
+génériques.
 
 ### `POST /api/auth/forgot-password`
-Génère un token de réinitialisation (`crypto.randomBytes(32)`, expire après 1h) et envoie un
-email via **Resend** (`RESEND_API_KEY` requis). Ne révèle jamais si l'email existe ou non
-(réponse `{ ok: true }` dans tous les cas) — contre l'énumération de comptes. Les demandes sont
-limitées à 10 par IP fiable (lorsqu'elle est fournie par le proxy) et 3 par adresse email sur
-une heure. Un token encore valide est conservé et ne déclenche pas de nouvel email; une demande
-répétée ne peut donc ni invalider le lien déjà envoyé ni provoquer des envois illimités.
+Génère un token de réinitialisation aléatoire de 32 octets (expire après 1h), n'en conserve que
+le condensat SHA-256 et envoie le token original par email via **Resend** (`RESEND_API_KEY`
+requis). Ne révèle jamais si l'email existe ou non (réponse `{ ok: true }` dans tous les cas) —
+contre l'énumération de comptes. Les demandes sont limitées à 10 par IP fiable (selon la
+configuration proxy ci-dessus) et 3 par adresse email sur une heure. Un token encore valide est
+conservé et ne déclenche pas de nouvel email; une demande répétée ne peut donc ni invalider le
+lien déjà envoyé ni provoquer des envois illimités.
 
 ### `POST /api/auth/reset-password`
-Vérifie le token (existence + non-expiration), met à jour le mot de passe (haché), supprime
-le token (usage unique). Les soumissions sont limitées à 10 par IP fiable (lorsqu'elle est
-fournie par le proxy) et 5 par token sur 15 minutes; les blocages renvoient `429` avec l'en-tête
-`Retry-After`.
+Vérifie le condensat du token (existence + non-expiration), puis supprime le jeton et met à jour
+le mot de passe dans une transaction atomique afin qu'une seule soumission concurrente réussisse.
+Les soumissions sont limitées à 10 par IP fiable (selon la configuration proxy ci-dessus) et
+5 par token sur 15 minutes; les blocages renvoient `429` avec l'en-tête `Retry-After`.
 
 ## Routes de test (non-production)
 

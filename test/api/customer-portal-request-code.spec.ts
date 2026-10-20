@@ -127,4 +127,15 @@ describe('POST /api/portail/auth/request-code', () => {
     expect(response.status).toBe(400)
     expect(consumePortalRateLimits).not.toHaveBeenCalled()
   })
+
+  it('keeps the email quota and skips the IP quota when no trusted proxy IP is available', async () => {
+    vi.mocked(portalServiceMock.getRequestIp).mockReturnValue(null)
+
+    const response = await POST(requestCode())
+
+    expect(response.status).toBe(202)
+    expect(consumePortalRateLimits).toHaveBeenCalledWith([
+      expect.objectContaining({ scope: 'otp-email-request', limit: 3 }),
+    ], expect.any(Date))
+  })
 })

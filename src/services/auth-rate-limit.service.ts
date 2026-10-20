@@ -2,7 +2,10 @@ import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { createHmac, randomUUID } from 'node:crypto'
 import { z } from 'zod'
+import { hashPasswordResetToken } from '@/domain/auth/passwordResetToken'
 import { prisma } from '@/lib/prisma'
+import { BCRYPT_ROUNDS } from '@/lib/crypto'
+import { getTrustedClientIp } from '@/lib/trustedClientIp'
 import {
   AUTH_RATE_LIMIT_POLICIES,
   isWithinRateLimit,
@@ -32,6 +35,8 @@ export type RateLimitResult = {
   retryAfterSeconds: number
 }
 
+export type PasswordResetTokenResult = 'updated' | 'expired' | 'invalid'
+
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -40,12 +45,7 @@ const credentialsSchema = z.object({
 const DUMMY_PASSWORD_HASH = '$2a$12$/EsHqrEl0mK4A1HoWrd81.SBvO/H7uBG7U6ENAk9lsAqMEAKcOfk6'
 
 export function getClientIp(request: Request): string | null {
-  const realIp = request.headers.get('x-real-ip')?.trim()
-  if (realIp) return realIp
-
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  const forwardedIp = forwardedFor?.split(',')[0]?.trim()
-  return forwardedIp || null
+  return getTrustedClientIp(request)
 }
 
 export async function consumeAuthRateLimit(
@@ -142,9 +142,10 @@ export async function createOrReusePasswordResetToken(
   expires: Date,
   now = new Date(),
 ): Promise<{ token: string; created: boolean }> {
+  const tokenHash = hashPasswordResetToken(token)
   const rows = await prisma.$queryRaw<PasswordResetTokenRow[]>(Prisma.sql`
     INSERT INTO "PasswordResetToken" ("id", "email", "token", "expires")
-    VALUES (${randomUUID()}, ${email}, ${token}, ${expires})
+    VALUES (${randomUUID()}, ${email}, ${tokenHash}, ${expires})
     ON CONFLICT ("email") DO UPDATE SET
       "token" = CASE
         WHEN "PasswordResetToken"."expires" <= ${now} THEN EXCLUDED."token"
@@ -159,9 +160,55 @@ export async function createOrReusePasswordResetToken(
 
   const row = rows[0]
   if (!row) throw new Error('Password reset token was not returned by the database')
-  return { token: row.token, created: row.token === token }
+  return { token, created: row.token === tokenHash }
 }
 
 export async function deletePasswordResetToken(email: string, token: string): Promise<void> {
-  await prisma.passwordResetToken.deleteMany({ where: { email, token } })
+  await prisma.passwordResetToken.deleteMany({
+    where: { email, token: hashPasswordResetToken(token) },
+  })
+}
+
+export async function consumePasswordResetToken(
+  token: string,
+  password: string,
+  now?: Date,
+): Promise<PasswordResetTokenResult> {
+  const tokenHash = hashPasswordResetToken(token)
+  const select = { id: true, email: true, expires: true }
+  let resetToken = await prisma.passwordResetToken.findUnique({
+    where: { token: tokenHash },
+    select,
+  })
+  if (!resetToken) {
+    resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token },
+      select,
+    })
+  }
+
+  const checkedAt = now ?? new Date()
+  if (!resetToken) return 'invalid'
+  if (resetToken.expires <= checkedAt) {
+    await prisma.passwordResetToken.deleteMany({
+      where: { id: resetToken.id, expires: { lte: checkedAt } },
+    })
+    return 'expired'
+  }
+
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS)
+  const consumed = await prisma.$transaction(async (transaction) => {
+    const result = await transaction.passwordResetToken.deleteMany({
+      where: { id: resetToken.id, expires: { gt: now ?? new Date() } },
+    })
+    if (result.count !== 1) return false
+
+    await transaction.user.update({
+      where: { email: resetToken.email },
+      data: { hashedPassword },
+    })
+    return true
+  })
+
+  return consumed ? 'updated' : 'invalid'
 }
