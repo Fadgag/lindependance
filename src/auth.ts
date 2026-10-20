@@ -1,7 +1,6 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
+import { authorizeCredentials } from "@/services/auth-rate-limit.service"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -10,21 +9,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
-        // RAISON: `credentials` est typé par next-auth comme Partial<Record<string, unknown>>
-        // Les champs `email`/`password` sont garantis par la configuration du provider.
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        })
-        if (!user || !user.hashedPassword) return null
-        const isValid = await bcrypt.compare(credentials.password as string, user.hashedPassword)
-        return isValid ? {
-          id: user.id,
-          email: user.email,
-          organizationId: user.organizationId,
-          role: user.role,
-          accountType: 'STAFF',
-        } : null
+      async authorize(credentials, request) {
+        return authorizeCredentials(credentials, request)
       },
     }),
   ],
@@ -65,6 +51,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: { signIn: "/auth/signin" },
 })
-
 
 

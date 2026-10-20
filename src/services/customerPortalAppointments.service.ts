@@ -38,12 +38,14 @@ export interface CustomerPortalAppointmentSummary {
 }
 
 export async function getCustomerPortalAppointments(input: CustomerPortalAppointmentIdentity & {
+  organizationSlug: string
   now?: Date
 }): Promise<{ timezone: string; appointments: CustomerPortalAppointmentSummary[] }> {
   const now = input.now ?? new Date()
   const organization = await prisma.organization.findFirst({
     where: {
       id: input.organizationId,
+      slug: input.organizationSlug,
       portalEnabled: true,
       staff: { some: { active: true } },
     },

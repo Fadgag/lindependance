@@ -40,13 +40,46 @@ en cours de traitement.
   - Les règles sont couvertes par des tests de domaine et de service.
 - **Résultat :** Le domaine et la mise à jour transactionnelle bloquent les rendez-vous payés, y compris si seul `finalPrice` indique le paiement. Les tests ciblés, le lint et le type-check réussissent ; une vérification manuelle en bêta reste nécessaire.
 
+### Signalement du 19 octobre 2026
+
+#### Diagnostiquer l'erreur « Configuration » à la connexion staff en préproduction
+
+- **Type :** Bug
+- **Statut :** Résolu et vérifié en préproduction le 19 octobre 2026 — la migration `20261013143500_add_auth_rate_limit` manquait et a été appliquée ; la connexion staff fonctionne de nouveau.
+- **Priorité proposée :** P1
+- **Comportement observé :** Une personne signale ne plus pouvoir se connecter avec le parcours staff ; une erreur `401` a été vue dans la console, suivie du message « Configuration » sur la page.
+- **Cause confirmée :** L'autorisation de connexion écrit dans la table `AuthRateLimit`, créée par `20261013143500_add_auth_rate_limit`. La migration manquait sur la base de préproduction ; son application a été confirmée par l'opérateur.
+- **Comportement attendu :** Un compte staff valide peut se connecter en préproduction sans erreur de configuration ; des identifiants invalides restent signalés comme un échec de connexion normal.
+- **Étapes de reproduction connues :** Ouvrir `/auth/signin` sur le site de préproduction et tenter le parcours de connexion staff. Le moment précis où le `401` apparaît et l'URL de la requête restent à relever.
+- **Impact :** La connexion au compte staff peut être bloquée en préproduction.
+- **Critères d'acceptation :**
+  - La requête qui répond `401` et l'erreur serveur correspondante sont identifiées.
+  - La migration `20261013143500_add_auth_rate_limit` est appliquée sur la base de préproduction.
+  - Une connexion avec un compte staff de test fonctionne et redirige vers l'espace attendu sans afficher « Configuration ».
+- **Résultat :** Après application de la migration manquante, l'utilisateur confirme que la connexion fonctionne de nouveau.
+
+#### Ne pas afficher les rendez-vous d'un autre salon dans le portail client
+
+- **Type :** Bug
+- **Statut :** Résolu et vérifié en préproduction le 20 octobre 2026 après actualisation de la nouvelle version.
+- **Priorité proposée :** P1
+- **Comportement observé :** Une session client authentifiée sur un salon a ouvert la page « Mes rendez-vous » d'un salon de test différent. L'identité affichée correspondait au salon de test, mais la page présentait encore les rendez-vous du salon précédent, y compris après un rechargement complet.
+- **Comportement attendu :** Une session et les rendez-vous affichés sont limités à l'organisation du portail visité ; aucun rendez-vous d'un autre salon ne doit être rendu.
+- **Étapes de reproduction :** Se connecter au portail client d'un salon de test, ouvrir directement `/portail/<slug-d-un-autre-salon>/mes-rdv`, puis actualiser la page.
+- **Impact :** Des informations de rendez-vous peuvent apparaître dans le contexte d'un autre salon. La vérification de confidentialité entre organisations n'est pas validée et doit être résolue avant la mise en production.
+- **Critères d'acceptation :**
+  - Le serveur vérifie que la session client et chaque requête de rendez-vous correspondent à l'organisation de l'URL.
+  - Une session authentifiée pour le salon A ne récupère ni n'affiche de rendez-vous sur le portail du salon B.
+  - Des tests couvrent les requêtes directes et la navigation entre deux portails authentifiés, sans données d'une organisation dans l'autre.
+- **Mise à jour :** Après actualisation de la nouvelle version, la session vérifiée du salon initial affiche toujours ses trois rendez-vous. En naviguant directement vers le portail « Mes rendez-vous » du salon de test, la page demande une vérification par e-mail et n'affiche aucun rendez-vous ; le résultat persiste après rechargement complet. La frontière entre les deux salons est ainsi vérifiée.
+
 ### Revue UI/UX du 12 octobre 2026
 
 #### [#83](https://github.com/Fadgag/lindependance/issues/83) Rendre visible le lien vers la création d'une campagne
 
 - **Type :** Bug
 - **Statut :** À traiter — constat confirmé sur le tableau de bord TECH_ADMIN en préproduction ; hors du diff de la branche revue.
-- **GitHub Project :** Issue ouverte — Backlog.
+- **GitHub Project :** Carte ajoutée au projet `lindependance` ; statut à confirmer.
 - **Priorité proposée :** P2
 - **Comportement observé :** Sur `/test-campaigns`, le lien « Nouvelle campagne » affiche un texte blanc sans fond visible. Sa classe utilise `bg-(--studio-text)`, mais cette variable n'est pas définie ; la palette expose `--color-studio-text`.
 - **Comportement attendu :** Le lien est visuellement identifiable comme une action et conserve un contraste lisible.
@@ -260,6 +293,46 @@ en cours de traitement.
   - Les réponses publiques ne révèlent pas si une adresse possède un compte.
   - Les demandes répétées ne peuvent pas envoyer indéfiniment des e-mails ni invalider le lien de réinitialisation sans contrôle.
 
+#### Stocker les jetons de réinitialisation sous forme de condensat (#102)
+
+- **Type :** Bug
+- **Statut :** Implémenté localement — migration des jetons historiques documentée pour chaque base déployée.
+- **Constat :** Les jetons de réinitialisation encore valides sont stockés en clair dans la base.
+- **Comportement attendu :** Seul un condensat SHA-256 est conservé ; le jeton aléatoire de 32 octets expire après une heure, reste à usage unique et ne peut être consommé qu'une fois même en cas de requêtes concurrentes.
+- **Impact :** Une lecture de la base ou d'une sauvegarde expose les liens de réinitialisation encore valides.
+- **Critères d'acceptation :**
+  - Les nouveaux jetons sont stockés sous forme de condensat et le lien envoyé conserve le jeton original.
+  - La mise à jour du mot de passe et la consommation du jeton sont atomiques.
+  - Un script idempotent condense les jetons historiques sans changer leur expiration ni invalider les liens déjà envoyés.
+- **Résultat :** Tests ciblés couvrant le stockage du condensat, les jetons expirés et deux consommations concurrentes ; voir `scripts/hash-password-reset-tokens.ts` pour la migration après déploiement.
+
+#### Fiabiliser l'adresse IP utilisée pour le rate limiting derrière un proxy (#106)
+
+- **Type :** Bug
+- **Statut :** Implémenté localement — la disponibilité de `VERCEL=1` dans le projet Vercel doit être confirmée au déploiement.
+- **Constat :** Les en-têtes IP reçus du client étaient utilisés sans déterminer s'ils provenaient d'un proxy de confiance.
+- **Comportement attendu :** Vercel utilise `x-vercel-forwarded-for` uniquement avec son indicateur système ; l'auto-hébergement ne lit `x-real-ip` qu'après activation explicite et remplacement de l'en-tête par un proxy de confiance. Sans IP fiable, les limites par e-mail et par jeton/code continuent sans compartiment IP partagé.
+- **Impact :** Un client pouvait forger les en-têtes IP et contourner les quotas par adresse.
+- **Critères d'acceptation :**
+  - Des en-têtes forgés sont ignorés si aucun proxy de confiance n'est configuré.
+  - Une IP invalide ou une chaîne d'IP n'est pas utilisée pour le quota.
+  - Les limites par e-mail et jeton restent appliquées en l'absence d'IP fiable, y compris le quota email et les essais par OTP du portail client.
+- **Résultat :** Les tests ciblés couvrent les en-têtes Vercel, l'activation explicite auto-hébergée, l'absence d'IP fiable et les quotas OTP du portail ; voir `documentation/deploiement.md`.
+
+### Retour visuel à l'appui sur les boutons
+
+- **Type :** Amélioration
+- **Statut :** À cadrer — amélioration transversale à appliquer de façon cohérente aux boutons des parcours staff et client.
+- **Priorité proposée :** P2
+- **Constat :** Lorsqu'on appuie sur certains boutons, leur apparence ne change pas de façon perceptible ; il est difficile de savoir si l'appui a été pris en compte.
+- **Amélioration souhaitée :** Donner un retour visuel bref et cohérent à l'activation d'un bouton, par exemple une légère variation de couleur, de relief ou d'échelle.
+- **Impact :** Les actions peuvent sembler ne pas avoir répondu, ce qui peut inciter à appuyer plusieurs fois.
+- **Critères d'acceptation :**
+  - L'appui à la souris et au tactile produit un état visuel immédiat et perceptible.
+  - L'activation au clavier reste accompagnée d'un indicateur visible et accessible.
+  - Les états désactivé et en chargement restent distincts du retour d'appui.
+  - Le retour n'entraîne pas de déplacement de mise en page ni de répétition involontaire de l'action.
+
 ### Vérifications manuelles bêta restantes
 
 Les développements concernés sont implémentés. Il reste à effectuer les
@@ -301,7 +374,7 @@ Les vérifications bêta restantes sont suivies dans l'[Issue de campagne](https
   - Le domaine est vérifié et associé à une seule organisation avant activation.
   - Le lien actuel avec slug reste utilisable jusqu'à l'activation du domaine personnalisé.
   - Le portail peut être résolu à partir du domaine personnalisé de chaque organisation, sans logique spécifique à un salon.
-  - Le prix et les modalités de facturation éventuels sont définis.
+  - Le prix et les modalités de facturation sont définis avant toute mise en vente de l'option.
 
 ### Portail client — identité visuelle
 
@@ -370,6 +443,20 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Qualité terrain — retours et validation
 
+#### Provisionner un compte staff avec un salon de test
+
+- **Type :** Amélioration
+- **Statut :** Implémentée localement — vérification manuelle en bêta avec une boîte de test contrôlée encore à effectuer.
+- **Priorité proposée :** P1
+- **Constat :** Le `TECH_ADMIN` peut créer un salon de test isolé, mais aucun compte staff ne permet de se connecter au salon pour en vérifier les parcours.
+- **Amélioration souhaitée :** Créer dans le même parcours un compte staff normal, puis lui envoyer un lien à usage unique pour définir son mot de passe.
+- **Critères d'acceptation :**
+  - Seul un `TECH_ADMIN` sur la preview de `preprod` peut lancer le provisionnement ; le compte est rattaché au salon créé côté serveur.
+  - Le rôle `USER` est proposé par défaut ; `ADMIN` peut être choisi explicitement et `TECH_ADMIN` ne peut jamais être attribué.
+  - L'adresse est confirmée comme boîte contrôlée avant l'envoi explicite ; aucun mot de passe ni jeton n'est exposé ou journalisé.
+  - L'échec d'envoi est présenté clairement et le parcours réel est vérifié en bêta avec une adresse de test autorisée.
+- **Mise à jour :** `specs/features/test-staff-provisioning.md` décrit le parcours et `ADM-22` couvre l'activation et la connexion. Tests automatisés ciblés validés ; l'envoi réel et la recette bêta restent à effectuer.
+
 #### Permettre à l'utilisateur de signaler un problème ou un bug
 
 - **Type :** Amélioration
@@ -401,6 +488,23 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Les filtres de données sont validés côté serveur et les pages et API restent réservées au rôle TECH_ADMIN.
 - **Mise à jour :** La revue du 8 octobre 2026 n'a relevé aucun problème confirmé. Le scénario `ADM-12` couvre maintenant le choix de plusieurs organisations et le filtre des signalements non résolus. La vérification manuelle avec un compte TECH_ADMIN et les données bêta reste à effectuer.
 
+#### [#116](https://github.com/Fadgag/lindependance/issues/116) Provisionner un salon de test depuis TECH_ADMIN
+
+- **Type :** Amélioration
+- **Statut :** Issue ouverte — la recette d'isolation inter-organisations attend un second salon de test en préproduction.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Constat :** La recette du portail client doit vérifier que les données d'un salon ne sont pas visibles depuis un autre, mais la préproduction ne dispose pas d'un second salon de test. L'interface TECH_ADMIN ne permet pas de créer une organisation.
+- **Amélioration souhaitée :** Permettre à TECH_ADMIN de provisionner un salon de test complet en préproduction, avec des données synthétiques, afin d'exécuter les scénarios d'isolation sans créer de données réelles ni déclencher d'e-mails vers des destinataires réels.
+- **Impact :** La recette d'isolation entre organisations reste bloquée et nécessite actuellement un provisionnement manuel.
+- **Critères d'acceptation :**
+  - La création est réservée à TECH_ADMIN et vérifiée également côté serveur.
+  - La création est refusée hors de la préproduction sur la branche `preprod`.
+  - Le salon possède un nom et un identifiant de portail uniques et est clairement identifié comme environnement de test.
+  - Le provisionnement fournit les éléments synthétiques minimaux pour tester le portail et l'isolation des données, sans invitation ni e-mail à un destinataire réel.
+  - Le résultat affiche l'organisation créée ; les erreurs de validation ou de création sont explicites.
+  - Des tests couvrent l'autorisation, le garde-fou d'environnement, le provisionnement et l'isolation des données.
+
 #### Vérifier les e-mails personnalisés dans les campagnes de recette
 
 - **Type :** Amélioration
@@ -429,6 +533,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Une erreur d’intégration est signalée sans annuler la création de la campagne.
 - **Mise à jour :** L’API de création et l’interface gèrent la génération et le résultat de la carte. L’activation réelle dépend de la configuration serveur documentée dans `docs/github-project-automation.md`.
 
+#### Figer les scénarios utilisés par une campagne
+
+- **Type :** Amélioration
+- **Statut :** À cadrer
+- **Priorité :** À définir
+- **Effort :** À évaluer
+- **Constat :** Les scénarios d'une campagne sont chargés depuis les guides de recette lors de chaque consultation. Une mise à jour d'un guide peut donc modifier les scénarios d'une campagne déjà lancée.
+- **Amélioration souhaitée :** Enregistrer au lancement la version des guides et un instantané des scénarios utilisés. Une mise à jour des guides ne s'applique qu'aux campagnes créées ensuite.
+- **Critères d'acceptation :**
+  - Une campagne conserve les scénarios et la version des guides utilisés à son lancement.
+  - Une mise à jour ultérieure des guides ne modifie pas les scénarios d'une campagne active ou clôturée.
+  - Une nouvelle campagne utilise les scénarios correspondant aux guides en vigueur lors de son lancement.
+
 #### [#86](https://github.com/Fadgag/lindependance/issues/86) Guider tous les tests par mission et questions étape par étape
 
 - **Type :** Amélioration
@@ -448,16 +565,17 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 #### [#85](https://github.com/Fadgag/lindependance/issues/85) Clarifier et renforcer l’anonymat des retours de campagne
 
 - **Type :** Amélioration
-- **Statut :** À cadrer — vérification du 12 octobre 2026.
-- **GitHub Project :** Issue ouverte — Backlog.
+- **Statut :** Implémentée localement — validation du 13 octobre 2026, en attente de revue et de mise en ligne.
+- **GitHub Project :** Issue ouverte — En cours.
 - **Priorité proposée :** P2
-- **Constat :** Les retours ne sont pas associés à un compte ni à un destinataire d'invitation, et aucun nom, e-mail ou adresse IP n'est enregistré avec eux. En revanche, les commentaires libres et l'appareil sont saisis sans expurgation ; le rôle déclaré et l'heure précise sont conservés et affichés avec chaque retour. Dans une campagne avec peu de répondants, ces éléments peuvent permettre une ré-identification par recoupement, et un testeur peut saisir son nom ou ses coordonnées malgré l'avertissement.
+- **Constat :** Les retours ne sont pas associés à un compte ni à un destinataire d'invitation, et aucun nom, e-mail ou adresse IP n'est demandé dans un champ dédié. Les commentaires libres et l'appareil restent toutefois conservés tels que saisis ; ils peuvent contenir des éléments identifiants. Le profil déclaré et l'heure précise peuvent également permettre une ré-identification par recoupement dans une petite campagne.
 - **Amélioration souhaitée :** Aligner la promesse d'« anonymat » sur les données effectivement collectées et affichées, réduire les possibilités de ré-identification et rappeler de ne saisir aucune donnée personnelle dans chaque champ libre.
 - **Critères d'acceptation :**
   - L'interface explique clairement que les retours ne sont pas reliés à un compte ou à un destinataire, sans garantir un anonymat absolu si des métadonnées ou du texte libre peuvent identifier la personne.
   - Chaque champ de commentaire et d'appareil rappelle de ne pas inclure de nom, de coordonnées ou d'informations permettant d'identifier quelqu'un.
-  - Les métadonnées visibles et exportées sont minimisées afin de réduire l'identification indirecte dans les campagnes avec peu de répondants ; la règle retenue est documentée et testée.
+  - Le suivi et l'export n'exposent que le profil déclaré et le jour de réception comme métadonnées contextuelles ; l'heure précise et l'appareil sont omis. L'horodatage exact reste en base pour ordonner les retours.
   - Aucun identifiant direct de testeur n'est ajouté aux enregistrements ou aux exports.
+- **Mise à jour :** Le 14 octobre, le diagnostic CI a confirmé que l'état vide des destinataires pouvait s'afficher avant la sélection d'une organisation et la fin de leur chargement. Le formulaire distingue maintenant l'absence de sélection, le chargement et une réponse vide pour l'organisation active ; un test UI couvre ces états.
 
 ### Gestion des stocks — produits revendus
 
@@ -508,6 +626,21 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Portail client — accès, réservation et coordonnées
 
+#### Empêcher l'affichage des rendez-vous d'un autre salon
+
+- **Type :** Bug
+- **Statut :** Correction implémentée et vérifiée par tests automatisés avec deux organisations synthétiques le 20 octobre 2026. L'incident exact n'a pas été rejoué dans la base de préproduction ; aucune donnée de cette base ni de production n'a été consultée.
+- **Priorité initiale :** P1 — confidentialité / isolation inter-organisation.
+- **Comportement rapporté :** La page « Mes rendez-vous » d'un salon affichait son identité visuelle avec les rendez-vous de l'organisation portée par une session client déjà ouverte, y compris après rechargement.
+- **Cause confirmée dans le code :** La page transmettait le slug du salon à son affichage, mais la requête `GET /api/portail/rdv` ne transmettait ni ne contrôlait ce slug. Le serveur filtrait bien les rendez-vous par l'organisation et l'adresse vérifiée de la session ; il pouvait donc retourner les rendez-vous de cette session sous l'identité visuelle d'un autre salon. Le symptôme rapporté n'a pas été reproduit sur les données réelles de préproduction.
+- **Comportement attendu :** La liste est retournée uniquement si le slug demandé correspond à l'organisation de la session OTP. Un décalage ne retourne aucune donnée et la page invite à s'identifier auprès du salon demandé.
+- **Reproduction automatisée :** Une session synthétique de `ORG-A` demande la liste de `ORG-B`; l'API refuse la réponse avant la recherche de rendez-vous et l'interface ne conserve aucune carte de `ORG-A` après navigation vers `ORG-B`.
+- **Critères de vérification :**
+  - Le slug du portail est validé et contrôlé côté serveur avec l'organisation de la session.
+  - Un décalage entre organisations ne retourne aucun rendez-vous.
+  - Une navigation ou un rechargement ne réaffiche jamais la liste de l'organisation précédente sous une autre identité visuelle.
+  - Les réponses contenant la liste ne sont pas mises en cache par le navigateur.
+
 #### Rendre le portail indisponible sans praticien actif
 
 - **Statut :** Réalisée
@@ -524,6 +657,18 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 - **Amélioration souhaitée :** Conserver la vérification par code et aider le client à contacter le salon s'il ne reçoit pas son code, sans révéler si une fiche correspond à l'adresse saisie.
 - **Résultat :** Le téléphone et l'e-mail publics se configurent depuis les réglages du portail. Une aide neutre et les coordonnées disponibles sont affichées sans révéler si une fiche correspond à l'adresse saisie.
 
+#### Augmenter les quotas OTP pour les essais en préproduction
+
+- **Type :** Amélioration
+- **Statut :** Réalisée — limites vérifiées par les tests ciblés et le contrôle TypeScript.
+- **Priorité initiale :** P2
+- **Constat :** Les limites standard de demande de code ralentissent les essais répétés du parcours client en préproduction.
+- **Amélioration souhaitée :** Augmenter les quotas OTP uniquement sur la preview Vercel de la branche `preprod`, sans affaiblir la production.
+- **Critères d'acceptation :**
+  - La preview Vercel de `preprod` accepte 10 demandes par adresse sur 15 minutes et 30 demandes ou vérifications par IP sur une heure.
+  - La production, les autres previews et l'environnement local conservent les limites standard de 3 demandes par adresse et 10 opérations OTP par IP ; le maximum de 5 essais par code ne change pas.
+- **Résultat :** Les quotas sont sélectionnés côté serveur à partir de `VERCEL_ENV` et `VERCEL_GIT_COMMIT_REF` ; aucun réglage externe ou changement de quota en production n'est nécessaire.
+
 ### Afficher l'identité du salon sur la page de réservation
 
 - **Statut :** Réalisée
@@ -537,6 +682,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 - **Résultat :** Les pages de campagne et les API de gestion et de retours sont accessibles uniquement sur la preview Vercel de la branche `preprod`. Les contrôles d'accès `TECH_ADMIN` existants restent appliqués aux API de gestion.
 
 ## Traités
+
+### [#103](https://github.com/Fadgag/lindependance/issues/103) Ne pas exposer les messages d'erreur internes dans les réponses API
+
+- **Type :** Bug
+- **Statut :** Corrigé localement ; tests ciblés, lint et vérification TypeScript réussis.
+- **Comportement observé :** Les réponses HTTP 500 centralisées renvoyaient le message de l'exception dans le champ `detail`.
+- **Comportement attendu :** La réponse 500 reste générique ; les erreurs métier explicitement prévues conservent leur réponse et les détails utiles restent dans les logs serveur.
+- **Étapes de reproduction :** Déclencher une erreur interne dans une route API utilisant `apiErrorResponse` et lire son corps JSON.
+- **Impact :** Un client API pouvait obtenir des détails techniques issus d'une exception serveur.
+- **Critères d'acceptation :**
+  - Les réponses 500 ne contiennent aucun message d'exception ni champ de détail interne.
+  - Les erreurs métier explicitement prévues conservent leur statut et leur message.
+  - L'exception reste journalisée côté serveur pour le diagnostic.
 
 ### Afficher des erreurs explicites dans les popups
 

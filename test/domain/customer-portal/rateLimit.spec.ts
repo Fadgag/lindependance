@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { isRateLimitExceeded } from '@/domain/customer-portal/rateLimit'
+import {
+  getCustomerPortalOtpRateLimits,
+  isRateLimitExceeded,
+} from '@/domain/customer-portal/rateLimit'
+
+describe('getCustomerPortalOtpRateLimits', () => {
+  it('uses the expanded limits only on the preprod Vercel preview', () => {
+    expect(getCustomerPortalOtpRateLimits({
+      vercelEnvironment: 'preview',
+      gitCommitRef: 'preprod',
+    })).toEqual({ emailLimit: 10, ipLimit: 30 })
+  })
+
+  it.each([
+    { vercelEnvironment: 'production', gitCommitRef: 'preprod' },
+    { vercelEnvironment: 'preview', gitCommitRef: 'feature/other' },
+    { vercelEnvironment: undefined, gitCommitRef: undefined },
+  ])('keeps standard limits outside preprod preview (%o)', (environment) => {
+    expect(getCustomerPortalOtpRateLimits(environment)).toEqual({
+      emailLimit: 3,
+      ipLimit: 10,
+    })
+  })
+})
 
 describe('isRateLimitExceeded', () => {
   const now = new Date('2026-09-30T12:00:00.000Z')

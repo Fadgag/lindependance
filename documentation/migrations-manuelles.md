@@ -108,6 +108,22 @@ autorise l'absence de valeur dans l'ancien champ `build`. Elle ne supprime ni ne
 les campagnes existantes ; l'application interprète les groupes vides des anciennes
 campagnes comme l'ensemble des scénarios correspondant à leurs profils.
 
+## Condenser les jetons de réinitialisation existants
+
+Après le déploiement de la version qui accepte les jetons condensés et les jetons historiques,
+lancer ce script une fois sur chaque base cible, lorsque toutes les instances utilisent cette
+version :
+
+```bash
+pnpm exec ts-node --compiler-options '{"module":"CommonJS"}' scripts/hash-password-reset-tokens.ts
+```
+
+Le script remplace les jetons historiques en clair par leur condensat SHA-256, sans changer
+leur date d'expiration ni invalider les liens déjà envoyés. Il est idempotent : il peut être
+relancé après une interruption. Vérifier que la cible de `DATABASE_URL` correspond à
+l'environnement attendu avant de l'exécuter ; le script affiche uniquement le nombre de lignes
+modifiées, jamais les jetons.
+
 ## À ne pas faire
 
 - Ne jamais lancer `prisma migrate reset`, `prisma db push`, `prisma migrate dev` ou un seed

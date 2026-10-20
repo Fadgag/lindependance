@@ -344,7 +344,7 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
           Vous allez essayer : {campaign.scenarioGroups.map(scenarioGroupLabel).join(' · ')}
         </p>
         <p className="mt-4 text-sm text-(--studio-muted)">
-          Pas besoin de créer un compte ni d’indiquer votre nom. Choisissez ci-dessous si vous testez en tant que client ou gérant du salon.
+          Vos retours ne sont reliés ni à un compte ni à l’invitation reçue. Toutefois, un commentaire ou le nom saisi pour votre appareil peut vous identifier. N’indiquez pas votre nom, vos coordonnées ni aucune autre information qui permettrait de vous identifier.
         </p>
       </header>
 
@@ -389,10 +389,11 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
             </div>
           </fieldset>
 
-          <label className="grid gap-2 rounded-2xl border border-(--studio-border) bg-white p-6 text-sm font-medium text-(--studio-text)">
-            Sur quel appareil faites-vous le test ? (facultatif)
-            <input maxLength={120} value={environment} onChange={(event) => setEnvironment(event.target.value)} placeholder="Ex. iPhone ou ordinateur" className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal" />
-          </label>
+          <div className="grid gap-2 rounded-2xl border border-(--studio-border) bg-white p-6 text-sm font-medium text-(--studio-text)">
+            <label htmlFor="test-feedback-environment">Sur quel appareil faites-vous le test ? (facultatif)</label>
+            <input id="test-feedback-environment" maxLength={120} value={environment} onChange={(event) => setEnvironment(event.target.value)} placeholder="Ex. iPhone ou ordinateur" className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal" />
+            <p className="text-xs font-normal text-(--studio-muted)">N’indiquez pas votre nom, vos coordonnées ni aucune autre information qui permettrait de vous identifier.</p>
+          </div>
 
           {!profile && <p className="rounded-xl bg-white p-5 text-sm text-(--studio-muted)">Choisissez votre rôle pour voir les points à essayer.</p>}
           {profile && (
@@ -470,9 +471,12 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                             <option value="BLOCKED">Je n’ai pas pu terminer</option>
                           </select>
                         </label>
-                        <label className="grid gap-1 text-sm font-medium text-(--studio-text) md:col-span-2">
-                          Que s’est-il passé ? {entry.status !== 'PASS' && '(obligatoire)'}
+                        <div className="grid gap-1 text-sm font-medium text-(--studio-text) md:col-span-2">
+                          <label htmlFor={`test-feedback-comment-${scenario.id}`}>
+                            Que s’est-il passé ? {entry.status !== 'PASS' && '(obligatoire)'}
+                          </label>
                           <textarea
+                            id={`test-feedback-comment-${scenario.id}`}
                             maxLength={2000}
                             required={entry.status !== 'PASS'}
                             value={entry.comment}
@@ -480,7 +484,8 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                             rows={3}
                             className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal"
                           />
-                        </label>
+                          <p className="text-xs font-normal text-(--studio-muted)">N’indiquez pas votre nom, vos coordonnées ni aucune autre information qui permettrait de vous identifier.</p>
+                        </div>
                       </div>
                     )}
                   </article>
@@ -495,7 +500,7 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
               <div>
                 <h2 id="campaign-review-title" className="font-serif text-2xl text-(--studio-text)">Votre avis sur ce test (facultatif)</h2>
                 <p className="mt-1 text-sm text-(--studio-muted)">
-                  Votre avis est anonyme et sera envoyé avec au moins une réponse. N’indiquez pas votre nom ni vos coordonnées.
+                  Votre avis sera envoyé avec au moins une réponse.
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -563,9 +568,10 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                     ))}
                   </select>
                 </label>
-                <label className="grid gap-2 text-sm font-medium text-(--studio-text) md:col-span-2">
-                  Votre commentaire ou une idée pour améliorer ce test
+                <div className="grid gap-2 text-sm font-medium text-(--studio-text) md:col-span-2">
+                  <label htmlFor="test-feedback-campaign-comment">Votre commentaire ou une idée pour améliorer ce test</label>
                   <textarea
+                    id="test-feedback-campaign-comment"
                     maxLength={2000}
                     rows={4}
                     value={campaignReview.comment}
@@ -573,7 +579,8 @@ export default function PublicTestFeedbackForm({ campaignToken }: { campaignToke
                     placeholder="Qu’est-ce qui vous a aidé, gêné ou manqué pendant ce test ?"
                     className="rounded-lg border border-(--studio-border) px-3 py-2 font-normal"
                   />
-                </label>
+                  <p className="text-xs font-normal text-(--studio-muted)">N’indiquez pas votre nom, vos coordonnées ni aucune autre information qui permettrait de vous identifier.</p>
+                </div>
               </div>
             </section>
           )}

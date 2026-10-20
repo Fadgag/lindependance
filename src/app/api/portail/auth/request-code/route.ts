@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto'
 import { NextResponse } from 'next/server'
+import { getCustomerPortalOtpRateLimits } from '@/domain/customer-portal/rateLimit'
 import { CustomerPortalOtpRequestSchema } from '@/schemas/customerPortal'
 import { prisma } from '@/lib/prisma'
 import {
@@ -39,20 +40,28 @@ export async function POST(request: Request) {
   const secret = getCustomerPortalSecret()
   const now = new Date()
   const email = parsed.data.email
-  const allowed = await consumePortalRateLimits([
+  const limits = getCustomerPortalOtpRateLimits({
+    vercelEnvironment: process.env.VERCEL_ENV,
+    gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+  })
+  const rateLimitChecks = [
     {
       scope: 'otp-email-request',
       keyHash: hashRateLimitKey('email', email, secret),
-      limit: 3,
+      limit: limits.emailLimit,
       windowMilliseconds: EMAIL_WINDOW_MS,
     },
-    {
+  ]
+  const requestIp = getRequestIp(request)
+  if (requestIp) {
+    rateLimitChecks.push({
       scope: 'otp-ip-request',
-      keyHash: hashRateLimitKey('ip', getRequestIp(request), secret),
-      limit: 10,
+      keyHash: hashRateLimitKey('ip', requestIp, secret),
+      limit: limits.ipLimit,
       windowMilliseconds: IP_WINDOW_MS,
-    },
-  ], now)
+    })
+  }
+  const allowed = await consumePortalRateLimits(rateLimitChecks, now)
   if (!allowed) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
   }

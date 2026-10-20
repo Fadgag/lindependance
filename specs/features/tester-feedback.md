@@ -47,6 +47,10 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   les organisations proposées à la création. Une organisation cible est
   préremplie à la création uniquement si une seule est sélectionnée ; en vue
   globale ou multi-organisation, le `TECH_ADMIN` choisit explicitement la cible.
+  Les destinataires restent en chargement tant que la liste de l'organisation
+  choisie n'a pas été reçue ; sans organisation sélectionnée, l'interface
+  indique qu'il faut en choisir une. Le message d'absence de destinataires
+  apparaît seulement après une réponse vide pour l'organisation active.
   La vue détaillée regroupe les résultats par scénario ; pour la progression et
   le statut courant, seul le résultat le plus récent de chaque couple
   profil/scénario compte. L'historique conserve tous les envois.
@@ -70,7 +74,7 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
 - Les groupes sélectionnables dans la campagne sont : « Réservation en ligne »
   (CUS-01 à CUS-10), « Mes rendez-vous et changements » (CUS-11 à CUS-15),
   « Sécurité et mobile » (CUS-16 à CUS-17) et « Administration staff »
-  (ADM-01 à ADM-20). Dans la checklist publique, ils sont présentés comme
+  (ADM-01 à ADM-22). Dans la checklist publique, ils sont présentés comme
   « Prendre rendez-vous », « Gérer mes rendez-vous », « Confidentialité et
   téléphone » et « Gérer le salon ». Chaque profil activé doit avoir au moins
   un groupe correspondant.
@@ -85,7 +89,9 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
 - Le testeur peut cocher et envoyer plusieurs scénarios à la fois. Un scénario
   non coché n'est pas enregistré.
 - Le navigateur/appareil peut être indiqué par le testeur et s'applique à tous
-  les scénarios envoyés dans la même soumission.
+  les scénarios envoyés dans la même soumission. Ce champ et chaque commentaire
+  rappellent de ne pas saisir de nom, de coordonnées ni d'autre élément
+  identifiant.
 - Cocher un scénario ou modifier son résultat ne déclenche aucun envoi réseau.
   Le testeur envoie explicitement les résultats en attente avec un bouton
   toujours visible ; les scénarios déjà envoyés restent cochés et identifiés
@@ -94,15 +100,20 @@ qualité ; l'administrateur technique suit les résultats dans un tableau de bor
   réponses au questionnaire) est conservé dans le stockage local du navigateur,
   séparément par campagne et profil, et restauré après réouverture de la page.
   Un problème de stockage local est signalé sans empêcher l'envoi manuel. Le
-  formulaire avertit de ne pas saisir de nom ni de coordonnées.
+  formulaire explique que les retours ne sont reliés ni à un compte ni à
+  l'invitation, sans promettre un anonymat absolu. Chaque champ de texte libre
+  et d'appareil avertit de ne pas saisir de nom, de coordonnées ni d'autres
+  informations identifiantes ; les textes sont conservés tels que saisis.
 - À la fin de la checklist, le testeur peut répondre à un questionnaire
   facultatif : compréhension des consignes, durée de la campagne, utilité des
   liens directs et satisfaction générale. Il peut ajouter un commentaire ou
   une suggestion d'amélioration de 2 000 caractères maximum. Le formulaire
   n'enregistre cet avis qu'avec au moins un scénario coché.
 - Les réponses générales sont enregistrées séparément des résultats par
-  scénario, sans coordonnées ni identifiant personnel. Le tableau de suivi
-  technique les présente avec le profil déclaratif et la date de réception.
+  scénario, sans association à un compte ou à l'invitation. Le tableau de suivi
+  technique et l'export présentent le profil déclaré et le jour de réception,
+  sans l'heure précise ni le navigateur/appareil. Les textes libres peuvent
+  néanmoins identifier leur auteur.
 - Les retours sont liés à l'organisation cible de la campagne résolue côté
   serveur ; aucune organisation ne vient du navigateur.
 - L'accès à `/test-campaigns` et aux API de gestion/suivi est réservé au
@@ -231,18 +242,26 @@ cartes lisibles.
   incluant tous les scénarios correspondant à leurs profils.
 - Ajouter `TestFeedback`, lié à la campagne et à l'organisation, avec profil,
   identifiant et instantané du scénario (titre/priorité), résultat,
-  navigateur/appareil, commentaire et date de création. Chaque ligne
+  navigateur/appareil, commentaire et date de création. L'horodatage exact est
+  conservé en base pour l'ordre des envois ; le DTO du suivi et l'export
+  n'exposent que le jour de réception et omettent l'appareil. Chaque ligne
   correspond au résultat d'un scénario.
 - Ajouter `TestCampaignReview`, lié à la campagne et à l'organisation, avec
   profil déclaratif, réponses facultatives aux questions prédéfinies, un
   commentaire facultatif et la date de création. Ne pas stocker d'identifiant
-  de testeur ; plusieurs avis anonymes par campagne sont possibles.
+  de testeur ; plusieurs avis non liés à un compte ou à une invitation sont
+  possibles.
 - Ne pas associer le feedback à un compte utilisateur ni à un testeur identifié.
-- Ne pas stocker nom, email, adresse IP ni autre identifiant personnel du
-  testeur. Le profil est librement choisi par le visiteur.
+- Ne pas demander de nom, d'e-mail ou d'adresse IP dans des champs dédiés, ni
+  associer les retours à un compte ou à l'invitation. Le profil est librement
+  choisi par le visiteur. Les textes libres et l'appareil sont conservés tels
+  que saisis et peuvent contenir des éléments identifiants ; l'interface doit
+  avertir le testeur sans garantir un anonymat absolu.
 - La liste des contacts sélectionnés pour l'invitation n'est pas persistée et
-  n'est jamais associée aux feedbacks. Les retours restent anonymes même si un
-  destinataire ouvre le lien depuis son compte.
+  n'est jamais associée aux feedbacks. Le suivi et l'export ne montrent que le
+  profil déclaré et le jour de réception comme métadonnées contextuelles ; ils
+  omettent l'heure précise et l'appareil. Les commentaires sont conservés tels
+  que saisis et peuvent contenir des éléments identifiants.
 - Les destinataires sont les comptes `ADMIN`/`USER` et les fiches `Customer`
   ayant une adresse e-mail valide et appartenant à l'organisation choisie.
   L'API vérifie côté serveur la source et l'ID de chaque entrée ; la sélection
@@ -320,7 +339,8 @@ cartes lisibles.
    configuré ou si le portail client est désactivé.
 6. Un testeur peut envoyer un avis général facultatif avec un ou plusieurs
    scénarios cochés. Les réponses aux listes prédéfinies et le commentaire
-   apparaissent dans le suivi technique, sans données personnelles.
+   apparaissent dans le suivi technique ; aucun identifiant direct de testeur
+   n'est ajouté, et les champs libres avertissent qu'ils peuvent identifier.
 7. Les scénarios non cochés ne sont pas créés ; les commentaires sont exigés
    pour les échecs et blocages ; les liens invalides ou campagnes fermées sont
    refusés explicitement.
@@ -329,11 +349,16 @@ cartes lisibles.
 9. Le tableau de bord montre progression, résultats courants par scénario et
    historique complet ; le résultat courant est le dernier par profil et
    scénario.
-10. Aucune donnée personnelle du testeur ni liste de destinataires n'est stockée.
-   Rate limit, droits et
-   isolation sont testés ; TypeScript et lint passent.
+10. Aucun compte, destinataire d'invitation ou identifiant direct de testeur
+    n'est associé aux retours ; la liste des destinataires n'est pas persistée.
+    Les textes libres peuvent néanmoins contenir des informations identifiantes.
+    Le suivi et l'export n'exposent que le profil déclaré et le jour de réception,
+    sans heure précise ni appareil. Rate limit, droits et isolation sont testés ;
+    TypeScript et lint passent.
 11. Depuis le détail d'une campagne, le `TECH_ADMIN` peut télécharger un fichier
     JSON UTF-8 comprenant les métadonnées de campagne, les scénarios et leur
     résultat courant, l'historique complet et les réponses/commentaires du
     questionnaire. L'export n'inclut ni le jeton public, ni les identifiants
-    internes de campagne ou d'enregistrement, ni les destinataires.
+    internes de campagne ou d'enregistrement, ni les destinataires. Les dates
+    des retours et avis sont à la journée, l'appareil est omis, et la version
+    2 du format reflète cette minimisation.

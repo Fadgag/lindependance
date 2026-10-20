@@ -401,3 +401,11 @@ model PasswordResetToken {
   token   String   @unique
   expires DateTime
 }
+
+model AuthRateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
+}

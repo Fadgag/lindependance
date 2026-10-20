@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import {
   CustomerPortalAppointmentsSchema,
   CustomerPortalBookingSchema,
+  CustomerPortalSlugSchema,
 } from '@/schemas/customerPortal'
 import {
   getCustomerPortalSession,
@@ -14,15 +15,28 @@ import { getCustomerPortalAppointments } from '@/services/customerPortalAppointm
 import { createCustomerPortalAppointment } from '@/services/customerPortalBooking.service'
 import { sendAppointmentConfirmation } from '@/services/customerPortalEmail.service'
 
+function privateNoStore(response: Response): Response {
+  response.headers.set('Cache-Control', 'private, no-store')
+  return response
+}
+
 export async function GET(request: Request) {
   const session = await getCustomerPortalSession(request)
   if (!session || session.accountType !== 'CUSTOMER') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return privateNoStore(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+  }
+
+  const organizationSlug = CustomerPortalSlugSchema.safeParse(
+    new URL(request.url).searchParams.get('organizationSlug'),
+  )
+  if (!organizationSlug.success) {
+    return privateNoStore(NextResponse.json({ error: 'Invalid organization' }, { status: 400 }))
   }
 
   try {
     const result = await getCustomerPortalAppointments({
       organizationId: session.organizationId,
+      organizationSlug: organizationSlug.data,
       verifiedEmail: session.verifiedEmail,
     })
     const payload = CustomerPortalAppointmentsSchema.parse({
@@ -41,12 +55,12 @@ export async function GET(request: Request) {
         changeRequest: appointment.changeRequest,
       })),
     })
-    return NextResponse.json(payload)
+    return privateNoStore(NextResponse.json(payload))
   } catch (error: unknown) {
     if (isCustomerPortalHttpError(error)) {
-      return NextResponse.json({ error: error.message }, { status: error.status })
+      return privateNoStore(NextResponse.json({ error: error.message }, { status: error.status }))
     }
-    return apiErrorResponse(error)
+    return privateNoStore(apiErrorResponse(error))
   }
 }
 

@@ -40,8 +40,7 @@ describe('buildTestCampaignExport', () => {
             id: 'feedback-internal-id',
             status: 'FAIL',
             comment: 'Le lien affiche une erreur.',
-            environment: 'Safari sur iPhone',
-            createdAt: '2026-10-04T09:30:00.000Z',
+            createdAt: '2026-10-04',
           },
         }],
         history: [{
@@ -51,9 +50,8 @@ describe('buildTestCampaignExport', () => {
           scenarioTitle: 'Ouvrir la réservation',
           scenarioPriority: 'P1',
           status: 'FAIL',
-          environment: 'Safari sur iPhone',
           comment: 'Le lien affiche une erreur.',
-          createdAt: '2026-10-04T09:30:00.000Z',
+          createdAt: '2026-10-04',
         }],
         campaignReviews: [{
           id: 'review-internal-id',
@@ -63,15 +61,19 @@ describe('buildTestCampaignExport', () => {
           links: 'VERY_USEFUL',
           satisfaction: 'SATISFIED',
           comment: 'Les consignes étaient faciles à suivre.',
-          createdAt: '2026-10-04T09:35:00.000Z',
+          createdAt: '2026-10-04',
         }],
       },
     })
 
     expect(result).toEqual({
       format: 'lindependance-test-campaign-feedback',
-      version: 1,
+      version: 2,
       exportedAt: '2026-10-05T09:00:00.000Z',
+      privacy: {
+        feedbackDatePrecision: 'calendar-day',
+        environmentIncluded: false,
+      },
       campaign: {
         name: 'Recette réservation',
         organizationName: 'Osez le T’re',
@@ -99,8 +101,7 @@ describe('buildTestCampaignExport', () => {
         result: {
           status: 'FAIL',
           comment: 'Le lien affiche une erreur.',
-          environment: 'Safari sur iPhone',
-          createdAt: '2026-10-04T09:30:00.000Z',
+          createdAt: '2026-10-04',
         },
       }],
       history: [{
@@ -109,9 +110,8 @@ describe('buildTestCampaignExport', () => {
         scenarioTitle: 'Ouvrir la réservation',
         scenarioPriority: 'P1',
         status: 'FAIL',
-        environment: 'Safari sur iPhone',
         comment: 'Le lien affiche une erreur.',
-        createdAt: '2026-10-04T09:30:00.000Z',
+        createdAt: '2026-10-04',
       }],
       campaignReviews: [{
         profile: 'USER',
@@ -120,11 +120,13 @@ describe('buildTestCampaignExport', () => {
         links: 'VERY_USEFUL',
         satisfaction: 'SATISFIED',
         comment: 'Les consignes étaient faciles à suivre.',
-        createdAt: '2026-10-04T09:35:00.000Z',
+        createdAt: '2026-10-04',
       }],
     })
     expect(JSON.stringify(result)).not.toContain('secret-public-token')
     expect(JSON.stringify(result)).not.toContain('internal-id')
+    expect(JSON.stringify(result)).not.toContain('Safari sur iPhone')
+    expect(JSON.stringify(result)).not.toContain('09:30')
   })
 
   it('creates a safe campaign filename with an ISO calendar date', () => {

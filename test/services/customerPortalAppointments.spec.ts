@@ -17,10 +17,13 @@ import {
 } from '@/services/customerPortalAppointments.service'
 import { prisma } from '@/lib/prisma'
 
-const input = {
-  organizationId: 'org-1',
-  verifiedEmail: 'parent@example.com',
+const organizationA = { id: 'org-test-a', slug: 'salon-test-a' }
+const organizationB = { id: 'org-test-b', slug: 'salon-test-b' }
+const identity = {
+  organizationId: organizationA.id,
+  verifiedEmail: 'synthetic-customer@example.test',
 }
+const input = { ...identity, organizationSlug: organizationA.slug }
 const now = new Date('2026-10-01T10:00:00.000Z')
 
 function transactionFixture(appointment: {
@@ -39,7 +42,7 @@ function transactionFixture(appointment: {
   finalPrice: null,
 }) {
   return {
-    organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
+    organization: { findFirst: vi.fn().mockResolvedValue({ id: organizationA.id }) },
     appointmentChangeRequest: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     appointment: {
       findFirst: vi.fn().mockResolvedValue(appointment),
@@ -54,9 +57,9 @@ beforeEach(() => {
 })
 
 describe('getCustomerPortalAppointments', () => {
-  it('limits appointment lookup to future, active visits for every matching customer in the session organization', async () => {
+  it('limits appointment lookup to the requested session organization and verified email', async () => {
     vi.mocked(prisma.organization.findFirst).mockResolvedValue({
-      id: 'org-1',
+      id: organizationA.id,
       timezone: 'Europe/Paris',
     } as never)
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([{
@@ -76,12 +79,20 @@ describe('getCustomerPortalAppointments', () => {
 
     expect(prisma.appointment.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
-        organizationId: 'org-1',
+        organizationId: organizationA.id,
         startTime: { gte: now },
         status: { not: 'CANCELLED' },
-        customer: { is: { organizationId: 'org-1', email: 'parent@example.com' } },
+        customer: { is: { organizationId: organizationA.id, email: identity.verifiedEmail } },
       },
       orderBy: { startTime: 'asc' },
+    }))
+    expect(prisma.organization.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        id: organizationA.id,
+        slug: organizationA.slug,
+        portalEnabled: true,
+        staff: { some: { active: true } },
+      },
     }))
     expect(result).toEqual({
       timezone: 'Europe/Paris',
@@ -103,7 +114,7 @@ describe('getCustomerPortalAppointments', () => {
 
   it('does not advertise online cancellation for a paid appointment', async () => {
     vi.mocked(prisma.organization.findFirst).mockResolvedValue({
-      id: 'org-1',
+      id: organizationA.id,
       timezone: 'Europe/Paris',
     } as never)
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([{
@@ -127,7 +138,7 @@ describe('getCustomerPortalAppointments', () => {
 
   it('does not advertise online cancellation when a positive final price indicates payment', async () => {
     vi.mocked(prisma.organization.findFirst).mockResolvedValue({
-      id: 'org-1',
+      id: organizationA.id,
       timezone: 'Europe/Paris',
     } as never)
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([{
@@ -148,6 +159,23 @@ describe('getCustomerPortalAppointments', () => {
 
     expect(result.appointments[0]?.canCancel).toBe(false)
   })
+
+  it('does not query appointments when an organization A session requests organization B', async () => {
+    vi.mocked(prisma.organization.findFirst).mockResolvedValue(null)
+
+    await expect(getCustomerPortalAppointments({
+      ...input,
+      organizationSlug: organizationB.slug,
+    })).rejects.toMatchObject({ status: 404 })
+
+    expect(prisma.organization.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        id: organizationA.id,
+        slug: organizationB.slug,
+      }),
+    }))
+    expect(prisma.appointment.findMany).not.toHaveBeenCalled()
+  })
 })
 
 describe('cancelCustomerPortalAppointment', () => {
@@ -156,7 +184,7 @@ describe('cancelCustomerPortalAppointment', () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transaction as never))
 
     await cancelCustomerPortalAppointment({
-      ...input,
+      ...identity,
       appointmentId: 'appointment-1',
       now,
     })
@@ -168,15 +196,15 @@ describe('cancelCustomerPortalAppointment', () => {
     expect(transaction.appointment.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         id: 'appointment-1',
-        organizationId: 'org-1',
+        organizationId: organizationA.id,
         status: { not: 'CANCELLED' },
-        customer: { is: { organizationId: 'org-1', email: 'parent@example.com' } },
+        customer: { is: { organizationId: organizationA.id, email: identity.verifiedEmail } },
       },
     }))
     expect(transaction.appointment.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         id: 'appointment-1',
-        organizationId: 'org-1',
+        organizationId: organizationA.id,
         status: { notIn: ['CANCELLED', 'PAID', 'PAYED'] },
         OR: [
           { finalPrice: null },
@@ -190,14 +218,14 @@ describe('cancelCustomerPortalAppointment', () => {
       where: {
         id: 'customer-package-1',
         customerId: 'customer-1',
-        package: { is: { organizationId: 'org-1' } },
+        package: { is: { organizationId: organizationA.id } },
       },
       data: { sessionsRemaining: { increment: 1 } },
     }))
     expect(transaction.appointmentChangeRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         appointmentId: 'appointment-1',
-        organizationId: 'org-1',
+        organizationId: organizationA.id,
         status: 'PENDING',
       },
       data: expect.objectContaining({
@@ -243,7 +271,7 @@ describe('cancelCustomerPortalAppointment', () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transaction as never))
 
     await expect(cancelCustomerPortalAppointment({
-      ...input,
+      ...identity,
       appointmentId: 'appointment-1',
       now,
     })).rejects.toMatchObject({ status: 409 })
@@ -263,7 +291,7 @@ describe('cancelCustomerPortalAppointment', () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transaction as never))
 
     await cancelCustomerPortalAppointment({
-      ...input,
+      ...identity,
       appointmentId: 'appointment-1',
       now,
     })
@@ -277,7 +305,7 @@ describe('cancelCustomerPortalAppointment', () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transaction as never))
 
     await expect(cancelCustomerPortalAppointment({
-      ...input,
+      ...identity,
       appointmentId: 'appointment-1',
       now,
     })).rejects.toMatchObject({ status: 404 })

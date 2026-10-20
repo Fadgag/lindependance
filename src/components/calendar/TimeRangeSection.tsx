@@ -26,8 +26,9 @@ export function TimeRangeSection({
   return (
     <div className="grid grid-cols-2 gap-3 p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
       <div>
-        <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase">Début</label>
+        <label htmlFor="appointment-start-time" className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase">Début</label>
         <input
+          id="appointment-start-time"
           type="time"
           value={startTime}
           onChange={(e) => onStartTimeChange(e.target.value)}
@@ -40,8 +41,9 @@ export function TimeRangeSection({
         )}
       </div>
       <div>
-        <label className="text-[10px] font-bold text-slate-500 uppercase">Durée (min)</label>
+        <label htmlFor="appointment-duration" className="text-[10px] font-bold text-slate-500 uppercase">Durée (min)</label>
         <input
+          id="appointment-duration"
           type="number"
           step="5"
           value={duration}
@@ -55,4 +57,3 @@ export function TimeRangeSection({
     </div>
   )
 }
-
