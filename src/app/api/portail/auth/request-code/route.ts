@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto'
 import { NextResponse } from 'next/server'
+import { getCustomerPortalOtpRateLimits } from '@/domain/customer-portal/rateLimit'
 import { CustomerPortalOtpRequestSchema } from '@/schemas/customerPortal'
 import { prisma } from '@/lib/prisma'
 import {
@@ -39,17 +40,21 @@ export async function POST(request: Request) {
   const secret = getCustomerPortalSecret()
   const now = new Date()
   const email = parsed.data.email
+  const limits = getCustomerPortalOtpRateLimits({
+    vercelEnvironment: process.env.VERCEL_ENV,
+    gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+  })
   const allowed = await consumePortalRateLimits([
     {
       scope: 'otp-email-request',
       keyHash: hashRateLimitKey('email', email, secret),
-      limit: 3,
+      limit: limits.emailLimit,
       windowMilliseconds: EMAIL_WINDOW_MS,
     },
     {
       scope: 'otp-ip-request',
       keyHash: hashRateLimitKey('ip', getRequestIp(request), secret),
-      limit: 10,
+      limit: limits.ipLimit,
       windowMilliseconds: IP_WINDOW_MS,
     },
   ], now)

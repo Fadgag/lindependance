@@ -41,7 +41,11 @@ Le MVP est activable par organisation et ne crée pas de compte client autonome.
 - Le formulaire affiche une aide neutre invitant à contacter le salon si le
   client ne reçoit pas de code, avec les coordonnées publiques configurées.
   La réponse de demande OTP reste identique qu'une fiche existe ou non.
-- Rate limit distribué : 3 envois par email/15 min, 10 demandes par IP/heure.
+- Rate limit distribué standard : 3 envois par email/15 min, 10 demandes par
+  IP/heure (demande ou vérification OTP). Seule la preview Vercel de la
+  branche `preprod` utilise les plafonds de recette de 10 envois par email/15
+  min et 30 demandes ou vérifications par IP/heure ; Production et les autres
+  environnements conservent les limites standard.
 - Après vérification, session distincte du staff, limitée à
   `accountType=CUSTOMER`, l'organisation résolue et l'email vérifié. Ne pas
   créer de `User` ou `CustomerAccount`.

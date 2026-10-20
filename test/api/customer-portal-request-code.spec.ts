@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { prismaMock, portalServiceMock, sendOtpMock } = vi.hoisted(() => ({
   prismaMock: {
@@ -62,6 +62,10 @@ beforeEach(() => {
   process.env.NEXTAUTH_SECRET = 'test-customer-portal-secret'
 })
 
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
 describe('POST /api/portail/auth/request-code', () => {
   it('returns the same response whether or not an email belongs to a customer', async () => {
     const unknownAddressResponse = await POST(requestCode())
@@ -78,6 +82,36 @@ describe('POST /api/portail/auth/request-code', () => {
       template: 'Code : {{code}}',
     }))
   })
+
+  it.each([
+    { vercelEnvironment: 'preview', gitCommitRef: 'preprod', emailLimit: 10, ipLimit: 30 },
+    { vercelEnvironment: 'production', gitCommitRef: 'preprod', emailLimit: 3, ipLimit: 10 },
+    { vercelEnvironment: 'preview', gitCommitRef: 'feature/other', emailLimit: 3, ipLimit: 10 },
+  ])(
+    'uses the expected OTP limits for $vercelEnvironment on $gitCommitRef',
+    async ({ vercelEnvironment, gitCommitRef, emailLimit, ipLimit }) => {
+      vi.stubEnv('VERCEL_ENV', vercelEnvironment)
+      vi.stubEnv('VERCEL_GIT_COMMIT_REF', gitCommitRef)
+
+      await POST(requestCode())
+
+      expect(consumePortalRateLimits).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            scope: 'otp-email-request',
+            limit: emailLimit,
+            windowMilliseconds: 15 * 60 * 1000,
+          }),
+          expect.objectContaining({
+            scope: 'otp-ip-request',
+            limit: ipLimit,
+            windowMilliseconds: 60 * 60 * 1000,
+          }),
+        ]),
+        expect.any(Date),
+      )
+    },
+  )
 
   it('does not accept an organization id from the browser', async () => {
     const response = await POST(new Request('https://example.test/api/portail/auth/request-code', {

@@ -3,24 +3,31 @@
 import { auth } from "./auth"
 import { NextResponse } from 'next/server'
 import type { NextAuthRequest } from 'next-auth'
+import { canProvisionTestSalon } from '@/domain/tech-admin/testSalonProvisioning'
 
-function isBetaCampaignPath(pathname: string): boolean {
+function isPreprodOnlyPath(pathname: string): boolean {
   return pathname === '/test-campaigns'
     || pathname.startsWith('/test-campaigns/')
+    || pathname === '/test-salons'
+    || pathname.startsWith('/test-salons/')
     || pathname === '/retour-test'
     || pathname.startsWith('/retour-test/')
 }
 
-function isBetaCampaignApiPath(pathname: string): boolean {
+function isPreprodOnlyApiPath(pathname: string): boolean {
   return pathname === '/api/test-campaigns'
     || pathname.startsWith('/api/test-campaigns/')
     || pathname === '/api/test-feedback'
     || pathname.startsWith('/api/test-feedback/')
+    || pathname === '/api/tech-admin/test-salons'
+    || pathname.startsWith('/api/tech-admin/test-salons/')
 }
 
 function isPreprodDeployment(): boolean {
-  return process.env.VERCEL_ENV === 'preview'
-    && process.env.VERCEL_GIT_COMMIT_REF === 'preprod'
+  return canProvisionTestSalon({
+    vercelEnvironment: process.env.VERCEL_ENV,
+    gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+  })
 }
 
 // RAISON: NextAuthRequest étend NextRequest avec `auth: Session | null` (next-auth v5).
@@ -28,14 +35,14 @@ function isPreprodDeployment(): boolean {
 // un typage correct sans double cast unsafe.
 async function middlewareFn(req: NextAuthRequest) {
   const pathname = String(req.nextUrl?.pathname ?? '')
-  const isBetaApi = isBetaCampaignApiPath(pathname)
-  if (isBetaCampaignPath(pathname) || isBetaApi) {
+  const isPreprodApi = isPreprodOnlyApiPath(pathname)
+  if (isPreprodOnlyPath(pathname) || isPreprodApi) {
     if (!isPreprodDeployment()) {
-      return isBetaApi
+      return isPreprodApi
         ? NextResponse.json({ error: 'Not found' }, { status: 404 })
         : new Response(null, { status: 404 })
     }
-    if (isBetaApi) return
+    if (isPreprodApi) return
   }
 
   if (pathname === '/portail' || pathname.startsWith('/portail/')) return
@@ -74,5 +81,6 @@ export const config = {
     "/((?!api|_next/static|_next/image|favicon.ico|manifest\\.json|manifest\\.webmanifest|sw\\.js).*)",
     '/api/test-campaigns/:path*',
     '/api/test-feedback/:path*',
+    '/api/tech-admin/test-salons/:path*',
   ],
 }
