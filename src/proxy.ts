@@ -49,7 +49,7 @@ async function middlewareFn(req: NextAuthRequest) {
   if (pathname === '/retour-test' || pathname.startsWith('/retour-test/')) return
 
   const authClaim = req.auth ?? null
-  const isLoggedIn = !!authClaim
+  const isLoggedIn = !!authClaim?.user
   const isAuthPage = pathname.startsWith("/auth")
 
   if (pathname === '/') {
