@@ -4,6 +4,7 @@ Contenu
 - `e2e_purchase_consume.sh` : script shell qui orchestre un achat → création d'un RDV → vérification decrement → suppression → vérification increment.
 - `recette-beta-customer.md` : scénarios manuels de recette bêta du portail client (Phases 1–3).
 - `recette-beta-admin.md` : scénarios de recette staff/admin, file de revue et compteur du portail client.
+- `beta-test-customer-portal-phase-2.md` : checklist manuelle à remettre aux bêta-testeurs pour « Mes rendez-vous » et l'annulation client.
 
 > `audit_test_coverage_2026-04-28.md` est un état des lieux daté d'avril 2026,
 > antérieur aux tests des phases 2/3 du portail. Ses totaux ne représentent pas
