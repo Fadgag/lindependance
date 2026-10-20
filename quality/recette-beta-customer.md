@@ -37,7 +37,8 @@ Créer ou demander les données de test suivantes dans l'interface staff :
 | `EMAIL-SINGLE` | Adresse de test reliée à une fiche client de `ORG-A`. |
 | `EMAIL-FAMILY` | Adresse de test reliée à deux fiches de `ORG-A`, dont une fiche enfant. |
 | `EMAIL-OTHER` | Adresse sans fiche dans `ORG-A`; si possible, la même adresse existe dans `ORG-B`. |
-| `RDV-FAR` / `RDV-NEAR` | Rendez-vous de test à plus de 24 h, puis à 24 h ou moins de l'heure courante de l'organisation. |
+| `RDV-FAR` / `RDV-NEAR` | Rendez-vous non payés, l'un prévu à plus de 24 h et l'autre à 24 h ou moins de l'heure courante de l'organisation. |
+| `RDV-PAID` | Rendez-vous payé prévu à plus de 24 h ; l'équipe note son état et, si un forfait est lié, le nombre de séances restantes avant le test. |
 | `RDV-PACKAGE` | Rendez-vous futur relié à un forfait avec un nombre de séances restant relevé avant le test. |
 | Créneaux de contrôle | Un créneau libre, un créneau occupé par chaque praticien et une indisponibilité globale. |
 | Messages e-mail | Dans `ORG-A`, préparer les deux messages personnalisés en incluant le nom du salon et les informations indispensables ; laisser les valeurs par défaut dans `ORG-B`. |
@@ -226,13 +227,20 @@ y compris après actualisation. Campagne « Test Création de rdv 1 », 20/10/20
 #### [ ] CUS-12 — Annuler un rendez-vous
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 3–5]
 
-**Étapes :** annulez un rendez-vous prévu dans plus d'un jour. Essayez ensuite
-d'annuler un rendez-vous prévu dans moins d'un jour.
+**Étapes :** annulez `RDV-FAR`, qui n'est pas payé et est prévu dans plus d'un
+jour. Essayez ensuite d'annuler `RDV-NEAR`, qui est prévu dans moins d'un jour.
+Enfin, ouvrez `RDV-PAID`, prévu à plus d'un jour, et vérifiez si l'annulation
+en ligne est proposée. Si un forfait est lié, demandez à l'équipe de vérifier
+son solde de séances après le test.
 
-**Attendu :** vous pouvez annuler en ligne le rendez-vous suffisamment éloigné.
-Pour un rendez-vous imminent, un message vous indique de contacter le salon.
+**Attendu :** vous pouvez annuler en ligne le rendez-vous non payé suffisamment
+éloigné. Pour le rendez-vous imminent, l'annulation est refusée et un message
+vous indique de contacter le salon. Le rendez-vous payé reste visible, sans
+action « Annuler », et le message invite aussi à contacter le salon. Le nombre
+de séances du forfait associé, s'il y en a un, ne change pas.
 
-**Automatisé :** `test/services/customerPortalAppointments.spec.ts`,
+**Automatisé :** `test/domain/appointment/policies.spec.ts`,
+`test/services/customerPortalAppointments.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`,
 `test/api/customer-portal-appointments.spec.ts`.
 **Résultat / preuve :** `________`

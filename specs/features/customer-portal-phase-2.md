@@ -24,8 +24,10 @@ associées à son email vérifié et d'annuler en ligne les rendez-vous admissib
 - `DELETE /api/portail/rdv/[id]` vérifie que le rendez-vous appartient à une
   fiche liée à l'email et à l'organisation de la session. Le client ne peut
   jamais élargir son accès en envoyant un autre `customerId`.
-- Annulation directe seulement si le rendez-vous est à plus de 24 heures.
-  À 24 heures ou moins, l'API refuse l'action et l'interface invite à
+- Annulation directe seulement si le rendez-vous n'est pas payé et se situe
+  à plus de 24 heures. Les statuts `PAID` et `PAYED`, ainsi qu'un `finalPrice`
+  positif, rendent l'annulation en ligne indisponible quelle que soit la date.
+  À 24 heures ou moins, l'API refuse aussi l'action et l'interface invite à
   contacter le staff. Le contrôle est toujours serveur et utilise le fuseau
   de l'organisation.
 - Passer le statut à `CANCELLED` sans supprimer la ligne.
@@ -45,8 +47,9 @@ associées à son email vérifié et d'annuler en ligne les rendez-vous admissib
    session OTP.
 2. Les rendez-vous sont ordonnés chronologiquement et distinguent chaque
    membre de la famille.
-3. L'annulation à plus de 24h fonctionne ; à 24h ou moins, elle est refusée
-   côté API, même si la requête est forgée.
+3. Seul un rendez-vous non payé situé à plus de 24h peut être annulé en ligne.
+   Les rendez-vous payés (`PAID`, `PAYED` ou `finalPrice` positif) et ceux à
+   24h ou moins sont refusés côté API, même si la requête est forgée.
 4. Une annulation sur un forfait recrédite une séance une seule fois ;
    l'absence de forfait ou une annulation refusée ne modifie pas les crédits.
 5. Un client ne peut pas annuler un rendez-vous d'une autre organisation ou

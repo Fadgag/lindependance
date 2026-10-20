@@ -31,11 +31,15 @@ function transactionFixture(appointment: {
   customerId: string
   customerPackageId: string | null
   startTime: Date
+  status: string
+  finalPrice?: number | null
 } | null = {
   id: 'appointment-1',
   customerId: 'customer-1',
   customerPackageId: 'customer-package-1',
   startTime: new Date('2026-10-03T10:00:00.000Z'),
+  status: 'CONFIRMED',
+  finalPrice: null,
 }) {
   return {
     organization: { findFirst: vi.fn().mockResolvedValue({ id: organizationA.id }) },
@@ -108,6 +112,54 @@ describe('getCustomerPortalAppointments', () => {
     })
   })
 
+  it('does not advertise online cancellation for a paid appointment', async () => {
+    vi.mocked(prisma.organization.findFirst).mockResolvedValue({
+      id: organizationA.id,
+      timezone: 'Europe/Paris',
+    } as never)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([{
+      id: 'appointment-1',
+      startTime: new Date('2026-10-03T10:00:00.000Z'),
+      endTime: new Date('2026-10-03T11:00:00.000Z'),
+      status: 'PAID',
+      finalPrice: 42,
+      serviceId: 'service-1',
+      staffId: 'staff-1',
+      customer: { firstName: 'Camille', lastName: 'Martin' },
+      service: { name: 'Coupe' },
+      staff: { firstName: 'Alex', lastName: 'Durand' },
+      changeRequests: [],
+    }] as never)
+
+    const result = await getCustomerPortalAppointments({ ...input, now })
+
+    expect(result.appointments[0]?.canCancel).toBe(false)
+  })
+
+  it('does not advertise online cancellation when a positive final price indicates payment', async () => {
+    vi.mocked(prisma.organization.findFirst).mockResolvedValue({
+      id: organizationA.id,
+      timezone: 'Europe/Paris',
+    } as never)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([{
+      id: 'appointment-1',
+      startTime: new Date('2026-10-03T10:00:00.000Z'),
+      endTime: new Date('2026-10-03T11:00:00.000Z'),
+      status: 'CONFIRMED',
+      finalPrice: 42,
+      serviceId: 'service-1',
+      staffId: 'staff-1',
+      customer: { firstName: 'Camille', lastName: 'Martin' },
+      service: { name: 'Coupe' },
+      staff: { firstName: 'Alex', lastName: 'Durand' },
+      changeRequests: [],
+    }] as never)
+
+    const result = await getCustomerPortalAppointments({ ...input, now })
+
+    expect(result.appointments[0]?.canCancel).toBe(false)
+  })
+
   it('does not query appointments when an organization A session requests organization B', async () => {
     vi.mocked(prisma.organization.findFirst).mockResolvedValue(null)
 
@@ -153,7 +205,11 @@ describe('cancelCustomerPortalAppointment', () => {
       where: expect.objectContaining({
         id: 'appointment-1',
         organizationId: organizationA.id,
-        status: { not: 'CANCELLED' },
+        status: { notIn: ['CANCELLED', 'PAID', 'PAYED'] },
+        OR: [
+          { finalPrice: null },
+          { finalPrice: { lte: 0 } },
+        ],
         startTime: { gt: new Date(now.getTime() + 24 * 60 * 60 * 1000) },
       }),
       data: { status: 'CANCELLED' },
@@ -185,6 +241,32 @@ describe('cancelCustomerPortalAppointment', () => {
       customerId: 'customer-1',
       customerPackageId: 'customer-package-1',
       startTime: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      status: 'CONFIRMED',
+    })
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transaction as never))
+
+    await expect(cancelCustomerPortalAppointment({
+      ...input,
+      appointmentId: 'appointment-1',
+      now,
+    })).rejects.toMatchObject({ status: 409 })
+
+    expect(transaction.appointment.updateMany).not.toHaveBeenCalled()
+    expect(transaction.customerPackage.updateMany).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['PAID', null],
+    ['PAYED', null],
+    ['CONFIRMED', 42],
+  ] as const)('refuses online cancellation of a paid appointment (%s) without restoring package credit', async (status, finalPrice) => {
+    const transaction = transactionFixture({
+      id: 'appointment-1',
+      customerId: 'customer-1',
+      customerPackageId: 'customer-package-1',
+      startTime: new Date('2026-10-03T10:00:00.000Z'),
+      status,
+      finalPrice,
     })
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transaction as never))
 
@@ -204,6 +286,7 @@ describe('cancelCustomerPortalAppointment', () => {
       customerId: 'customer-1',
       customerPackageId: null,
       startTime: new Date('2026-10-03T10:00:00.000Z'),
+      status: 'CONFIRMED',
     })
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(transaction as never))
 
