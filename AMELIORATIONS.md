@@ -283,7 +283,7 @@ Les vérifications bêta restantes sont suivies dans l'[Issue de campagne](https
   - Le domaine est vérifié et associé à une seule organisation avant activation.
   - Le lien actuel avec slug reste utilisable jusqu'à l'activation du domaine personnalisé.
   - Le portail peut être résolu à partir du domaine personnalisé de chaque organisation, sans logique spécifique à un salon.
-  - Le prix et les modalités de facturation éventuels sont définis.
+  - Le prix et les modalités de facturation sont définis avant toute mise en vente de l'option.
 
 ### Portail client — identité visuelle
 
@@ -424,6 +424,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Aucune information de salon, invitation, lien public de test ou retour de testeur n’est publiée dans l’Issue, car le dépôt est public.
   - Une erreur d’intégration est signalée sans annuler la création de la campagne.
 - **Mise à jour :** L’API de création et l’interface gèrent la génération et le résultat de la carte. L’activation réelle dépend de la configuration serveur documentée dans `docs/github-project-automation.md`.
+
+#### Figer les scénarios utilisés par une campagne
+
+- **Type :** Amélioration
+- **Statut :** À cadrer
+- **Priorité :** À définir
+- **Effort :** À évaluer
+- **Constat :** Les scénarios d'une campagne sont chargés depuis les guides de recette lors de chaque consultation. Une mise à jour d'un guide peut donc modifier les scénarios d'une campagne déjà lancée.
+- **Amélioration souhaitée :** Enregistrer au lancement la version des guides et un instantané des scénarios utilisés. Une mise à jour des guides ne s'applique qu'aux campagnes créées ensuite.
+- **Critères d'acceptation :**
+  - Une campagne conserve les scénarios et la version des guides utilisés à son lancement.
+  - Une mise à jour ultérieure des guides ne modifie pas les scénarios d'une campagne active ou clôturée.
+  - Une nouvelle campagne utilise les scénarios correspondant aux guides en vigueur lors de son lancement.
 
 #### [#86](https://github.com/Fadgag/lindependance/issues/86) Guider tous les tests par mission et questions étape par étape
 
