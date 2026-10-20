@@ -30,6 +30,9 @@ export default function TestSalonProvisioningCard() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [salon, setSalon] = useState<ProvisionedSalon | null>(null)
+  const [staffEmail, setStaffEmail] = useState('')
+  const [staffRole, setStaffRole] = useState<'USER' | 'ADMIN'>('USER')
+  const [confirmControlledEmail, setConfirmControlledEmail] = useState(false)
 
   async function createSalon(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,7 +44,11 @@ export default function TestSalonProvisioningCard() {
       const response = await fetch('/api/tech-admin/test-salons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: '{}',
+        body: JSON.stringify({
+          email: staffEmail,
+          role: staffRole,
+          confirmControlledEmail,
+        }),
       })
       if (!response.ok) throw new Error(await readError(response))
 
@@ -49,6 +56,9 @@ export default function TestSalonProvisioningCard() {
       const parsed = TestSalonProvisionResponseSchema.safeParse(payload)
       if (!parsed.success) {
         throw new Error('La réponse de création du salon est invalide.')
+      }
+      if (!parsed.data.invitation.sent) {
+        setError(parsed.data.invitation.error ?? 'Le compte a été créé, mais son e-mail d’activation n’a pas été envoyé.')
       }
       setSalon(parsed.data)
     } catch (cause: unknown) {
@@ -69,12 +79,51 @@ export default function TestSalonProvisioningCard() {
       </div>
 
       <form onSubmit={createSalon}>
+        <div className="mb-5 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="test-staff-email" className="mb-2 block text-sm font-semibold text-(--studio-text)">
+              Adresse e-mail du compte staff
+            </label>
+            <input
+              id="test-staff-email"
+              type="email"
+              autoComplete="email"
+              required
+              value={staffEmail}
+              onChange={(event) => setStaffEmail(event.target.value)}
+              className="w-full rounded-xl border border-(--studio-border) px-4 py-3 text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="test-staff-role" className="mb-2 block text-sm font-semibold text-(--studio-text)">
+              Rôle du compte
+            </label>
+            <select
+              id="test-staff-role"
+              value={staffRole}
+              onChange={(event) => setStaffRole(event.target.value === 'ADMIN' ? 'ADMIN' : 'USER')}
+              className="w-full rounded-xl border border-(--studio-border) px-4 py-3 text-sm"
+            >
+              <option value="USER">USER — accès staff standard</option>
+              <option value="ADMIN">ADMIN — accès administrateur du salon</option>
+            </select>
+          </div>
+        </div>
+        <label className="mb-5 flex items-start gap-3 text-sm leading-6 text-(--studio-muted)">
+          <input
+            type="checkbox"
+            checked={confirmControlledEmail}
+            onChange={(event) => setConfirmControlledEmail(event.target.checked)}
+            className="mt-1"
+          />
+          <span>Je confirme que cette adresse est une boîte de test sous mon contrôle et j’autorise l’envoi du lien d’activation.</span>
+        </label>
         <button
           type="submit"
-          disabled={creating}
-          className="rounded-2xl bg-(--studio-primary) px-5 py-3 text-sm font-semibold text-white transition-opacity disabled:cursor-wait disabled:opacity-60"
+          disabled={creating || salon !== null || !staffEmail.trim() || !confirmControlledEmail}
+          className="rounded-2xl bg-(--studio-primary) px-5 py-3 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {creating ? 'Création en cours…' : 'Créer un salon de test'}
+          {creating ? 'Création en cours…' : 'Créer le salon et envoyer l’activation'}
         </button>
       </form>
 
@@ -96,6 +145,11 @@ export default function TestSalonProvisioningCard() {
               <dt className="font-semibold text-emerald-950">Client fictif</dt>
               <dd className="mt-1 break-all text-emerald-900">{salon.customerEmail}</dd>
             </div>
+            <div>
+              <dt className="font-semibold text-emerald-950">Compte staff</dt>
+              <dd className="mt-1 break-all text-emerald-900">{salon.staffAccount.email}</dd>
+              <dd className="mt-1 text-emerald-900">Compte staff · {salon.staffAccount.role}</dd>
+            </div>
           </dl>
           <Link
             href={`/portail/${encodeURIComponent(salon.slug)}/reserver`}
@@ -103,9 +157,9 @@ export default function TestSalonProvisioningCard() {
           >
             Ouvrir le portail client
           </Link>
-          <p className="mt-4 text-sm text-emerald-900">
-            Aucune invitation ni aucun e-mail n’a été envoyé.
-          </p>
+          {salon.invitation.sent
+            ? <p className="mt-4 text-sm text-emerald-900">E-mail d’activation envoyé. Le lien expire dans une heure.</p>
+            : <p className="mt-4 text-sm text-emerald-900">Le compte est créé sans mot de passe. Le titulaire peut demander un nouveau lien depuis « Mot de passe oublié ».</p>}
         </section>
       )}
     </section>

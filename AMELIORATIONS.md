@@ -352,6 +352,20 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Qualité terrain — retours et validation
 
+#### Provisionner un compte staff avec un salon de test
+
+- **Type :** Amélioration
+- **Statut :** Implémentée localement — vérification manuelle en bêta avec une boîte de test contrôlée encore à effectuer.
+- **Priorité proposée :** P1
+- **Constat :** Le `TECH_ADMIN` peut créer un salon de test isolé, mais aucun compte staff ne permet de se connecter au salon pour en vérifier les parcours.
+- **Amélioration souhaitée :** Créer dans le même parcours un compte staff normal, puis lui envoyer un lien à usage unique pour définir son mot de passe.
+- **Critères d'acceptation :**
+  - Seul un `TECH_ADMIN` sur la preview de `preprod` peut lancer le provisionnement ; le compte est rattaché au salon créé côté serveur.
+  - Le rôle `USER` est proposé par défaut ; `ADMIN` peut être choisi explicitement et `TECH_ADMIN` ne peut jamais être attribué.
+  - L'adresse est confirmée comme boîte contrôlée avant l'envoi explicite ; aucun mot de passe ni jeton n'est exposé ou journalisé.
+  - L'échec d'envoi est présenté clairement et le parcours réel est vérifié en bêta avec une adresse de test autorisée.
+- **Mise à jour :** `specs/features/test-staff-provisioning.md` décrit le parcours et `ADM-22` couvre l'activation et la connexion. Tests automatisés ciblés validés ; l'envoi réel et la recette bêta restent à effectuer.
+
 #### Permettre à l'utilisateur de signaler un problème ou un bug
 
 - **Type :** Amélioration

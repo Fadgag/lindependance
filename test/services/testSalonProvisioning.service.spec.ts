@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   staffCreate: vi.fn(),
   customerCreate: vi.fn(),
   appointmentCreate: vi.fn(),
+  userCreate: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -24,6 +25,7 @@ describe('test salon provisioning service', () => {
       staff: { create: mocks.staffCreate },
       customer: { create: mocks.customerCreate },
       appointment: { create: mocks.appointmentCreate },
+      user: { create: mocks.userCreate },
     }))
     mocks.organizationCreate.mockResolvedValue({
       id: 'test-organization',
@@ -33,16 +35,27 @@ describe('test salon provisioning service', () => {
     mocks.staffCreate.mockResolvedValue({ id: 'test-staff' })
     mocks.customerCreate.mockResolvedValue({ id: 'test-customer' })
     mocks.appointmentCreate.mockResolvedValue({ id: 'test-appointment' })
+    mocks.userCreate.mockResolvedValue({
+      email: 'staff@example.com',
+      role: 'USER',
+    })
   })
 
-  it('creates a portal-ready synthetic salon and scopes each fixture record to it', async () => {
-    const result = await provisionTestSalon()
+  it('creates a portal-ready salon and a passwordless staff account scoped to it', async () => {
+    const result = await provisionTestSalon({
+      email: 'staff@example.com',
+      role: 'USER',
+    })
 
     expect(result).toEqual({
       id: 'test-organization',
       name: 'Salon de test salon-test-fixture',
       slug: expect.stringMatching(/^salon-test-/),
       customerEmail: expect.stringMatching(/^client-salon-test-.+@example\.invalid$/),
+      staffAccount: {
+        email: 'staff@example.com',
+        role: 'USER',
+      },
     })
     expect(mocks.organizationCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -72,6 +85,32 @@ describe('test salon provisioning service', () => {
         customerId: 'test-customer',
       }),
     }))
+    expect(mocks.userCreate).toHaveBeenCalledWith({
+      data: {
+        email: 'staff@example.com',
+        role: 'USER',
+        organizationId: result.id,
+        hashedPassword: null,
+      },
+      select: { id: true },
+    })
     expect(mocks.transaction).toHaveBeenCalledOnce()
+  })
+
+  it('provisions an explicitly selected ADMIN without granting TECH_ADMIN', async () => {
+    mocks.userCreate.mockResolvedValueOnce({
+      email: 'admin@example.com',
+      role: 'ADMIN',
+    })
+
+    const result = await provisionTestSalon({
+      email: 'admin@example.com',
+      role: 'ADMIN',
+    })
+
+    expect(result.staffAccount.role).toBe('ADMIN')
+    expect(mocks.userCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ role: 'ADMIN' }),
+    }))
   })
 })
