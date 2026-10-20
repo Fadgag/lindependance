@@ -35,12 +35,15 @@ Toute modification de code effectuée par un agent (Builder, AutoFixer, ou autre
 - Si le guide updater modifie les guides, les scénarios de campagne ou leur mapping, relancer les tests concernés avant la revue finale. Si aucun parcours manuel n'est affecté, ne pas modifier les guides et documenter brièvement pourquoi.
 - Examiner le diff complet de la branche par rapport à `preprod` (ou à la base réelle de la PR), en incluant les modifications staged, unstaged et les nouveaux fichiers non suivis. Exclure le rapport de revue lui-même. Les tâches strictement documentaires ne nécessitent pas cette revue automatique.
 - Enregistrer le rapport daté dans `quality/review_report/`. Corriger dans la tâche les constats confirmés liés aux changements effectués, relancer les contrôles et la revue ; signaler séparément tout constat hors périmètre ou nécessitant une décision.
+- Après tout push ou déploiement d'une branche de développement, vérifier les checks CI du commit effectivement publié. En cas d'échec, consulter les logs, rechercher la cause et corriger les échecs confirmés liés au changement, puis relancer les contrôles et la CI. Pour un échec préexistant, intermittent, externe ou hors périmètre, établir les faits et le signaler clairement, sans masquer l'échec ni affaiblir un test existant.
 
 ## 🧹 Propreté du Code
 - **Pas de Logs de Debug :** Supprimer tous les `console.log` avant de finaliser.
 - **Imports :** Nettoyer les imports inutilisés (`pnpm lint --fix`).
 - 
 ## 🔒 Git & Push Policy
+- **Base de développement :** Pour tout développement dans ce dépôt, partir de `preprod`, jamais de `main`, sauf demande explicite de l'utilisateur. Avant de modifier des fichiers, vérifier que la branche de la session est basée sur `preprod`. Si elle ne l'est pas, préserver les changements existants et corriger la base sans les perdre avant de poursuivre.
+- **Statut d'une issue prise en charge :** Dès qu'une issue GitHub est prise en charge pour traitement, déplacer immédiatement son item de Project vers `In progress`, avant de commencer l'analyse ou les modifications. Si l'issue n'est pas associée à un Project ou que le statut n'est pas modifiable, signaler cette limite sans retarder le travail.
 - **Jamais de push direct sur `main` :** Il est strictement interdit de pousser directement sur la branche `main` (ou `master`). Tout correctif ou feature DOIT passer par une branche dédiée et une Pull Request.
 - **Réutilisation de branche (règle prioritaire) :** Avant de créer une nouvelle branche, l'agent DOIT vérifier si une branche active (non encore mergée dans `main`) existe déjà pour la tâche en cours :
   1. Exécuter `git branch --merged main` pour identifier les branches déjà mergées.

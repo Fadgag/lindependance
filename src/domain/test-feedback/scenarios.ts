@@ -82,9 +82,9 @@ function readScenarioField(block: string, label: 'Étapes' | 'Attendu'): string 
 export function parseScenarioGuide(content: string, profile: TestProfile): TestScenario[] {
   const prefix = profile === 'ADMIN' ? 'ADM' : 'CUS'
   return content
-    .split(/(?=^#### \[ \] (?:ADM|CUS)-\d{2} — )/gm)
+    .split(/(?=^#### \[[ xX]\] (?:ADM|CUS)-\d{2} — )/gm)
     .flatMap((block): TestScenario[] => {
-      const header = block.match(/^#### \[ \] ((?:ADM|CUS)-\d{2}) — (.+)$/m)
+      const header = block.match(/^#### \[[ xX]\] ((?:ADM|CUS)-\d{2}) — (.+)$/m)
       if (!header || !header[1].startsWith(`${prefix}-`)) return []
 
       const priority = block.match(/\*\*Priorité : (P[0-2])/)

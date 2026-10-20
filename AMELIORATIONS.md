@@ -22,13 +22,46 @@ en cours de traitement.
 
 ## À traiter
 
+### Signalement du 19 octobre 2026
+
+#### Diagnostiquer l'erreur « Configuration » à la connexion staff en préproduction
+
+- **Type :** Bug
+- **Statut :** Résolu et vérifié en préproduction le 19 octobre 2026 — la migration `20261013143500_add_auth_rate_limit` manquait et a été appliquée ; la connexion staff fonctionne de nouveau.
+- **Priorité proposée :** P1
+- **Comportement observé :** Une personne signale ne plus pouvoir se connecter avec le parcours staff ; une erreur `401` a été vue dans la console, suivie du message « Configuration » sur la page.
+- **Cause confirmée :** L'autorisation de connexion écrit dans la table `AuthRateLimit`, créée par `20261013143500_add_auth_rate_limit`. La migration manquait sur la base de préproduction ; son application a été confirmée par l'opérateur.
+- **Comportement attendu :** Un compte staff valide peut se connecter en préproduction sans erreur de configuration ; des identifiants invalides restent signalés comme un échec de connexion normal.
+- **Étapes de reproduction connues :** Ouvrir `/auth/signin` sur le site de préproduction et tenter le parcours de connexion staff. Le moment précis où le `401` apparaît et l'URL de la requête restent à relever.
+- **Impact :** La connexion au compte staff peut être bloquée en préproduction.
+- **Critères d'acceptation :**
+  - La requête qui répond `401` et l'erreur serveur correspondante sont identifiées.
+  - La migration `20261013143500_add_auth_rate_limit` est appliquée sur la base de préproduction.
+  - Une connexion avec un compte staff de test fonctionne et redirige vers l'espace attendu sans afficher « Configuration ».
+- **Résultat :** Après application de la migration manquante, l'utilisateur confirme que la connexion fonctionne de nouveau.
+
+#### Ne pas afficher les rendez-vous d'un autre salon dans le portail client
+
+- **Type :** Bug
+- **Statut :** Résolu et vérifié en préproduction le 20 octobre 2026 après actualisation de la nouvelle version.
+- **Priorité proposée :** P1
+- **Comportement observé :** Une session client authentifiée sur un salon a ouvert la page « Mes rendez-vous » d'un salon de test différent. L'identité affichée correspondait au salon de test, mais la page présentait encore les rendez-vous du salon précédent, y compris après un rechargement complet.
+- **Comportement attendu :** Une session et les rendez-vous affichés sont limités à l'organisation du portail visité ; aucun rendez-vous d'un autre salon ne doit être rendu.
+- **Étapes de reproduction :** Se connecter au portail client d'un salon de test, ouvrir directement `/portail/<slug-d-un-autre-salon>/mes-rdv`, puis actualiser la page.
+- **Impact :** Des informations de rendez-vous peuvent apparaître dans le contexte d'un autre salon. La vérification de confidentialité entre organisations n'est pas validée et doit être résolue avant la mise en production.
+- **Critères d'acceptation :**
+  - Le serveur vérifie que la session client et chaque requête de rendez-vous correspondent à l'organisation de l'URL.
+  - Une session authentifiée pour le salon A ne récupère ni n'affiche de rendez-vous sur le portail du salon B.
+  - Des tests couvrent les requêtes directes et la navigation entre deux portails authentifiés, sans données d'une organisation dans l'autre.
+- **Mise à jour :** Après actualisation de la nouvelle version, la session vérifiée du salon initial affiche toujours ses trois rendez-vous. En naviguant directement vers le portail « Mes rendez-vous » du salon de test, la page demande une vérification par e-mail et n'affiche aucun rendez-vous ; le résultat persiste après rechargement complet. La frontière entre les deux salons est ainsi vérifiée.
+
 ### Revue UI/UX du 12 octobre 2026
 
 #### [#83](https://github.com/Fadgag/lindependance/issues/83) Rendre visible le lien vers la création d'une campagne
 
 - **Type :** Bug
 - **Statut :** À traiter — constat confirmé sur le tableau de bord TECH_ADMIN en préproduction ; hors du diff de la branche revue.
-- **GitHub Project :** Issue ouverte — Backlog.
+- **GitHub Project :** Carte ajoutée au projet `lindependance` ; statut à confirmer.
 - **Priorité proposée :** P2
 - **Comportement observé :** Sur `/test-campaigns`, le lien « Nouvelle campagne » affiche un texte blanc sans fond visible. Sa classe utilise `bg-(--studio-text)`, mais cette variable n'est pas définie ; la palette expose `--color-studio-text`.
 - **Comportement attendu :** Le lien est visuellement identifiable comme une action et conserve un contraste lisible.
@@ -268,6 +301,20 @@ en cours de traitement.
   - Les limites par e-mail et jeton restent appliquées en l'absence d'IP fiable, y compris le quota email et les essais par OTP du portail client.
 - **Résultat :** Les tests ciblés couvrent les en-têtes Vercel, l'activation explicite auto-hébergée, l'absence d'IP fiable et les quotas OTP du portail ; voir `documentation/deploiement.md`.
 
+### Retour visuel à l'appui sur les boutons
+
+- **Type :** Amélioration
+- **Statut :** À cadrer — amélioration transversale à appliquer de façon cohérente aux boutons des parcours staff et client.
+- **Priorité proposée :** P2
+- **Constat :** Lorsqu'on appuie sur certains boutons, leur apparence ne change pas de façon perceptible ; il est difficile de savoir si l'appui a été pris en compte.
+- **Amélioration souhaitée :** Donner un retour visuel bref et cohérent à l'activation d'un bouton, par exemple une légère variation de couleur, de relief ou d'échelle.
+- **Impact :** Les actions peuvent sembler ne pas avoir répondu, ce qui peut inciter à appuyer plusieurs fois.
+- **Critères d'acceptation :**
+  - L'appui à la souris et au tactile produit un état visuel immédiat et perceptible.
+  - L'activation au clavier reste accompagnée d'un indicateur visible et accessible.
+  - Les états désactivé et en chargement restent distincts du retour d'appui.
+  - Le retour n'entraîne pas de déplacement de mise en page ni de répétition involontaire de l'action.
+
 ### Vérifications manuelles bêta restantes
 
 Les développements concernés sont implémentés. Il reste à effectuer les
@@ -422,6 +469,23 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Une campagne est préremplie avec l'organisation sélectionnée si une seule est choisie ; sinon le TECH_ADMIN choisit explicitement l'organisation cible et peut toujours sélectionner toute organisation.
   - Les filtres de données sont validés côté serveur et les pages et API restent réservées au rôle TECH_ADMIN.
 - **Mise à jour :** La revue du 8 octobre 2026 n'a relevé aucun problème confirmé. Le scénario `ADM-12` couvre maintenant le choix de plusieurs organisations et le filtre des signalements non résolus. La vérification manuelle avec un compte TECH_ADMIN et les données bêta reste à effectuer.
+
+#### [#116](https://github.com/Fadgag/lindependance/issues/116) Provisionner un salon de test depuis TECH_ADMIN
+
+- **Type :** Amélioration
+- **Statut :** Issue ouverte — la recette d'isolation inter-organisations attend un second salon de test en préproduction.
+- **GitHub Project :** Issue ouverte — Backlog.
+- **Priorité proposée :** P2
+- **Constat :** La recette du portail client doit vérifier que les données d'un salon ne sont pas visibles depuis un autre, mais la préproduction ne dispose pas d'un second salon de test. L'interface TECH_ADMIN ne permet pas de créer une organisation.
+- **Amélioration souhaitée :** Permettre à TECH_ADMIN de provisionner un salon de test complet en préproduction, avec des données synthétiques, afin d'exécuter les scénarios d'isolation sans créer de données réelles ni déclencher d'e-mails vers des destinataires réels.
+- **Impact :** La recette d'isolation entre organisations reste bloquée et nécessite actuellement un provisionnement manuel.
+- **Critères d'acceptation :**
+  - La création est réservée à TECH_ADMIN et vérifiée également côté serveur.
+  - La création est refusée hors de la préproduction sur la branche `preprod`.
+  - Le salon possède un nom et un identifiant de portail uniques et est clairement identifié comme environnement de test.
+  - Le provisionnement fournit les éléments synthétiques minimaux pour tester le portail et l'isolation des données, sans invitation ni e-mail à un destinataire réel.
+  - Le résultat affiche l'organisation créée ; les erreurs de validation ou de création sont explicites.
+  - Des tests couvrent l'autorisation, le garde-fou d'environnement, le provisionnement et l'isolation des données.
 
 #### Vérifier les e-mails personnalisés dans les campagnes de recette
 
