@@ -382,18 +382,25 @@ organisations reste à effectuer en bêta.
 #### [ ] ADM-20 — Consulter l'agenda sur un téléphone
 **Priorité : P1 · Exigence :** [Req: user-confirmed — issue #80]
 
-**Étapes :** sur un téléphone, ou en réduisant la fenêtre à 320 px de large,
-ouvrez l'agenda. Vérifiez les boutons Jour et Semaine. Passez en vue Jour,
-puis en vue Semaine et faites défiler le calendrier horizontalement pour
-voir les autres jours.
+**Étapes :** depuis le tableau de bord staff, ouvrez `/agenda` et attendez
+l'affichage du calendrier. Sur un téléphone, ou en réduisant la fenêtre à
+320 px de large, vérifiez les boutons Jour et Semaine. Passez en vue Jour,
+puis en vue Semaine ; vérifiez que les jours restent lisibles et que toute la
+semaine peut être consultée, avec un défilement horizontal si nécessaire.
 
-**Attendu :** le titre et les boutons de navigation restent visibles et
-utilisables. En vue Semaine, les jours restent distincts et le défilement
-permet de consulter toute la semaine sans masquer les commandes.
+**Attendu :** l'agenda s'affiche sans erreur. Le titre et les boutons de
+navigation restent visibles et utilisables. En vue Semaine, les jours restent
+distincts et toute la semaine peut être consultée sans masquer les commandes.
 
 **Automatisé :** `test/ui/appointmentScheduler.spec.tsx` vérifie la vue initiale
-et les commandes Jour/Semaine. Le défilement réel reste à vérifier en bêta.
-**Résultat / preuve :** BLOQUÉ — `/agenda` affiche « This page couldn’t load » après une navigation directe, un rechargement et un clic depuis le tableau de bord ; le parcours mobile n'a pas pu être essayé.
+et les commandes Jour/Semaine, et vérifie que l'option `dayMinWidth` qui
+provoquait l'erreur ScrollGrid n'est plus transmise. Le rendu visuel et le
+défilement réel restent à vérifier en bêta.
+**Résultat / preuve :** BLOQUÉ — le build testé le 20/10 affichait « This page
+couldn’t load » après navigation directe, rechargement et clic depuis le
+tableau de bord. Le correctif a été vérifié localement le 21/10 mais n'est pas
+encore déployé ; le chargement et l'affichage mobile doivent être retestés en
+bêta.
 
 #### [ ] ADM-21 — Vérifier les limites de connexion et de réinitialisation
 **Priorité : P1 · Exigence :** [Req: formal — issue #67]

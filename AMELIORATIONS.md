@@ -696,6 +696,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Les erreurs métier explicitement prévues conservent leur statut et leur message.
   - L'exception reste journalisée côté serveur pour le diagnostic.
 
+### Agenda staff — Corriger l'erreur ScrollGrid au chargement
+
+- **Type :** Bug
+- **Statut :** Corrigé localement le 21 octobre 2026 ; contrôles ciblés réussis. Revalidation de l'agenda et de sa présentation mobile en bêta après déploiement.
+- **Priorité initiale :** P1
+- **Comportement observé :** Sur une session staff authentifiée, `/agenda` échoue au rendu avec `No ScrollGrid implementation`. Les requêtes de données encore en cours sont ensuite interrompues.
+- **Cause confirmée :** `AppointmentScheduler` activait `dayMinWidth` avec FullCalendar 5.11.5 sans enregistrer le plugin ScrollGrid requis par le rendu horizontal.
+- **Comportement attendu :** Les vues Jour et Semaine de l'agenda s'affichent sans erreur.
+- **Étapes de reproduction :** Se connecter avec un compte staff, puis ouvrir `/agenda` depuis le tableau de bord ou directement.
+- **Impact :** Le personnel ne peut pas consulter ni gérer les rendez-vous depuis l'agenda.
+- **Correction :** Retirer `dayMinWidth` et l'indication de défilement associée ; le rendu standard de FullCalendar ne requiert pas le plugin premium ScrollGrid.
+- **Vérification :** Le test UI vérifie l'absence de `dayMinWidth`, les contrôles ciblés passent et les vues Jour/Semaine sont rendues localement sans cette option. La lisibilité et le défilement sur téléphone restent à revalider dans ADM-20.
+
 ### Afficher des erreurs explicites dans les popups
 
 - **Parcours couverts :** Rendez-vous (création, modification, déplacement, suppression), encaissement, indisponibilités et paramètres d’horaires et d’objectif financier.

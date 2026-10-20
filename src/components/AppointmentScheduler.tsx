@@ -89,10 +89,6 @@ export default function AppointmentScheduler() {
                 </button>
             </div>
 
-            <p className={`${styles.scrollHint} text-xs text-slate-500`}>
-                En vue Semaine, faites défiler le calendrier horizontalement pour voir les autres jours.
-            </p>
-
             <div className={`studio-card flex-1 p-2 sm:p-6 min-h-0 min-w-0 overflow-hidden bg-white rounded-4xl border border-studio-border shadow-sm ${styles.calendar}`}>
                 {mounted ? (
                     <FullCalendar
@@ -100,7 +96,6 @@ export default function AppointmentScheduler() {
                         key={`${openingTime}-${closingTime}`}
                         plugins={[timeGridPlugin, interactionPlugin, dayGridPlugin]}
                         initialView={initialView}
-                        dayMinWidth={64}
                         height="100%"
                         contentHeight="100%"
                         expandRows={true}
