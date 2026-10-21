@@ -26,7 +26,6 @@ export default function ClientDetail() {
 
   const loadClient = useCallback(async () => {
     if (!id) return
-    setLoading(true)
     try {
       const res = await fetch(`/api/customers?id=${encodeURIComponent(id)}`)
       if (res.ok) {
@@ -42,7 +41,29 @@ export default function ClientDetail() {
     }
   }, [id])
 
-  useEffect(() => { void loadClient() }, [loadClient])
+  useEffect(() => {
+    if (!id) return
+    let isActive = true
+
+    fetch(`/api/customers?id=${encodeURIComponent(id)}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!data || !isActive) return
+        setClient(data)
+        setEditingNotes(data.Note || '')
+        setEditingEmail(data.email || '')
+      })
+      .catch((err: unknown) => {
+        if (isActive) clientError('Erreur chargement client', err)
+      })
+      .finally(() => {
+        if (isActive) setLoading(false)
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [id])
 
   const saveNotes = async () => {
     if (!client) return

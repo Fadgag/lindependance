@@ -283,7 +283,7 @@ en cours de traitement.
 #### [#123](https://github.com/Fadgag/lindependance/issues/123) Empêcher l’encaissement des rendez-vous annulés
 
 - **Type :** Bug
-- **Statut :** Correctif implémenté localement ; tests ciblés et revue qualité sans constat confirmé le 21 octobre 2026. Recette manuelle après déploiement à terminer.
+- **Statut :** Correctif implémenté ; suite Vitest complète, type-check et lint ciblé réussis, revue finale sans constat confirmé le 21 octobre 2026. Recette manuelle après déploiement à terminer.
 - **Priorité proposée :** P1
 - **Comportement observé :** Un rendez-vous `CANCELLED` apparaît « À encaisser » dans l’historique d’une fiche client et l’ouverture de la ligne propose « Confirmer l’encaissement ». Le constat QA en préproduction n’a donné lieu à aucune confirmation.
 - **Comportement attendu :** L’historique identifie clairement le rendez-vous annulé et aucune interface ni requête API ne permet de l’encaisser.
@@ -293,6 +293,7 @@ en cours de traitement.
   - L’historique distingue « Annulé » de « À encaisser » et n’ouvre pas l’encaissement pour un rendez-vous annulé.
   - L’API refuse atomiquement l’encaissement d’un rendez-vous `CANCELLED` sans modifier le rendez-vous, le paiement, le stock, les ventes ni les demandes en attente.
   - Des tests de régression couvrent le refus API, la protection de la transition concurrente et l’affichage de la fiche client.
+- **Résultat :** 647 tests passent (1 ignoré), `tsc --noEmit` et ESLint strict sur les fichiers modifiés réussissent sans erreur. Revue finale : `quality/review_report/review_2026-10-21_1704.md`. La CI du premier commit a révélé des erreurs de lint préexistantes dans les deux composants touchés ; elles ont été corrigées, et la CI du commit de suivi reste à vérifier.
 
 #### Limiter les tentatives de connexion et de réinitialisation du mot de passe
 

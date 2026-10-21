@@ -90,11 +90,53 @@ interface CheckoutModalProps {
     onRefresh: () => void
 }
 
+function parseAppointmentArray<T>(value: T[] | string | undefined): T[] {
+    return typeof value === 'string' ? parseJsonField<T>(value) : Array.isArray(value) ? value : []
+}
+
+function getAppointmentExtras(appointment: CheckoutModalProps['appointment']): Extra[] {
+    if (!appointment) return []
+
+    const rawExtras = ('extras' in appointment && appointment.extras != null)
+        ? appointment.extras
+        : appointment.extendedProps?.extras
+    return parseAppointmentArray<Extra>(rawExtras)
+}
+
+function getAppointmentSoldProducts(appointment: CheckoutModalProps['appointment']): SoldProduct[] {
+    if (!appointment) return []
+
+    const rawSold = ('soldProducts' in appointment ? appointment.soldProducts : null)
+        ?? appointment.extendedProps?.soldProducts
+    return parseAppointmentArray<SoldProduct>(rawSold)
+}
+
+function getAppointmentNote(appointment: CheckoutModalProps['appointment']): string {
+    if (!appointment) return ''
+
+    const note =
+        ('note' in appointment && typeof appointment.note === 'string' ? appointment.note : undefined)
+        ?? ('Note' in appointment ? appointment.Note ?? undefined : undefined)
+        ?? appointment.extendedProps?.note
+        ?? ''
+    return typeof note === 'string' ? note : ''
+}
+
+function getAppointmentPaymentMethod(appointment: CheckoutModalProps['appointment']): string {
+    if (!appointment) return 'CB'
+
+    return (
+        ('paymentMethod' in appointment ? appointment.paymentMethod : undefined)
+        ?? appointment.extendedProps?.paymentMethod
+        ?? 'CB'
+    )
+}
+
 export default function CheckoutModal({ appointment, onClose, onRefresh }: CheckoutModalProps) {
     const { data: session } = useSession()
     const canManageExtras = session?.user?.role === 'ADMIN'
-    const [extras, setExtras] = useState<Extra[]>([]);
-    const [soldProducts, setSoldProducts] = useState<SoldProduct[]>([]);
+    const [extras, setExtras] = useState<Extra[]>(() => getAppointmentExtras(appointment));
+    const [soldProducts, setSoldProducts] = useState<SoldProduct[]>(() => getAppointmentSoldProducts(appointment));
     const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
     const [showProductPicker, setShowProductPicker] = useState(false);
     const [recentProductIds, setRecentProductIds] = useState<string[]>(() => {
@@ -104,8 +146,8 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
             return raw ? JSON.parse(raw) as string[] : []
         } catch { return [] }
     })
-    const [note, setNote] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("CB");
+    const [note, setNote] = useState(() => getAppointmentNote(appointment));
+    const [paymentMethod, setPaymentMethod] = useState(() => getAppointmentPaymentMethod(appointment));
     const [loading, setLoading] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -117,38 +159,6 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
             .then((data: Product[]) => setAvailableProducts(data))
             .catch(() => setAvailableProducts([]))
     }, [])
-
-    useEffect(() => {
-        if (!appointment) return
-
-        // Extras : top-level (string|array) > extendedProps fallback
-        const rawExtras = ('extras' in appointment && appointment.extras != null)
-            ? appointment.extras
-            : appointment.extendedProps?.extras
-        const parsedExtras: Extra[] = typeof rawExtras === 'string'
-            ? parseJsonField<Extra>(rawExtras)
-            : Array.isArray(rawExtras) ? (rawExtras as Extra[]) : []
-        setExtras(parsedExtras)
-
-        // SoldProducts : top-level (string|array) > extendedProps fallback
-        const rawSold = ('soldProducts' in appointment ? appointment.soldProducts : null) ?? appointment.extendedProps?.soldProducts
-        const parsedSold: SoldProduct[] = typeof rawSold === 'string'
-            ? parseJsonField<SoldProduct>(rawSold)
-            : Array.isArray(rawSold) ? (rawSold as SoldProduct[]) : []
-        setSoldProducts(parsedSold)
-
-        // Note: 'note' (minuscule) prioritaire, puis 'Note' (legacy uppercase Prisma), puis extendedProps
-        const note =
-            ('note' in appointment && typeof appointment.note === 'string' ? appointment.note : undefined)
-            ?? ('Note' in appointment ? (appointment as CheckoutAppointment).Note ?? undefined : undefined)
-            ?? (appointment.extendedProps?.note ?? '')
-        setNote(typeof note === 'string' ? note : '')
-
-        // RAISON: paymentMethod peut être sur CheckoutAppointment (legacy) ou dans extendedProps
-        const pm = ('paymentMethod' in appointment ? (appointment as CheckoutAppointment).paymentMethod : undefined)
-            ?? appointment.extendedProps?.paymentMethod
-        setPaymentMethod(pm ?? 'CB')
-    }, [appointment]);
 
     const isPaid = appointment?.status === "PAID" || appointment?.extendedProps?.status === "PAID";
     const isCancelled = isAppointmentCancelled({

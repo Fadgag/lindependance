@@ -96,4 +96,25 @@ describe("CheckoutModal error feedback", () => {
     expect(await screen.findByText("Rendez-vous annulé")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmer l'encaissement" })).not.toBeInTheDocument();
   });
+
+  it("initializes editable checkout fields from the selected appointment", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, []));
+
+    render(
+      <CheckoutModal
+        appointment={{
+          ...appointment,
+          extras: [{ label: "Soin", price: 10 }],
+          note: "Préférence client",
+          paymentMethod: "CASH",
+        }}
+        onClose={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    );
+
+    expect(await screen.findByPlaceholderText("Désignation")).toHaveValue("Soin");
+    expect(screen.getByPlaceholderText("Observations...")).toHaveValue("Préférence client");
+    expect(screen.getByRole("button", { name: "Espèces" })).toHaveClass("bg-indigo-600");
+  });
 });
