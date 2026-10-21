@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger'
 import { CheckoutInputSchema } from '@/schemas/appointments'
 import { rejectPendingRequestsForAppointment } from '@/services/appointmentChangeRequests.service'
 import { computeCheckoutTotal, computeSoldProductLine } from '@/domain/billing/vat'
-import { isAppointmentPaid } from '@/domain/appointment/policies'
+import { isAppointmentCancelled, isAppointmentPaid } from '@/domain/appointment/policies'
 import { ProductStockMovementType } from '@prisma/client'
 import { applyProductStockMovement } from '@/services/productStock.service'
 
@@ -44,6 +44,9 @@ export async function POST(
             })
             if (!appointment || appointment.service.organizationId !== organizationId) {
                 throw new Error('NOT_FOUND')
+            }
+            if (isAppointmentCancelled(appointment)) {
+                throw new Error('APPOINTMENT_CANCELLED')
             }
             if (isAppointmentPaid(appointment)) {
                 throw new Error('ALREADY_PAID')
@@ -102,8 +105,8 @@ export async function POST(
                 where: {
                     id,
                     organizationId,
+                    status: { notIn: ['PAID', 'PAYED', 'CANCELLED'] },
                     AND: [
-                        { status: { notIn: ['PAID', 'PAYED'] } },
                         { OR: [{ finalPrice: null }, { finalPrice: { lte: 0 } }] },
                     ],
                 },
@@ -121,7 +124,7 @@ export async function POST(
             })
 
             if (updateResult.count === 0) {
-                throw new Error('ALREADY_PAID')
+                throw new Error('CHECKOUT_NOT_ALLOWED')
             }
 
             await rejectPendingRequestsForAppointment(tx, {
@@ -143,6 +146,8 @@ export async function POST(
         if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'Non trouvé' }, { status: 404 })
         if (msg === 'PRODUCT_NOT_FOUND') return NextResponse.json({ error: 'Produit non trouvé' }, { status: 409 })
         if (msg === 'ALREADY_PAID') return NextResponse.json({ error: 'Rendez-vous déjà payé' }, { status: 409 })
+        if (msg === 'APPOINTMENT_CANCELLED') return NextResponse.json({ error: 'Rendez-vous annulé' }, { status: 409 })
+        if (msg === 'CHECKOUT_NOT_ALLOWED') return NextResponse.json({ error: 'Le rendez-vous ne peut plus être encaissé' }, { status: 409 })
         return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 }

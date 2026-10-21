@@ -10,6 +10,10 @@ export interface AppointmentPaymentInfo {
   finalPrice?: number | null
 }
 
+export function isAppointmentCancelled(appointment: AppointmentPaymentInfo): boolean {
+  return appointment.status === 'CANCELLED'
+}
+
 const CUSTOMER_CANCELLATION_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export function canCancelPortalAppointment(

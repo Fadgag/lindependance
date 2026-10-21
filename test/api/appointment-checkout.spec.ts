@@ -120,8 +120,8 @@ describe('POST /api/appointments/[id]/checkout', () => {
       where: expect.objectContaining({
         id: 'appointment-1',
         organizationId: 'org-1',
+        status: { notIn: ['PAID', 'PAYED', 'CANCELLED'] },
         AND: [
-          { status: { notIn: ['PAID', 'PAYED'] } },
           { OR: [{ finalPrice: null }, { finalPrice: { lte: 0 } }] },
         ],
       }),
@@ -188,5 +188,31 @@ describe('POST /api/appointments/[id]/checkout', () => {
     expect(transactionMock.product.updateMany).not.toHaveBeenCalled()
     expect(transactionMock.productStockMovement.create).not.toHaveBeenCalled()
     expect(transactionMock.appointment.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects a cancelled appointment before changing payment, appointment, stock, or sale history', async () => {
+    transactionMock.appointment.findFirst.mockResolvedValue({
+      status: 'CANCELLED',
+      finalPrice: null,
+      service: { price: 30, organizationId: 'org-1' },
+    })
+    const request = new Request('https://example.test/api/appointments/appointment-1/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentMethod: 'CASH',
+        note: 'Ne doit pas être enregistrée',
+        soldProducts: [{ productId: 'c123456789abcdefghijklm', quantity: 1 }],
+      }),
+    })
+
+    const response = await POST(request, context)
+
+    expect(response.status).toBe(409)
+    expect(transactionMock.product.findMany).not.toHaveBeenCalled()
+    expect(transactionMock.product.updateMany).not.toHaveBeenCalled()
+    expect(transactionMock.productStockMovement.create).not.toHaveBeenCalled()
+    expect(transactionMock.appointment.updateMany).not.toHaveBeenCalled()
+    expect(transactionMock.appointmentChangeRequest.updateMany).not.toHaveBeenCalled()
   })
 })

@@ -39,7 +39,7 @@ Préparer dans l'interface staff et avec l'équipe technique :
 | Demandes | Plusieurs demandes `PENDING`, une demande déjà rejetée et une demande approuvée. |
 | Créneaux | Un créneau libre, un occupé par le même praticien, un occupé par un autre praticien et une indisponibilité globale. |
 | Forfait | Rendez-vous de test lié à un forfait ; relever les crédits avant le test. |
-| Rendez-vous | Un rendez-vous modifiable, un rendez-vous supprimable, un rendez-vous `PAID` et un rendez-vous client annulable à plus de 24 h. |
+| Rendez-vous | Un rendez-vous modifiable, un rendez-vous supprimable, un rendez-vous `PAID`, un rendez-vous client annulable à plus de 24 h et `RDV-CANCELLED` dans l'historique d'une fiche client. |
 | Fiches client | Dans `ORG-A`, deux fiches distinctes avec le même numéro ; une boîte e-mail de test accessible et un portail actif avec son slug. |
 | Produits | Dans `ORG-A`, préparer un produit avec un stock de 3 et un autre avec un stock de 5 ; dans `ORG-B`, préparer un produit au nom différent. Prévoir un rendez-vous non payé avec la vente de deux unités. |
 
@@ -446,6 +446,22 @@ la boîte contrôlée, le lien réel et la connexion restent à vérifier en bê
 e-mail d'activation n'est arrivé. Pas de nouvelle tentative avant vérification
 en lecture seule de l'existence du salon/compte et des événements d'envoi.
 Campagne « Test Création de rdv 1 », 20/10/2026.
+
+#### [ ] ADM-23 — Repérer un rendez-vous annulé sur une fiche client
+**Priorité : P1 · Exigence :** [Req: formal — Issue #123]
+
+**Étapes :** ouvrez la fiche client qui contient `RDV-CANCELLED` et consultez
+son historique. Vérifiez le libellé du rendez-vous et les actions proposées,
+sans lancer ni confirmer d'encaissement.
+
+**Attendu :** le rendez-vous est clairement indiqué comme « Annulé », et non
+« À encaisser ». Aucune commande ni fenêtre ne propose de l'encaisser.
+
+**Automatisé :** `test/api/appointment-checkout.spec.ts`,
+`test/ui/customerDetail.spec.tsx` et
+`test/ui/checkoutModalErrors.spec.tsx`. La vérification visuelle en bêta reste
+à effectuer après déploiement ; aucun encaissement réel ne doit être soumis.
+**Résultat / preuve :** `________`
 
 ## Couverture automatisée relue
 
