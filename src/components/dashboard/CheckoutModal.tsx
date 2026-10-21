@@ -9,6 +9,7 @@ import type { CheckoutAppointment, Extra, AppointmentSummary, SoldProduct, Produ
 import { parseJsonField } from "@/lib/parseAppointmentJson";
 import { getCheckoutErrorMessage, getCheckoutNetworkErrorMessage } from "@/lib/checkoutErrorMessage";
 import { computeSoldProductLine } from "@/domain/billing/vat";
+import { isAppointmentCancelled } from "@/domain/appointment/policies";
 import ProductPicker from "@/components/dashboard/ProductPicker";
 
 // Résolution icône produit
@@ -150,6 +151,9 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
     }, [appointment]);
 
     const isPaid = appointment?.status === "PAID" || appointment?.extendedProps?.status === "PAID";
+    const isCancelled = isAppointmentCancelled({
+        status: appointment?.status ?? appointment?.extendedProps?.status,
+    });
     const service = appointment?.service ?? appointment?.extendedProps?.service;
     const customer = appointment?.customer ?? appointment?.extendedProps?.customer;
     const basePrice = Number(service?.price ?? 0);
@@ -203,7 +207,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
     const removeProduct = (index: number) => setSoldProducts((prev) => prev.filter((_, i) => i !== index))
 
     const handleConfirm = async () => {
-        if (!appointment) return;
+        if (!appointment || isCancelled) return;
         setLoading(true);
         let res: Response;
         try {
@@ -283,11 +287,11 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                 )}
 
                 {/* Header */}
-                <div className={`p-6 border-b flex justify-between items-center ${isPaid ? 'bg-green-50' : 'bg-gray-50'}`}>
+                <div className={`p-6 border-b flex justify-between items-center ${isPaid ? 'bg-green-50' : isCancelled ? 'bg-red-50' : 'bg-gray-50'}`}>
                     <div className="flex items-center gap-3">
                         {isPaid && <CheckCircle2 className="text-green-600" size={28} />}
                         <div>
-                            <h2 className="text-xl font-bold">{isPaid ? "Détails du règlement" : "Encaisser le RDV"}</h2>
+                            <h2 className="text-xl font-bold">{isPaid ? "Détails du règlement" : isCancelled ? "Rendez-vous annulé" : "Encaisser le RDV"}</h2>
                             <p className="text-sm text-gray-500">{customer?.name} — {service?.name}</p>
                         </div>
                     </div>
@@ -295,13 +299,19 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                 </div>
 
                 <div className="p-6 space-y-6 overflow-y-auto">
+                    {isCancelled && (
+                        <p role="status" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
+                            Ce rendez-vous est annulé ; aucun encaissement n’est possible.
+                        </p>
+                    )}
+
                     {/* Mode de paiement */}
                     <div className="space-y-3">
                         <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center mb-4">Mode de règlement</h3>
                         <div className="grid grid-cols-3 gap-2">
-                            <PaymentMethodBtn id="CB" label="Carte" icon={CreditCard} active={paymentMethod === "CB"} disabled={isPaid} onClick={setPaymentMethod} />
-                            <PaymentMethodBtn id="CASH" label="Espèces" icon={Banknote} active={paymentMethod === "CASH"} disabled={isPaid} onClick={setPaymentMethod} />
-                            <PaymentMethodBtn id="CHECK" label="Chèque" icon={Landmark} active={paymentMethod === "CHECK"} disabled={isPaid} onClick={setPaymentMethod} />
+                            <PaymentMethodBtn id="CB" label="Carte" icon={CreditCard} active={paymentMethod === "CB"} disabled={isPaid || isCancelled} onClick={setPaymentMethod} />
+                            <PaymentMethodBtn id="CASH" label="Espèces" icon={Banknote} active={paymentMethod === "CASH"} disabled={isPaid || isCancelled} onClick={setPaymentMethod} />
+                            <PaymentMethodBtn id="CHECK" label="Chèque" icon={Landmark} active={paymentMethod === "CHECK"} disabled={isPaid || isCancelled} onClick={setPaymentMethod} />
                         </div>
                     </div>
 
@@ -309,7 +319,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                     <div className="space-y-3 pt-4 border-t border-gray-50">
                         <div className="flex justify-between items-center">
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Produits additionnels</h3>
-                            {!isPaid && (
+                            {!isPaid && !isCancelled && (
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowProductPicker((v) => !v)}
@@ -337,7 +347,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                                     <ProductIcon name={p.iconName} />
                                 </span>
                                 <span className="flex-1 text-xs font-medium text-gray-800 truncate">{p.name}</span>
-                                {!isPaid ? (
+                                {!isPaid && !isCancelled ? (
                                     <div className="flex items-center gap-1">
                                         <button onClick={() => updateProductQty(i, p.quantity - 1)} className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs hover:bg-gray-300">−</button>
                                         <span className="w-5 text-center text-xs font-bold">{p.quantity}</span>
@@ -347,7 +357,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                                     <span className="text-xs text-gray-500">x{p.quantity}</span>
                                 )}
                                 <span className="text-xs font-bold text-gray-700 w-16 text-right">{p.totalTTC.toFixed(2)} €</span>
-                                {!isPaid && (
+                                {!isPaid && !isCancelled && (
                                     <button onClick={() => removeProduct(i)} className="p-1 text-red-300 hover:text-red-500 transition-colors">
                                         <X size={13} />
                                     </button>
@@ -367,6 +377,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                             <StickyNote size={14} /> Note de séance
                         </label>
                         <textarea
+                            disabled={isPaid || isCancelled}
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                             className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm min-h-20 outline-none italic resize-none"
@@ -378,7 +389,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                     <div className="space-y-3 pt-4 border-t border-gray-50">
                         <div className="flex justify-between items-center">
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Suppléments</h3>
-                            {!isPaid && canManageExtras && (
+                            {!isPaid && !isCancelled && canManageExtras && (
                                 <button onClick={() => setExtras([...extras, { label: "", price: 0 }])} className="text-[10px] bg-gray-900 text-white px-3 py-1 rounded-full">+ AJOUTER</button>
                             )}
                         </div>
@@ -388,7 +399,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                                 key={index}
                                 extra={extra}
                                 index={index}
-                                isPaid={isPaid}
+                                isPaid={isPaid || isCancelled}
                                 canEdit={canManageExtras}
                                 onRemove={(i: number) => setExtras(extras.filter((_, idx) => idx !== i))}
                                 onUpdate={(i: number, f: keyof Extra, v: string | number) => {
@@ -402,7 +413,7 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                 {/* Footer avec total dynamique */}
                 <div className={`p-6 border-t space-y-4 ${isPaid ? 'bg-green-50/50' : 'bg-gray-50'}`}>
                     {/* Détail du total */}
-                    {!isPaid && (basePrice > 0 || soldProducts.length > 0) && (
+                    {!isPaid && !isCancelled && (basePrice > 0 || soldProducts.length > 0) && (
                         <div className="space-y-1 text-xs text-gray-400 px-2">
                             <div className="flex justify-between">
                                 <span>Prestation</span>
@@ -422,10 +433,12 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                             )}
                         </div>
                     )}
-                    <div className="flex justify-between items-end px-2">
-                        <span className="text-gray-400 font-bold text-xs uppercase tracking-widest">Total TTC</span>
-                        <span className={`text-4xl font-black ${isPaid ? 'text-green-700' : 'text-gray-900'}`}>{Number(displayPrice).toFixed(2)} €</span>
-                    </div>
+                    {!isCancelled && (
+                        <div className="flex justify-between items-end px-2">
+                            <span className="text-gray-400 font-bold text-xs uppercase tracking-widest">Total TTC</span>
+                            <span className={`text-4xl font-black ${isPaid ? 'text-green-700' : 'text-gray-900'}`}>{Number(displayPrice).toFixed(2)} €</span>
+                        </div>
+                    )}
                     {/* Bouton supprimer RDV (visible uniquement si le RDV n'est pas encore payé) */}
                     {appointment && !isPaid && (
                         <div className="flex gap-3">
@@ -437,13 +450,15 @@ export default function CheckoutModal({ appointment, onClose, onRefresh }: Check
                                 <Trash2 size={18} /> Supprimer le RDV
                             </button>
 
-                            <button
-                                onClick={handleConfirm}
-                                disabled={loading || isPaid && soldProducts.length === 0 && extras.length === 0}
-                                className={`flex-1 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${isPaid ? 'bg-gray-900' : 'bg-indigo-600'} text-white disabled:opacity-50`}
-                            >
-                                {loading ? "..." : (isPaid ? <><Save size={20} /> Mettre à jour</> : "Confirmer l'encaissement")}
-                            </button>
+                            {!isCancelled && (
+                                <button
+                                    onClick={handleConfirm}
+                                    disabled={loading || isPaid && soldProducts.length === 0 && extras.length === 0}
+                                    className={`flex-1 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${isPaid ? 'bg-gray-900' : 'bg-indigo-600'} text-white disabled:opacity-50`}
+                                >
+                                    {loading ? "..." : (isPaid ? <><Save size={20} /> Mettre à jour</> : "Confirmer l'encaissement")}
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

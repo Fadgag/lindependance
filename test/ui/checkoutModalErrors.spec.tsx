@@ -81,4 +81,19 @@ describe("CheckoutModal error feedback", () => {
     expect(await screen.findByText("Suppléments")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^\+\s*AJOUTER$/i })).not.toBeInTheDocument();
   });
+
+  it("does not offer checkout for a cancelled appointment", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, []));
+
+    render(
+      <CheckoutModal
+        appointment={{ ...appointment, status: "CANCELLED" }}
+        onClose={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    );
+
+    expect(await screen.findByText("Rendez-vous annulé")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirmer l'encaissement" })).not.toBeInTheDocument();
+  });
 });

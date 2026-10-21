@@ -2,9 +2,17 @@ import { describe, it, expect } from 'vitest'
 import {
   canDeleteAppointment,
   canCancelPortalAppointment,
+  isAppointmentCancelled,
   hasSchedulingConflict,
   findFirstSchedulingConflict,
 } from '@/domain/appointment/policies'
+
+describe('isAppointmentCancelled', () => {
+  it('identifies cancelled appointments', () => {
+    expect(isAppointmentCancelled({ status: 'CANCELLED' })).toBe(true)
+    expect(isAppointmentCancelled({ status: 'CONFIRMED' })).toBe(false)
+  })
+})
 
 describe('canDeleteAppointment', () => {
   it('autorise la suppression d’un RDV confirmé non payé', () => {

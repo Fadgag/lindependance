@@ -12,7 +12,9 @@ vi.mock('next/link', () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
 }))
 
-vi.mock('@/components/dashboard/CheckoutModal', () => ({ default: () => null }))
+vi.mock('@/components/dashboard/CheckoutModal', () => ({
+  default: () => <div role="dialog">Encaisser le RDV</div>,
+}))
 
 function jsonResponse(body: object, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -76,5 +78,30 @@ describe('ClientDetail', () => {
 
     const sendButton = await screen.findByRole('button', { name: 'Envoyer les informations de réservation' })
     expect(sendButton).toBeDisabled()
+  })
+
+  it('labels a cancelled appointment and does not open checkout from its history row', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+      id: 'customer-1',
+      firstName: 'Camille',
+      lastName: 'Martin',
+      phone: '0600000000',
+      email: null,
+      appointments: [{
+        id: 'appointment-1',
+        status: 'CANCELLED',
+        startTime: '2026-10-20T10:00:00.000Z',
+        service: { name: 'Coupe', price: 45 },
+      }],
+    })))
+
+    render(<ClientDetail />)
+
+    const cancelledStatus = await screen.findByText('Annulé')
+    expect(screen.queryByText('À encaisser')).not.toBeInTheDocument()
+
+    fireEvent.click(cancelledStatus)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

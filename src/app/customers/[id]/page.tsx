@@ -7,6 +7,7 @@ import CheckoutModal from '@/components/dashboard/CheckoutModal'
 import type { CheckoutAppointment, Client, SoldProduct } from '@/types/models'
 import { clientError } from '@/lib/clientLogger'
 import { parseJsonField } from '@/lib/parseAppointmentJson'
+import { isAppointmentCancelled } from '@/domain/appointment/policies'
 
 export default function ClientDetail() {
   const params = useParams() as { id?: string }
@@ -208,14 +209,15 @@ export default function ClientDetail() {
                                       ? parseJsonField<SoldProduct>(apt.soldProducts)
                                       : Array.isArray(apt.soldProducts) ? apt.soldProducts : []
                                     const soldCount = soldItems.length
+                                    const isCancelled = isAppointmentCancelled(apt)
                                     return (
                       <div
                           key={apt.id}
-                          onClick={() => setSelectedApt({
-                            ...apt,
-                            customer: { name: `${client.firstName} ${client.lastName}` }
+                          onClick={isCancelled ? undefined : () => setSelectedApt({
+                              ...apt,
+                              customer: { name: `${client.firstName} ${client.lastName}` }
                           })}
-                          className="flex items-center justify-between p-4 border border-gray-50 rounded-2xl hover:border-studio-primary/30 hover:bg-studio-primary/5 cursor-pointer transition-all group"
+                          className={`flex items-center justify-between p-4 border border-gray-50 rounded-2xl transition-all group ${isCancelled ? '' : 'hover:border-studio-primary/30 hover:bg-studio-primary/5 cursor-pointer'}`}
                       >
                           <div className="flex items-center gap-4">
                           <div className="bg-gray-50 p-3 rounded-xl group-hover:bg-white transition-colors">
@@ -236,9 +238,9 @@ export default function ClientDetail() {
                             <p className="font-bold text-studio-text text-sm">
                               {apt.finalPrice || apt.service?.price} €
                             </p>
-                            <span className={`text-[9px] uppercase font-black ${apt.status === 'PAID' ? 'text-green-500' : 'text-orange-400'}`}>
-                        {apt.status === 'PAID' ? 'Payé' : 'À encaisser'}
-                      </span>
+                            <span className={`text-[9px] uppercase font-black ${apt.status === 'PAID' ? 'text-green-500' : isCancelled ? 'text-red-500' : 'text-orange-400'}`}>
+                              {apt.status === 'PAID' ? 'Payé' : isCancelled ? 'Annulé' : 'À encaisser'}
+                            </span>
                           </div>
                           {soldCount > 0 && (
                             <div className="text-xs text-gray-500 ml-4">

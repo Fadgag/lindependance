@@ -280,6 +280,20 @@ en cours de traitement.
   - Des tests couvrent la répétition concurrente ou séquentielle d'une requête et la falsification des montants.
 - **Résultat :** Le serveur recalcule le prix du service et des produits depuis la base, refuse les champs financiers envoyés par le navigateur, réserve les suppléments libres aux comptes `ADMIN` et empêche atomiquement un second encaissement. La suite Vitest complète (531 tests réussis, 1 ignoré), le type-check et le lint ciblé ont réussi le 9 octobre 2026.
 
+#### [#123](https://github.com/Fadgag/lindependance/issues/123) Empêcher l’encaissement des rendez-vous annulés
+
+- **Type :** Bug
+- **Statut :** Correctif implémenté localement ; tests ciblés et revue qualité sans constat confirmé le 21 octobre 2026. Recette manuelle après déploiement à terminer.
+- **Priorité proposée :** P1
+- **Comportement observé :** Un rendez-vous `CANCELLED` apparaît « À encaisser » dans l’historique d’une fiche client et l’ouverture de la ligne propose « Confirmer l’encaissement ». Le constat QA en préproduction n’a donné lieu à aucune confirmation.
+- **Comportement attendu :** L’historique identifie clairement le rendez-vous annulé et aucune interface ni requête API ne permet de l’encaisser.
+- **Étapes de reproduction :** Ouvrir une fiche client contenant un rendez-vous annulé et vérifier son libellé dans l’historique, sans confirmer d’encaissement.
+- **Impact :** Un rendez-vous annulé pourrait être marqué payé, enregistrer une vente et décrémenter le stock.
+- **Critères d’acceptation :**
+  - L’historique distingue « Annulé » de « À encaisser » et n’ouvre pas l’encaissement pour un rendez-vous annulé.
+  - L’API refuse atomiquement l’encaissement d’un rendez-vous `CANCELLED` sans modifier le rendez-vous, le paiement, le stock, les ventes ni les demandes en attente.
+  - Des tests de régression couvrent le refus API, la protection de la transition concurrente et l’affichage de la fiche client.
+
 #### Limiter les tentatives de connexion et de réinitialisation du mot de passe
 
 - **Type :** Amélioration
