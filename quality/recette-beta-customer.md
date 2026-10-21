@@ -385,12 +385,18 @@ son tableau de suivi.
 Vitest cités ci-dessus ; aucun parcours navigateur mobile complet n'est
 remplacé par ces tests. La réception réelle est à vérifier en bêta avec l'équipe
 technique.
-**Résultat / preuve :** PARTIEL — 21/10/2026, le portail de réservation
-préproduction a été ouvert dans Chrome à 320 × 740 px. Le document reste à
+**Résultat / preuve :** PARTIEL — 21/10/2026 en préproduction, le portail de
+réservation a été ouvert dans Chrome à 320 × 740 px : le document reste à
 320 px de large, sans débordement horizontal, et les champs de prestation,
-date et e-mail ainsi que les boutons d'action sont présents. Le parcours
-authentifié, la lisibilité sur appareil réel et l'envoi d'un signalement
-restent à vérifier.
+date et e-mail ainsi que les boutons d'action sont présents. Le formulaire de
+signalement, ouvert depuis « Mes rendez-vous » à 594 px de large, a expliqué
+que le nom et l'adresse e-mail du compte, le salon, la page, l'heure, la version
+et jusqu'à cinq erreurs récentes expurgées seraient transmis ; il précisait que
+l'adresse IP et le contenu saisi ailleurs ne le seraient pas. Un signalement de
+test sans donnée personnelle dans les champs saisis a été envoyé après
+autorisation explicite de transmettre l'identité du compte ; la confirmation
+d'envoi s'est affichée. Le tableau TECH_ADMIN, le parcours authentifié à 320 px
+et la lisibilité sur appareil réel restent à vérifier.
 
 ## Couverture automatisée relue
 
