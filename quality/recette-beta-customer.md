@@ -76,7 +76,7 @@ logo et son adaptation à l'écran. Vous ne voyez aucune information appartenant
 et son logo. Après actualisation, la réservation reste accessible et
 l'identité reste affichée. Campagne « Test Création de rdv 1 », 20/10/2026.
 
-#### [ ] CUS-02 — Choisir une prestation, un coiffeur et un horaire
+#### [x] CUS-02 — Choisir une prestation, un coiffeur et un horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, parcours de réservation]
 
 **Étapes :** essayez de choisir différentes prestations, puis choisissez un
@@ -90,7 +90,13 @@ du salon.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts`,
 `test/domain/customer-portal/scheduling.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 21/10/2026 en préproduction, le choix d'une
+coupe homme de 30 minutes affichait six créneaux entre 17 h et 19 h 30 ; le
+brushing de 70 minutes en affichait quatre entre 17 h et 18 h 30. À 320 px,
+les créneaux se mettent à jour sans débordement horizontal. Un seul praticien
+est actif, donc le parcours à plusieurs praticiens et le cas `ORG-SOLO` restent
+à vérifier ; l'affectation n'a pas été confirmée par une réservation.
+Aucun rendez-vous n'a été confirmé. Campagne « Test Création de rdv 1 ».
 
 #### [ ] CUS-03 — Vérifier les dates et heures des rendez-vous
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §5.4]
@@ -103,7 +109,9 @@ salon et restent cohérentes entre la réservation et la liste des rendez-vous.
 
 **Automatisé :** tests de domaine de `scheduling.spec.ts` couvrent les helpers
 de fuseau et DST ; le parcours réel sur appareil reste à valider.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — le 21/10/2026, les horaires du portail
+(22/10 à 9 h et 23/10 à 18 h) correspondent à ceux de l'agenda staff en
+Europe/Paris. Un autre fuseau ou appareil n'a pas été testé.
 
 ### Identification et identité client
 
@@ -121,9 +129,14 @@ utilise le texte par défaut ; le code fonctionne dans les deux cas.
 **Automatisé :** `test/api/customer-portal-request-code.spec.ts`,
 `test/services/customerPortalEmail.spec.ts`,
 `test/domain/customer-portal/emailTemplates.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 21/10/2026 en préproduction, des demandes
+de code ont été faites avec une boîte QA contrôlée (`EMAIL-QA-CONTROLEE`). Le
+message générique affiché ne révèle pas si l'adresse correspond à une fiche ;
+le dernier e-mail reçu contenait le nom du salon et un code à six chiffres.
+Le texte personnalisé de `ORG-A` et le message par défaut de `ORG-B` restent
+à comparer.
 
-#### [ ] CUS-06 — Utiliser le code de connexion
+#### [x] CUS-06 — Utiliser le code de connexion
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §2 et sécurité]
 
 **Étapes :** connectez-vous avec le code reçu par e-mail. Si vous demandez un
@@ -137,9 +150,13 @@ comment demander un nouveau code.
 codes invalides/consommés/expirés ; `test/domain/customer-portal/rateLimit.spec.ts`
 couvre la fenêtre glissante. Renvoi, essais réels, IP et envoi e-mail restent
 à confirmer dans l'environnement bêta.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, après une nouvelle
+demande de code, l'ancien code A a été refusé avec « Invalid or expired code ».
+Le dernier code B a ensuite été accepté et le portail a affiché « Adresse
+email vérifiée ». Le contrôle de renvoi était accessible ; aucune réservation
+n'a été confirmée. Les codes ne sont pas consignés.
 
-#### [ ] CUS-07 — Retrouver les rendez-vous de votre famille
+#### [x] CUS-07 — Retrouver les rendez-vous de votre famille
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, identité et réservation]
 
 **Étapes :** connectez-vous avec l'adresse e-mail partagée par plusieurs
@@ -152,7 +169,11 @@ rendez-vous. Les informations d'autres clients restent privées.
 **Automatisé :** `test/api/customer-portal-public.spec.ts`,
 `test/services/customerPortalBooking.spec.ts`,
 `test/services/customerPortalAppointments.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — avec l'adresse de test partagée `EMAIL-FAMILY`,
+les rendez-vous du profil principal et d'un profil familial de test sont
+visibles. Le formulaire de réservation permet de sélectionner le profil
+familial. Aucune réservation n'a été confirmée. Campagne « Test Création de
+rdv 1 », réponse envoyée le 20/10/2026.
 
 ### Réservation et rendez-vous
 
@@ -167,9 +188,14 @@ coiffeur choisi, l'horaire et le prix affichés avant la réservation.
 
 **Automatisé :** `test/api/customer-portal-booking.spec.ts`,
 `test/services/customerPortalBooking.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 21/10/2026 en préproduction, une réservation
+QA pour une coupe homme le 22/10 de 17 h à 17 h 30 a été confirmée. La page
+« Mes rendez-vous » affiche le rendez-vous et le praticien affecté. L'e-mail
+de confirmation a été reçu avec le salon, la prestation, la date et l'horaire.
+Le récapitulatif complet avant confirmation et la présentation de l'horaire
+dans l'e-mail restent à vérifier. Aucun autre rendez-vous n'a été créé.
 
-#### [ ] CUS-09 — Éviter une double réservation
+#### [x] CUS-09 — Éviter une double réservation
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §4bis et protocole de test]
 
 **Étapes :** ouvrez le même horaire disponible dans deux fenêtres de test et
@@ -181,7 +207,12 @@ proposé comme disponible et ne peut pas être réservé une deuxième fois.
 **Automatisé :** `test/services/customerPortalBooking.spec.ts` couvre un conflit
 dans la transaction ; le test de concurrence multi-session reste une recette
 bêta manuelle.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, deux fenêtres
+étaient positionnées sur le même créneau pour un profil QA. Après confirmation
+dans la première, la seconde tentative a été refusée avec « Time slot is no
+longer available ». « Mes rendez-vous » affiche une seule réservation pour ce
+créneau. Le rendez-vous QA créé le 24/10 à 17 h a ensuite été annulé dans le
+cadre de CUS-12.
 
 #### [ ] CUS-10 — Recevoir la confirmation de réservation
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, confirmation e-mail]
@@ -200,7 +231,13 @@ pas de réservation supplémentaire.
 `test/api/customer-portal-booking.spec.ts`,
 `test/domain/customer-portal/emailTemplates.spec.ts`. Le fournisseur réel et
 l'import dans une application calendrier sont à vérifier manuellement.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 21/10/2026 en préproduction, l'e-mail de
+confirmation d'une réservation chez Osez l'Etre a été reçu. La prestation, la
+date et l'horaire (17 h–17 h 30, Europe/Paris) sont corrects. L'horaire apparaît
+sur une ligne distincte de la date ; le testeur souhaite les voir sur la même
+ligne. L'invitation calendrier a été importée avec les bons détails ; la liste
+« Mes rendez-vous » affiche toujours les trois rendez-vous existants, sans
+réservation supplémentaire. Le modèle par défaut d'`ORG-B` reste à vérifier.
 
 #### [x] CUS-11 — Retrouver vos prochains rendez-vous
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 1–2, 6]
@@ -222,7 +259,9 @@ du portail consulté.
 **Résultat / preuve :** PASS — les deux prochains rendez-vous du compte de test
 s'affichent dans l'ordre chronologique. Dans le portail du salon de test, aucun
 rendez-vous d'Osez l'Etre n'apparaît ; la vérification d'e-mail est demandée,
-y compris après actualisation. Campagne « Test Création de rdv 1 », 20/10/2026.
+y compris après actualisation. Les rendez-vous annulés du 23/10 ne sont pas
+présentés dans « Mes rendez-vous ». Campagne « Test Création de rdv 1 »,
+20/10/2026.
 
 #### [ ] CUS-12 — Annuler un rendez-vous
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-2.md`, DoD 3–5]
@@ -243,11 +282,16 @@ de séances du forfait associé, s'il y en a un, ne change pas.
 `test/services/customerPortalAppointments.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`,
 `test/api/customer-portal-appointments.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — le 21/10/2026 à 14:58, le rendez-vous non payé
+du 22/10 à 9 h (moins de 24 h) et le rendez-vous payé du 23/10 à 18 h
+n'affichaient aucun bouton « Annuler » ; le portail invitait à contacter le
+salon. Le 21/10 à 23:15, un rendez-vous QA non payé du 24/10 à 17 h a été
+annulé depuis le portail et a disparu de « Mes rendez-vous ». Le solde
+d'éventuelles séances de forfait n'a pas été vérifié.
 
 ### Demande de changement de créneau — Phase 3
 
-#### [ ] CUS-13 — Demander un autre horaire
+#### [x] CUS-13 — Demander un autre horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 1]
 
 **Étapes :** pour un rendez-vous à venir, choisissez un autre horaire proposé
@@ -259,9 +303,12 @@ horaire actuel tant que le salon ne vous a pas répondu.
 **Automatisé :** `test/api/customer-portal-change-requests.spec.ts`,
 `test/services/customerPortalChangeRequests.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, une demande pour
+le 23/10 à 15 h a été envoyée pour un rendez-vous initialement prévu à 14 h.
+Le portail a affiché « En attente de validation » et conservé l'horaire initial
+jusqu'à la modification par le salon.
 
-#### [ ] CUS-14 — Suivre une demande déjà envoyée
+#### [x] CUS-14 — Suivre une demande déjà envoyée
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 2 et 6]
 
 **Étapes :** envoyez une demande de changement pour un rendez-vous. Avant que
@@ -274,9 +321,12 @@ Le rendez-vous ne change pas avant la réponse du salon.
 `test/domain/appointment/changeRequests.spec.ts`,
 `test/api/customer-portal-change-requests.spec.ts`. La fenêtre réelle et son
 interaction avec les appels OTP sont à vérifier sur environnement dédié.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, après l'envoi d'une
+demande vers 16 h 30, le rendez-vous est resté à 16 h et une seule demande
+apparaissait côté salon. Le portail n'affichait plus de bouton « Demander un
+changement » pour ce rendez-vous tant que la demande était en attente.
 
-#### [ ] CUS-15 — Voir la réponse du salon
+#### [x] CUS-15 — Voir la réponse du salon
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3bis]
 
 **Étapes :** après la réponse du salon à votre demande, ouvrez ou actualisez
@@ -288,7 +338,12 @@ l'accepte, le rendez-vous apparaît au nouvel horaire.
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts` vérifie la
 projection ; `test/ui/customerPortalAppointments.spec.tsx` vérifie l'état
 pendant l'envoi. Vérifier la propagation réelle après décision.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, après approbation
+d'une demande vers 16 h 30, le portail a affiché 16 h 30–17 h et « Demande
+acceptée ». Dans un autre scénario, une modification directe du salon a
+affiché le nouvel horaire et « Demande refusée — RDV modifié directement par
+l’organisation ». Les rendez-vous de recette ont été annulés ; le rendez-vous
+préexistant du 22/10 à 9 h est resté affiché.
 
 ### Sécurité et expérience
 
@@ -330,7 +385,12 @@ son tableau de suivi.
 Vitest cités ci-dessus ; aucun parcours navigateur mobile complet n'est
 remplacé par ces tests. La réception réelle est à vérifier en bêta avec l'équipe
 technique.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 21/10/2026, le portail de réservation
+préproduction a été ouvert dans Chrome à 320 × 740 px. Le document reste à
+320 px de large, sans débordement horizontal, et les champs de prestation,
+date et e-mail ainsi que les boutons d'action sont présents. Le parcours
+authentifié, la lisibilité sur appareil réel et l'envoi d'un signalement
+restent à vérifier.
 
 ## Couverture automatisée relue
 

@@ -62,7 +62,10 @@ L'espace de gestion n'est pas accessible depuis un compte client.
 **Automatisé :** `test/api/appointment-change-requests.spec.ts`,
 `test/api/appointment-portal-count.spec.ts`,
 `test/proxy.portal.spec.ts`.
-**Résultat / preuve :** BLOQUÉ — compte staff connecté sur Osez l'Etre, sans compte staff disponible pour le second salon de test ni demandes prêtes dans les deux organisations. Le cloisonnement staff n'est pas validé.
+**Résultat / preuve :** BLOQUÉ — revérifié le 20/10/2026 : l'accès staff à
+Osez l'Etre fonctionne, mais `/change-requests` est vide. Aucun compte staff
+ni aucune demande de test n'est disponible pour une seconde organisation ;
+le cloisonnement inter-salons reste non vérifié.
 
 #### [ ] ADM-02 — Suivre les réservations et demandes
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 7]
@@ -78,9 +81,13 @@ recharger toute la page.
 **Automatisé :** `test/api/appointment-portal-count.spec.ts`,
 `test/ui/portalBookingCounter.spec.tsx`. La cadence et le calcul de frontière
 de journée sont à confirmer dans le navigateur.
-**Résultat / preuve :** BLOQUÉ — le tableau de bord charge (5 rendez-vous affichés), mais aucune réservation ou demande n'a été créée pour vérifier la mise à jour des compteurs.
+**Résultat / preuve :** BLOQUÉ — 21/10/2026 en préproduction, le compteur de
+réservations est passé de 0 à 1, puis est revenu à 0 après annulation, sans
+recharger l'agenda et après le cycle de 60 secondes. Le compteur des demandes
+reste à vérifier sur un cycle complet : la limite de 5 demandes sur 24 heures
+a empêché de créer une nouvelle demande de test.
 
-#### [ ] ADM-03 — Consulter les demandes en attente
+#### [x] ADM-03 — Consulter les demandes en attente
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3bis]
 
 **Étapes :** ouvrez la liste des demandes et choisissez une demande en attente.
@@ -92,11 +99,14 @@ n'apparaît plus dans la liste des demandes en attente.
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
 `test/api/appointment-change-requests.spec.ts`,
 `test/ui/appointmentChangeRequests.spec.tsx`.
-**Résultat / preuve :** BLOQUÉ — la page des demandes s'ouvre, mais la liste est vide ; aucune demande en attente n'est disponible pour ce test.
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, la demande de
+recette affichait le rendez-vous du 23/10 à 14 h, l'horaire souhaité à 15 h et
+le commentaire du client. Après modification directe du rendez-vous, elle a
+disparu de la liste des demandes en attente.
 
 ### Décision des demandes
 
-#### [ ] ADM-04 — Accepter un changement d'horaire
+#### [x] ADM-04 — Accepter un changement d'horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 1, 3 et 4]
 
 **Étapes :** acceptez une demande dont le nouvel horaire est toujours libre.
@@ -108,7 +118,11 @@ dans son espace.
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
 `test/ui/appointmentChangeRequests.spec.tsx`,
 `test/services/customerPortalAppointments.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, une demande vers
+16 h 30 a été approuvée. Le rendez-vous est passé de 16 h à 16 h 30, sans
+changement de prestation ni de praticien ; le portail client a affiché le
+nouvel horaire et « Demande acceptée ». Le rendez-vous de recette a ensuite
+été annulé ; aucun forfait n'était associé.
 
 #### [ ] ADM-05 — Vérifier si le nouvel horaire est encore libre
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 3–4]
@@ -142,7 +156,7 @@ commentaire, s'il y en a un.
 partiellement couverte par l'état pending requis côté service.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-07 — Modifier un rendez-vous ayant une demande en attente
+#### [x] ADM-07 — Modifier un rendez-vous ayant une demande en attente
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 5]
 
 **Étapes :** pendant qu'une demande de changement attend une réponse, modifiez
@@ -153,7 +167,12 @@ des demandes en attente. Elle ne peut pas être acceptée ensuite.
 
 **Automatisé :** `test/services/appointmentSchedulingChangeRequests.spec.ts`
 et `test/services/appointmentScheduling.service.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, le rendez-vous de
+recette du 23/10 a été déplacé de 14 h à 14 h 30 alors qu'une demande vers
+15 h était en attente. La demande a été retirée de la file et le portail client
+a affiché « Demande refusée — RDV modifié directement par l’organisation ».
+Le rendez-vous de recette a ensuite été annulé ; le rendez-vous préexistant du
+22/10 à 9 h est resté intact.
 
 #### [ ] ADM-08 — Supprimer un rendez-vous avec une demande en attente
 **Priorité : P0 · Exigence :** [Req: user-confirmed — choix de conserver le DELETE physique et l'historique de demande]
@@ -256,7 +275,10 @@ les messages par défaut sont de nouveau utilisés.
 `test/services/customerPortalSettings.spec.ts` et
 `test/services/customerPortalEmail.spec.ts`. L'enregistrement depuis l'interface
 staff doit aussi être essayé sur l'environnement bêta.
-**Résultat / preuve :** BLOQUÉ — la page de réglages et les contrôles de personnalisation chargent, mais aucun changement n'a été enregistré ni e-mail envoyé ; la boîte de test contrôlée et les valeurs à restaurer ne sont pas confirmées.
+**Résultat / preuve :** BLOQUÉ — revérifié le 20/10/2026 : `/settings/portail`
+et ses champs chargent. Aucun réglage n'a été modifié ni aucun e-mail envoyé ;
+les changements fonctionnels restent à tester avec une boîte contrôlée et des
+valeurs de restauration confirmées.
 
 #### [ ] ADM-14 — Personnaliser le nom et le logo du portail client
 **Priorité : P2 · Exigence :** [Req: formal — `portal-branding-customization.md`, critères 1–7]
@@ -327,7 +349,7 @@ code ou lien de vérification n'est demandé.
 l'ouverture du lien sont à vérifier avec la boîte de test en bêta.
 **Résultat / preuve :** `________`
 
-#### [ ] ADM-17 — Repérer les produits à réapprovisionner
+#### [x] ADM-17 — Repérer les produits à réapprovisionner
 **Priorité : P1 · Exigence :** [Req: user-confirmed — `AMELIORATIONS.md`, Gestion des stocks — produits revendus, Issue #65]
 
 **Étapes :** dans la gestion des produits, réglez le seuil minimum d'un produit
@@ -341,9 +363,11 @@ stock et le seuil sont corrects et l'alerte disparaît.
 **Automatisé :** `test/domain/stock/policies.spec.ts` et
 `test/ui/ProductManager.spec.tsx` vérifient la règle et son affichage ; le
 parcours complet reste à vérifier en bêta.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, `STOCK-3` n'était
+pas signalé à 3 unités. Un ajustement de -1 l'a porté à 2 et l'alerte est
+apparue ; une entrée de +1 l'a ramené à 3 et l'alerte a disparu.
 
-#### [ ] ADM-18 — Enregistrer les entrées et corrections de stock
+#### [x] ADM-18 — Enregistrer les entrées et corrections de stock
 **Priorité : P1 · Exigence :** [Req: user-confirmed — `AMELIORATIONS.md`, Gestion des stocks — produits revendus, Issue #65]
 
 **Étapes :** pour le produit qui a 5 unités, enregistrez une entrée de 4,
@@ -358,7 +382,11 @@ elle ferait passer le stock sous zéro ; la quantité reste inchangée.
 `test/api/products.spec.ts`, `test/schemas/products.spec.ts` et
 `test/ui/ProductManager.spec.tsx`. L'affichage et la saisie sur la base bêta
 restent à vérifier.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 21/10/2026 en préproduction, `STOCK-5` est passé
+de 5 à 9 après une entrée de +4, puis à 8 après une correction de -1 avec
+note. Une correction de -9 a été refusée sans changer le stock ; l'historique
+affichait les mouvements, variations, quantités avant/après et notes. Une
+correction valide de -3 a remis le stock à 5.
 
 #### [ ] ADM-19 — Vérifier le stock après une vente
 **Priorité : P1 · Exigence :** [Req: user-confirmed — `AMELIORATIONS.md`, Gestion des stocks — produits revendus, Issue #65]
@@ -377,7 +405,13 @@ organisation sont visibles.
 atomique et le refus d'un encaissement répété ; les tests API de stock
 vérifient l'isolation par organisation. La vérification complète sur les deux
 organisations reste à effectuer en bêta.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** BLOQUÉ — test partiel le 21/10/2026 en préproduction :
+une vente d'une unité de `STOCK-3` a fait passer le stock de 3 à 2 et a marqué
+le rendez-vous QA payé à 42 € (30 € de prestation + 12 € de produit). La vente
+et son mouvement de stock sont présents dans l'historique ; après réapprovisionnement
+à 3, la réouverture du rendez-vous payé ne proposait pas de second encaissement.
+La vente de deux unités et l'isolation de l'historique dans `ORG-B` restent à
+vérifier.
 
 #### [ ] ADM-20 — Consulter l'agenda sur un téléphone
 **Priorité : P1 · Exigence :** [Req: user-confirmed — issue #80]
@@ -396,11 +430,14 @@ distincts et toute la semaine peut être consultée sans masquer les commandes.
 et les commandes Jour/Semaine, et vérifie que l'option `dayMinWidth` qui
 provoquait l'erreur ScrollGrid n'est plus transmise. Le rendu visuel et le
 défilement réel restent à vérifier en bêta.
-**Résultat / preuve :** BLOQUÉ — le build testé le 20/10 affichait « This page
-couldn’t load » après navigation directe, rechargement et clic depuis le
-tableau de bord. Le correctif a été vérifié localement le 21/10 mais n'est pas
-encore déployé ; le chargement et l'affichage mobile doivent être retestés en
-bêta.
+**Résultat / preuve :** BLOQUÉ — retest le 21/10/2026 après mise à jour de
+préproduction : `/agenda` charge sans erreur ScrollGrid et les vues Jour et
+Semaine fonctionnent. À 594 px, les sept jours s'affichent sans débordement
+horizontal de page, mais les titres des rendez-vous sont tronqués. Le navigateur
+Chrome permet de régler le viewport à 320 px, mais la session staff en
+préproduction a expiré et `/agenda` redirige vers la connexion. Le rendu staff
+à 320 px reste à vérifier après réauthentification ; le test du portail client
+à cette largeur est consigné dans `quality/recette-beta-customer.md`.
 
 #### [ ] ADM-21 — Vérifier les limites de connexion et de réinitialisation
 **Priorité : P1 · Exigence :** [Req: formal — issue #67]
@@ -446,6 +483,24 @@ la boîte contrôlée, le lien réel et la connexion restent à vérifier en bê
 e-mail d'activation n'est arrivé. Pas de nouvelle tentative avant vérification
 en lecture seule de l'existence du salon/compte et des événements d'envoi.
 Campagne « Test Création de rdv 1 », 20/10/2026.
+
+#### [ ] ADM-23 — Empêcher l'encaissement d'un rendez-vous annulé
+**Priorité : P1 · Exigence :** [Req: inferred — `AMELIORATIONS.md`, Fiches client — historique et encaissement]
+
+**Étapes :** ouvrez l'historique d'une fiche client QA qui possède un
+rendez-vous annulé. Vérifiez son libellé et ouvrez la fiche d'encaissement,
+sans confirmer l'action.
+
+**Attendu :** le rendez-vous est identifié comme annulé et l'encaissement
+n'est pas proposé. Toute tentative directe est refusée par le serveur sans
+modifier le rendez-vous, le stock ou l'historique des ventes.
+
+**Automatisé :** couverture du refus pour le statut `CANCELLED` à ajouter à
+`test/api/appointment-checkout.spec.ts` et couverture d'affichage à ajouter
+dans les tests de la fiche client.
+**Résultat / preuve :** FAIL — 21/10/2026 en préproduction, un rendez-vous QA
+annulé à 11 h apparaît « À encaisser » ; son ouverture affiche
+« Confirmer l'encaissement ». Aucun encaissement n'a été soumis.
 
 ## Couverture automatisée relue
 

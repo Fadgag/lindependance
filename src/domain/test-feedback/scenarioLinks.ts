@@ -22,6 +22,10 @@ export function getTestScenarioLinks(
   portalEnabled: boolean,
 ): TestScenarioLink[] {
   if (profile === 'ADMIN') {
+    if (scenarioId === 'ADM-23') {
+      return [{ href: '/customers', label: 'Ouvrir les fiches client' }]
+    }
+
     const number = Number(scenarioId.match(/^ADM-(\d{2})$/)?.[1])
     if (!Number.isInteger(number)) return []
     if ((number >= 1 && number <= 6) || (number >= 11 && number <= 12)) {

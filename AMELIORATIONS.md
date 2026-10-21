@@ -40,6 +40,23 @@ en cours de traitement.
   - Les règles sont couvertes par des tests de domaine et de service.
 - **Résultat :** Le domaine et la mise à jour transactionnelle bloquent les rendez-vous payés, y compris si seul `finalPrice` indique le paiement. Les tests ciblés, le lint et le type-check réussissent ; une vérification manuelle en bêta reste nécessaire.
 
+### Fiches client — historique et encaissement
+
+#### Empêcher l'encaissement d'un rendez-vous annulé
+
+- **Type :** Bug
+- **Statut :** À traiter — constat confirmé en préproduction le 21 octobre 2026 ; aucun encaissement n'a été soumis.
+- **Priorité proposée :** P1
+- **Comportement observé :** Dans l'historique des soins, un rendez-vous QA annulé apparaît « À encaisser ». En l'ouvrant, l'interface propose « Confirmer l'encaissement ». Dans le dépôt, la route d'encaissement vérifie le paiement existant, mais n'exclut pas le statut `CANCELLED` avant la mise à jour vers `PAID`.
+- **Comportement attendu :** Un rendez-vous annulé est clairement identifié comme tel et ne peut pas être encaissé. Le serveur refuse l'encaissement avant toute écriture de paiement ou de stock.
+- **Étapes de reproduction :** Ouvrir la fiche d'un client QA qui possède un rendez-vous annulé ; vérifier son libellé dans l'historique puis ouvrir sa fiche d'encaissement. Ne pas confirmer l'encaissement pendant la vérification.
+- **Impact :** Un rendez-vous annulé pourrait être marqué payé et apparaître dans le chiffre d'affaires ; une vente de produit pourrait aussi modifier le stock.
+- **Critères d'acceptation :**
+  - L'historique distingue les rendez-vous annulés des rendez-vous à encaisser.
+  - L'interface ne propose pas l'encaissement d'un rendez-vous annulé.
+  - L'API refuse atomiquement l'encaissement d'un rendez-vous `CANCELLED`, sans modifier le rendez-vous, le stock ni l'historique des ventes.
+  - Des tests couvrent le refus côté API et l'affichage côté fiche client.
+
 ### Signalement du 19 octobre 2026
 
 #### Diagnostiquer l'erreur « Configuration » à la connexion staff en préproduction
@@ -508,16 +525,30 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 #### Vérifier les e-mails personnalisés dans les campagnes de recette
 
 - **Type :** Amélioration
-- **Statut :** Guides mis à jour — exécution manuelle en campagne bêta à planifier.
+- **Statut :** En cours — confirmation et invitation calendrier vérifiées pour `ORG-A` le 21 octobre 2026 ; comparaison avec `ORG-B` et réglages staff à terminer.
 - **Priorité proposée :** P2
 - **Constat :** Les scénarios client `CUS-05` et `CUS-10` vérifient l'envoi du code et de la confirmation, mais pas les modèles personnalisés. Le guide staff ne vérifie pas encore leur configuration.
 - **Amélioration souhaitée :** Compléter les scénarios existants côté client et ajouter un contrôle côté staff pour la configuration et la réinitialisation des messages. Garder les profils `USER` (client) et `ADMIN` (staff/admin) de la campagne ; une catégorie distincte « STAFF » n'est pas nécessaire si les cas restent dans le groupe d'administration du personnel.
 - **Critères d'acceptation :**
     - Le staff peut enregistrer puis rétablir les deux messages, et l'interface bloque les variables obligatoires manquantes.
     - Le client reçoit le code et la confirmation personnalisés de la bonne organisation, avec les bonnes informations de rendez-vous.
+    - Dans l'e-mail de confirmation, la date et l'horaire du rendez-vous apparaissent sur une même ligne.
     - Le retour au modèle par défaut est vérifié pour les deux e-mails ; la confirmation conserve sa pièce jointe calendrier.
     - Les scénarios sont inclus dans les groupes de campagne correspondant aux profils client et staff/admin.
-- **Mise à jour :** `CUS-05`, `CUS-10` et `ADM-13` couvrent maintenant ces vérifications ; `ADM-13` est inclus dans le groupe « Administration staff ». Les résultats réels restent à renseigner pendant la campagne bêta.
+- **Mise à jour :** `CUS-05`, `CUS-10` et `ADM-13` couvrent maintenant ces vérifications ; `ADM-13` est inclus dans le groupe « Administration staff ». Le 21/10/2026, un code et une confirmation ont été reçus sur la boîte QA contrôlée pour Osez l'Etre ; le contenu de la confirmation contient le bon salon, la prestation, la date et l'horaire. L'invitation calendrier a été importée avec les bons détails, sans créer de réservation supplémentaire. L'horaire est toutefois sur une ligne distincte de la date, contrairement à la présentation souhaitée par le testeur. Le modèle personnalisé de `ORG-A`, le modèle par défaut de `ORG-B` et la configuration depuis l'interface staff restent à vérifier.
+
+#### Ajouter un bouton Google Agenda au courriel de confirmation
+
+- **Type :** Amélioration
+- **Statut :** À traiter
+- **Priorité proposée :** P2
+- **Constat :** Le courriel de confirmation joint une invitation `.ics`, mais le testeur souhaite pouvoir ajouter le rendez-vous à Google Agenda depuis Gmail au moyen d'un bouton dédié.
+- **Amélioration souhaitée :** Ajouter au courriel un bouton « Ajouter à Google Agenda » qui ouvre un événement prérempli avec les informations du rendez-vous. Conserver l'invitation `.ics` pour les autres agendas compatibles.
+- **Critères d'acceptation :**
+  - Le bouton ouvre Google Agenda avec le salon, la prestation, la date, l'heure locale, la durée et le fuseau corrects.
+  - L'ajout depuis Google Agenda ne crée ni ne modifie une réservation dans l'application.
+  - L'invitation `.ics` reste disponible et décrit le même rendez-vous.
+  - Le parcours est vérifié depuis Gmail avec une boîte contrôlée.
 
 #### Créer automatiquement une carte GitHub pour chaque campagne de recette
 
@@ -699,7 +730,7 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 ### Agenda staff — Corriger l'erreur ScrollGrid au chargement
 
 - **Type :** Bug
-- **Statut :** Corrigé localement le 21 octobre 2026 ; contrôles ciblés réussis. Revalidation de l'agenda et de sa présentation mobile en bêta après déploiement.
+- **Statut :** Corrigé et vérifié en préproduction le 21 octobre 2026 ; l'agenda charge et les vues Jour/Semaine fonctionnent. Les défauts de présentation mobile restent suivis séparément dans l'issue #80.
 - **Priorité initiale :** P1
 - **Comportement observé :** Sur une session staff authentifiée, `/agenda` échoue au rendu avec `No ScrollGrid implementation`. Les requêtes de données encore en cours sont ensuite interrompues.
 - **Cause confirmée :** `AppointmentScheduler` activait `dayMinWidth` avec FullCalendar 5.11.5 sans enregistrer le plugin ScrollGrid requis par le rendu horizontal.
