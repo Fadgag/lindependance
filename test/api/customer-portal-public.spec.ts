@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { prismaMock, portalServiceMock } = vi.hoisted(() => ({
   prismaMock: {
@@ -48,6 +48,10 @@ beforeEach(() => {
     verifiedEmail: 'parent@example.com',
     expiresAt: Date.now() + 60_000,
   })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('public customer portal reads', () => {
@@ -119,6 +123,40 @@ describe('public customer portal reads', () => {
     })
     expect(new Date(payload.slots[0].end).getTime() - new Date(payload.slots[0].start).getTime())
       .toBe(60 * 60 * 1000)
+  })
+
+  it('rejects slot lookup after the 60-day booking window', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-22T10:00:00.000Z'))
+
+    const response = await getSlots(new Request(
+      'https://example.test?serviceId=service-1&date=2026-12-22',
+    ), routeContext)
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({ error: 'Date hors de la période de réservation.' })
+    expect(prisma.service.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('returns slots on the final date only through the exact 60-day instant', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-22T10:00:00.000Z'))
+    vi.mocked(prisma.service.findFirst).mockResolvedValue({
+      id: 'service-1',
+      durationMinutes: 60,
+    } as never)
+    vi.mocked(prisma.staff.findMany).mockResolvedValue([{ id: 'staff-1' }] as never)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([] as never)
+    vi.mocked(prisma.unavailability.findMany).mockResolvedValue([] as never)
+
+    const response = await getSlots(new Request(
+      'https://example.test?serviceId=service-1&date=2026-12-21',
+    ), routeContext)
+    const payload: { slots: Array<{ start: string }> } = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.slots.map((slot) => slot.start)).toContain('2026-12-21T10:00:00.000Z')
+    expect(payload.slots.map((slot) => slot.start)).not.toContain('2026-12-21T10:30:00.000Z')
   })
 
   it('returns only names of fiches linked to the verified email and organization', async () => {

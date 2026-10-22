@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { isAppointmentChangeRequestable } from '@/domain/appointment/changeRequests'
+import { getPortalBookingWindow } from '@/domain/customer-portal/scheduling'
 import {
   CustomerPortalAvailableSlotsSchema,
   CustomerPortalAppointmentsSchema,
@@ -13,16 +14,6 @@ import {
 
 type PortalAppointment = z.infer<typeof CustomerPortalAppointmentSummarySchema>
 type PortalSlot = { start: string; end: string }
-
-function localDateToday(timezone: string): string {
-  const parts = new Map(new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date()).map((part) => [part.type, part.value]))
-  return `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`
-}
 
 async function readError(response: Response, fallback: string): Promise<string> {
   const body: unknown = await response.json().catch(() => null)
@@ -265,13 +256,14 @@ function PortalChangeRequestForm({
   onCancel: () => void
   onCreated: (changeRequest: NonNullable<PortalAppointment['changeRequest']>) => void
 }) {
-  const [date, setDate] = useState(() => localDateToday(timezone))
+  const [date, setDate] = useState(() => getPortalBookingWindow(new Date(), timezone).minDate)
   const [slots, setSlots] = useState<PortalSlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState('')
   const [reason, setReason] = useState('')
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const bookingWindow = getPortalBookingWindow(new Date(), timezone)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -353,7 +345,8 @@ function PortalChangeRequestForm({
         Nouvelle date souhaitée
         <input
           type="date"
-          min={localDateToday(timezone)}
+          min={bookingWindow.minDate}
+          max={bookingWindow.maxDate}
           value={date}
           onChange={(event) => setDate(event.target.value)}
           className="mt-1 block w-full rounded-lg border border-gray-300 p-3"

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import PortalBooking from '@/components/customer-portal/PortalBooking'
 import { DEFAULT_ORGANIZATION_BRANDING } from '@/domain/branding/logoSettings'
+import { getPortalBookingWindow } from '@/domain/customer-portal/scheduling'
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -41,6 +42,10 @@ describe('PortalBooking', () => {
     )
 
     expect(await screen.findByText('Salon Élise')).toBeInTheDocument()
+    expect(screen.getByLabelText('Date')).toHaveAttribute(
+      'max',
+      getPortalBookingWindow(new Date(), 'Europe/Paris').maxDate,
+    )
     expect(screen.getByRole('img', { name: 'Logo de Salon Élise' })).toHaveClass('rounded-full')
     expect(screen.getByTestId('portal-brand-preview')).toHaveAttribute('data-logo-size', '48')
     expect(screen.queryByRole('link', { name: 'Voir l’agenda public' })).not.toBeInTheDocument()

@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { buildAvailableSlots, getUtcRangeForLocalDay, resolvePortalStaffSelection } from '@/domain/customer-portal/scheduling'
+import {
+  buildAvailableSlots,
+  getUtcRangeForLocalDay,
+  isPortalBookingDateAllowed,
+  resolvePortalStaffSelection,
+} from '@/domain/customer-portal/scheduling'
 import apiErrorResponse from '@/lib/api'
 import { CustomerPortalDateSchema } from '@/schemas/customerPortal'
 import { prisma } from '@/lib/prisma'
@@ -29,6 +34,11 @@ export async function GET(request: Request, context: RouteContext) {
       date: url.searchParams.get('date') ?? undefined,
     })
     if (!query.success) return NextResponse.json({ error: 'Invalid query' }, { status: 400 })
+
+    const now = new Date()
+    if (!isPortalBookingDateAllowed(query.data.date, now, organization.timezone)) {
+      return NextResponse.json({ error: 'Date hors de la période de réservation.' }, { status: 400 })
+    }
 
     const service = await prisma.service.findFirst({
       where: { id: query.data.serviceId, organizationId: organization.id },
@@ -92,7 +102,7 @@ export async function GET(request: Request, context: RouteContext) {
         startTime: unavailability.start,
         endTime: unavailability.end,
       })),
-      now: new Date(),
+      now,
     })
 
     return NextResponse.json({ timezone: organization.timezone, slots })

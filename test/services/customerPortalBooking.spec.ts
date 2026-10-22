@@ -55,6 +55,50 @@ beforeEach(() => {
 })
 
 describe('createCustomerPortalAppointment', () => {
+  it('allows a booking starting at the exact 60-day boundary', async () => {
+    const transaction = transactionFixture()
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+      return callback(transaction as never)
+    })
+
+    await createCustomerPortalAppointment({
+      organizationId: 'org-1',
+      verifiedEmail: 'parent@example.com',
+      customerId: 'customer-1',
+      serviceId: 'service-1',
+      start: '2026-12-21T10:00:00.000Z',
+      now: new Date('2026-10-22T10:00:00.000Z'),
+    })
+
+    expect(transaction.appointment.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        startTime: new Date('2026-12-21T10:00:00.000Z'),
+      }),
+    }))
+  })
+
+  it('rejects a booking after the 60-day window before loading booking data', async () => {
+    const transaction = transactionFixture()
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+      return callback(transaction as never)
+    })
+
+    await expect(createCustomerPortalAppointment({
+      organizationId: 'org-1',
+      verifiedEmail: 'parent@example.com',
+      customerId: 'customer-1',
+      serviceId: 'service-1',
+      start: '2026-12-21T10:00:01.000Z',
+      now: new Date('2026-10-22T10:00:00.000Z'),
+    })).rejects.toMatchObject({
+      status: 400,
+      message: 'La date est au-delà de la période de réservation de 60 jours.',
+    })
+
+    expect(transaction.service.findFirst).not.toHaveBeenCalled()
+    expect(transaction.appointment.create).not.toHaveBeenCalled()
+  })
+
   it('resolves the customer and practitioner from the session organization and uses persisted service duration', async () => {
     const transaction = transactionFixture()
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {

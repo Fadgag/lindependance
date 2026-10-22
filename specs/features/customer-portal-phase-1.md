@@ -27,6 +27,10 @@ Le MVP est activable par organisation et ne crée pas de compte client autonome.
   d'une famille.
 - Ajouter l'écran staff `/settings/portail` pour renseigner le slug et activer
   ou désactiver le portail.
+- À la racine du site, l'équipe admin_technique peut configurer les domaines
+  publics avec `CUSTOMER_PORTAL_DOMAIN_MAP` (JSON nom d'hôte → slug). Un domaine
+  associé redirige vers la réservation de son salon, sans dépendre du nombre
+  d'autres portails activés.
 - Le portail public résout toute organisation par slug et n'expose jamais
   l'id interne. Slug inconnu, portail désactivé ou absence de praticien actif :
   404 sur les pages et API publiques, y compris les sessions client existantes.
@@ -64,6 +68,10 @@ Le MVP est activable par organisation et ne crée pas de compte client autonome.
      toutes les prestations en Phase 1.
   4. Choisir un créneau et s'authentifier par OTP si nécessaire.
   5. Confirmer la réservation.
+- La réservation est limitée à 60 jours glissants à partir de l'instant
+  courant, borne incluse. Le sélecteur de date utilise le fuseau de
+  l'organisation ; les créneaux et la création de rendez-vous sont contrôlés
+  côté serveur, y compris lors d'une requête directe.
 - Si aucun praticien n'est actif, le portail public est indisponible : il ne
   présente pas un parcours de réservation vide.
 - Le serveur charge la prestation et utilise sa durée et son prix depuis la
@@ -112,9 +120,12 @@ Le MVP est activable par organisation et ne crée pas de compte client autonome.
    affiche l'aide de contact sans révéler l'existence d'une fiche.
 6. La durée du service fixe la fin du rendez-vous ; les conflits avec RDV et
    indisponibilités sont détectés côté serveur.
-7. Les requêtes concurrentes de création/déplacement par portail ou staff ne
+7. Le portail et ses API refusent les créneaux dont l'heure de début dépasse
+   l'instant courant de plus de 60 jours ; l'instant exact de la borne est
+   accepté et les dates sont présentées dans le fuseau de l'organisation.
+8. Les requêtes concurrentes de création/déplacement par portail ou staff ne
    peuvent pas produire de chevauchement sur le même praticien.
-8. Le payload agenda n'inclut aucune donnée client ou de prestation.
-9. Le client reçoit le récapitulatif email et un `.ics` correct ; une erreur
+9. Le payload agenda n'inclut aucune donnée client ou de prestation.
+10. Le client reçoit le récapitulatif email et un `.ics` correct ; une erreur
    d'envoi ne crée pas de doublon.
-10. Un compte/session client ne peut accéder aux routes staff.
+11. Un compte/session client ne peut accéder aux routes staff.

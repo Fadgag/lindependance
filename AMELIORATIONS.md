@@ -40,6 +40,39 @@ en cours de traitement.
   - Les règles sont couvertes par des tests de domaine et de service.
 - **Résultat :** Le domaine et la mise à jour transactionnelle bloquent les rendez-vous payés, y compris si seul `finalPrice` indique le paiement. Les tests ciblés, le lint et le type-check réussissent ; une vérification manuelle en bêta reste nécessaire.
 
+### Portail client — réservation en ligne
+
+#### Limiter les réservations à deux mois glissants
+
+- **Type :** Amélioration
+- **Statut :** Implémenté localement le 22 octobre 2026 ; vérification manuelle en préproduction après déploiement.
+- **Priorité proposée :** P2
+- **Constat initial :** Le sélecteur de date du portail ne définissait pas de date maximale, et l'API n'appliquait pas de limite supérieure. La fenêtre de deux mois chargée dans l'agenda concernait l'agenda staff, pas le portail client.
+- **Résultat souhaité :** Un client peut consulter et réserver uniquement dans une fenêtre glissante de deux mois.
+- **Impact :** Un client peut réserver trop longtemps à l'avance par rapport à la période d'ouverture prévue par le salon.
+- **Critères d'acceptation :**
+  - Les calendriers de réservation et de demande de changement n'affichent aucune date au-delà des 60 jours glissants.
+  - L'API de créneaux et les API de création de réservation ou de demande de changement refusent aussi toute date située après cette limite, même si la requête est envoyée directement.
+  - La borne exacte de 60 jours est incluse ; les dates sont exprimées dans le fuseau horaire du salon.
+  - Des tests vérifient la date maximale, la borne exacte et le refus des réservations ou demandes de changement juste au-delà.
+- **Décision prise :** 60 jours exacts à partir de l'instant courant, borne incluse.
+- **Résultat :** Les sélecteurs de réservation et de demande de changement fixent la même borne de date. L'API de créneaux rejette les dates hors fenêtre et la règle métier filtre les départs au-delà de l'instant limite. Les services de réservation et de demande de changement revalident cette borne côté serveur. Tests ciblés réussis ; recette manuelle bêta après déploiement.
+
+#### Associer les domaines publics aux portails des salons
+
+- **Type :** Bug
+- **Statut :** Correctif implémenté localement le 22 octobre 2026 ; association des domaines à configurer par admin_technique en préproduction.
+- **Priorité proposée :** P1
+- **Comportement observé :** À la racine du site, un visiteur arrive sur la connexion staff si plusieurs portails sont activés, même quand le domaine est dédié à un salon.
+- **Comportement attendu :** Chaque domaine configuré ouvre directement la réservation du salon qui lui est associé.
+- **Reproduction :** ouvrir la racine d'un domaine de salon lorsque plusieurs portails clients sont actifs ; le visiteur est redirigé vers `/auth/signin`.
+- **Critères d'acceptation :**
+  - L'équipe admin_technique associe chaque nom d'hôte à un slug avec `CUSTOMER_PORTAL_DOMAIN_MAP`.
+  - Un domaine associé redirige à la racine vers le bon portail, indépendamment du nombre d'autres portails actifs.
+  - Si le portail associé est désactivé ou indisponible, la racine ne bascule pas vers un autre salon.
+  - Un domaine non associé conserve le comportement de secours existant ; une configuration invalide est signalée explicitement.
+- **Résultat :** La résolution de l'hôte et le mapping technique sont implémentés et testés localement. Pour la préproduction, configurer `{"testing.osezletre.fr":"osezletre"}` dans `CUSTOMER_PORTAL_DOMAIN_MAP`, puis vérifier la racine après déploiement.
+
 ### Portail client — demandes de changement de créneau
 
 #### Notifier le client par e-mail de la décision sur sa demande de changement
