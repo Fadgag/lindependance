@@ -9,6 +9,7 @@ import {
   buildAvailableSlots,
   getLocalDateForInstant,
   getUtcRangeForLocalDay,
+  isWithinPortalBookingHorizon,
 } from '@/domain/customer-portal/scheduling'
 import { getCustomerPortalSecret, hashRateLimitKey } from '@/lib/customerPortalSecurity'
 import { prisma } from '@/lib/prisma'
@@ -54,6 +55,9 @@ export async function createCustomerPortalChangeRequest(input: {
   const requestedStart = new Date(input.requestedStart)
   if (Number.isNaN(requestedStart.getTime()) || requestedStart <= now) {
     throw new CustomerPortalHttpError(400, 'Le nouveau créneau doit être dans le futur.')
+  }
+  if (!isWithinPortalBookingHorizon(requestedStart, now)) {
+    throw new CustomerPortalHttpError(400, 'La date est au-delà de la période de réservation de 60 jours.')
   }
 
   try {

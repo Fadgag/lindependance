@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import PortalAppointments from '@/components/customer-portal/PortalAppointments'
+import { getPortalBookingWindow } from '@/domain/customer-portal/scheduling'
 
 const futureAppointmentStart = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 const requestedSlotStart = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
@@ -154,7 +155,10 @@ describe('PortalAppointments', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Demander un changement' }))
     expect(await screen.findByTestId('appointment-change-form')).toBeInTheDocument()
-    expect(screen.getByLabelText('Nouvelle date souhaitée')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nouvelle date souhaitée')).toHaveAttribute(
+      'max',
+      getPortalBookingWindow(new Date(), 'Europe/Paris').maxDate,
+    )
     expect(screen.getByLabelText('Motif (facultatif)')).toBeInTheDocument()
 
     fireEvent.click(await screen.findByRole('button', { name: requestedSlotLabel }))

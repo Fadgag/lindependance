@@ -1,5 +1,7 @@
 import { findFirstSchedulingConflict, type TimeRange } from '@/domain/appointment/policies'
 
+const PORTAL_BOOKING_HORIZON_MS = 60 * 24 * 60 * 60 * 1000
+
 export interface PortalAppointmentSlot extends TimeRange {
   staffId: string | null
   status: string
@@ -134,6 +136,31 @@ export function getLocalDateForInstant(instant: Date, timezone: string): string 
   return `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`
 }
 
+export function getPortalBookingWindow(now: Date, timezone: string): {
+  minDate: string
+  maxDate: string
+  latestStartTime: Date
+} {
+  const latestStartTime = new Date(now.getTime() + PORTAL_BOOKING_HORIZON_MS)
+  return {
+    minDate: getLocalDateForInstant(now, timezone),
+    maxDate: getLocalDateForInstant(latestStartTime, timezone),
+    latestStartTime,
+  }
+}
+
+export function isPortalBookingDateAllowed(date: string, now: Date, timezone: string): boolean {
+  const parsedDate = parseDate(date)
+  if (!parsedDate) return false
+  const window = getPortalBookingWindow(now, timezone)
+  return date >= window.minDate && date <= window.maxDate
+}
+
+export function isWithinPortalBookingHorizon(startTime: Date, now: Date): boolean {
+  return Number.isFinite(startTime.getTime())
+    && startTime.getTime() <= now.getTime() + PORTAL_BOOKING_HORIZON_MS
+}
+
 export function shouldShowStaffPicker(staffCount: number): boolean {
   return staffCount > 1
 }
@@ -173,6 +200,7 @@ export function buildAvailableSlots(input: AvailableSlotsInput): AvailableSlot[]
 
   const activeAppointments = input.appointments.filter((appointment) => appointment.status !== 'CANCELLED')
   const slots: AvailableSlot[] = []
+  const latestStartTime = input.now.getTime() + PORTAL_BOOKING_HORIZON_MS
   for (
     let startMinute = openingMinute;
     startMinute + input.durationMinutes <= closingMinute;
@@ -180,7 +208,12 @@ export function buildAvailableSlots(input: AvailableSlotsInput): AvailableSlot[]
   ) {
     const start = localDateTimeToUtc(date, startMinute, input.timezone)
     const end = localDateTimeToUtc(date, startMinute + input.durationMinutes, input.timezone)
-    if (!start || !end || start.getTime() < input.now.getTime()) continue
+    if (
+      !start
+      || !end
+      || start.getTime() < input.now.getTime()
+      || start.getTime() > latestStartTime
+    ) continue
 
     const candidate = { startTime: start, endTime: end }
     const appointmentConflict = activeAppointments.some((appointment) => {

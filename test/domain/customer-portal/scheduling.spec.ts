@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   buildAvailableSlots,
   getLocalDateForInstant,
+  getPortalBookingWindow,
   getUtcRangeForLocalDay,
+  isPortalBookingDateAllowed,
   resolvePortalStaffSelection,
   shouldShowStaffPicker,
 } from '@/domain/customer-portal/scheduling'
@@ -62,6 +64,19 @@ describe('buildAvailableSlots', () => {
   })
 
   describe('customer portal timezone helpers', () => {
+    it('calculates an inclusive 60-day booking window in the organization timezone', () => {
+      const now = new Date('2026-10-22T10:00:00.000Z')
+
+      expect(getPortalBookingWindow(now, 'Europe/Paris')).toEqual({
+        minDate: '2026-10-22',
+        maxDate: '2026-12-21',
+        latestStartTime: new Date('2026-12-21T10:00:00.000Z'),
+      })
+      expect(isPortalBookingDateAllowed('2026-12-21', now, 'Europe/Paris')).toBe(true)
+      expect(isPortalBookingDateAllowed('2026-12-22', now, 'Europe/Paris')).toBe(false)
+      expect(isPortalBookingDateAllowed('2026-10-21', now, 'Europe/Paris')).toBe(false)
+    })
+
     it('uses the actual local-day duration across a daylight-saving transition', () => {
       expect(getUtcRangeForLocalDay('2026-03-29', 'Europe/Paris')).toEqual({
         start: new Date('2026-03-28T23:00:00.000Z'),
@@ -73,6 +88,23 @@ describe('buildAvailableSlots', () => {
       expect(getLocalDateForInstant(new Date('2026-10-01T08:00:00.000Z'), 'Europe/Paris'))
         .toBe('2026-10-01')
     })
+  })
+
+  it('includes starts through the exact 60-day instant and excludes later starts', () => {
+    const slots = buildAvailableSlots({
+      ...defaults,
+      date: '2026-12-21',
+      openingTime: '10:00',
+      closingTime: '12:00',
+      durationMinutes: 30,
+      now: new Date('2026-10-22T10:00:00.000Z'),
+    })
+
+    expect(slots.map((slot) => slot.start)).toEqual([
+      '2026-12-21T09:00:00.000Z',
+      '2026-12-21T09:30:00.000Z',
+      '2026-12-21T10:00:00.000Z',
+    ])
   })
 
   it('bloque les rendez-vous actifs du praticien et les indisponibilités globales', () => {

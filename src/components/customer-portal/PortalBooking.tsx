@@ -4,21 +4,12 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import PortalBrandIdentity from '@/components/customer-portal/PortalBrandIdentity'
 import type { PortalAppearance } from '@/domain/branding/logoSettings'
+import { getPortalBookingWindow } from '@/domain/customer-portal/scheduling'
 
 type Service = { id: string; name: string; durationMinutes: number; price: number }
 type Practitioner = { id: string; firstName: string; lastName: string }
 type Customer = { id: string; firstName: string; lastName: string }
 type Slot = { start: string; end: string }
-
-function localDateToday(timezone: string): string {
-  const parts = new Map(new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date()).map((part) => [part.type, part.value]))
-  return `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`
-}
 
 async function readError(response: Response, fallback: string): Promise<string> {
   const body: unknown = await response.json().catch(() => null)
@@ -48,7 +39,7 @@ export default function PortalBooking({
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
   const [customerId, setCustomerId] = useState('')
-  const [date, setDate] = useState(() => localDateToday(organizationTimezone))
+  const [date, setDate] = useState(() => getPortalBookingWindow(new Date(), organizationTimezone).minDate)
   const [slots, setSlots] = useState<Slot[]>([])
   const [timezone, setTimezone] = useState('Europe/Paris')
   const [selectedSlot, setSelectedSlot] = useState('')
@@ -213,6 +204,7 @@ export default function PortalBooking({
   if (loading) return <main className="mx-auto max-w-3xl p-6 text-gray-500">Chargement du portail…</main>
 
   const service = services.find((item) => item.id === serviceId)
+  const bookingWindow = getPortalBookingWindow(new Date(), organizationTimezone)
   const formatTime = (instant: string) => new Intl.DateTimeFormat('fr-FR', {
     timeZone: timezone,
     hour: '2-digit',
@@ -264,7 +256,14 @@ export default function PortalBooking({
             )}
             <label className="block text-sm font-medium">
               Date
-              <input type="date" min={localDateToday(organizationTimezone)} value={date} onChange={(event) => setDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-gray-300 p-3" />
+              <input
+                type="date"
+                min={bookingWindow.minDate}
+                max={bookingWindow.maxDate}
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 p-3"
+              />
             </label>
           </section>
 

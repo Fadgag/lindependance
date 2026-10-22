@@ -101,6 +101,21 @@ beforeEach(() => {
 })
 
 describe('createCustomerPortalChangeRequest', () => {
+  it('rejects a requested start beyond the 60-day booking horizon', async () => {
+    await expect(createCustomerPortalChangeRequest({
+      ...identity,
+      appointmentId: 'appointment-1',
+      requestedStart: '2026-11-30T08:00:01.000Z',
+      now,
+    })).rejects.toMatchObject({
+      status: 400,
+      message: 'La date est au-delà de la période de réservation de 60 jours.',
+    })
+
+    expect(transactionMock.appointmentChangeRequest.create).not.toHaveBeenCalled()
+    expect(transactionMock.customerPortalRateLimitEvent.findMany).not.toHaveBeenCalled()
+  })
+
   it('creates a pending request and derives its end from the persisted service duration', async () => {
     const result = await createCustomerPortalChangeRequest({
       ...identity,

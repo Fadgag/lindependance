@@ -60,6 +60,13 @@ client doit d'abord être créé par le staff.
   exclusivement l'organisation de la session OTP ; si le slug est présent dans
   leur chemin, il doit correspondre à cette organisation. Ne jamais accepter
   un `organizationId` arbitraire du navigateur.
+- À la racine `/`, `CUSTOMER_PORTAL_DOMAIN_MAP` permet à l'équipe admin_technique
+  d'associer les noms d'hôte publics aux slugs (objet JSON, ex.
+  `{"testing.example.fr":"salon-dupont"}`). Un nom d'hôte associé ouvre
+  directement la réservation de ce salon. Si le portail associé est
+  indisponible, ne pas rediriger vers un autre salon. Pour un nom d'hôte sans
+  association, le comportement de secours ouvre le portail seulement lorsqu'un
+  unique salon actif existe ; sinon la page de connexion staff reste accessible.
 - Si `portalEnabled` est `false`, si aucun praticien n'est actif ou si le
   `slug` est inconnu → `404` (pas de fuite d'existence de l'organisation).
   Cette vérification s'applique aux pages publiques, aux API et aux sessions
@@ -148,6 +155,12 @@ client doit d'abord être créé par le staff.
   recharge `Service` dans l'organisation résolue et dérive `duration`/`endTime`
   depuis `Service.durationMinutes` (ne jamais faire confiance à une durée ou un
   prix envoyés par le navigateur).
+- La fenêtre de réservation et de demande de changement couvre les 60 jours
+  glissants à partir de l'instant courant, borne incluse. Les dates affichées
+  et saisies sont exprimées dans le fuseau horaire de l'organisation. Le portail
+  limite les sélecteurs de date, l'API de créneaux refuse les jours hors fenêtre
+  et ne retourne aucun départ après la borne exacte ; les API de réservation et
+  de demande de changement revalident l'heure de début côté serveur.
 - Le calcul des créneaux libres tient compte de cette durée : un candidat
   `[startTime, startTime + durationMinutes)` est proposé seulement s'il tient
   entièrement dans les heures d'ouverture et ne chevauche ni rendez-vous

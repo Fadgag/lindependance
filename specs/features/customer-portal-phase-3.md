@@ -22,6 +22,9 @@ rendez-vous. Le staff approuve ou refuse la demande depuis le back-office.
   change pas `Appointment` et refuse une seconde demande `PENDING` pour ce
   rendez-vous.
 - Limite additionnelle : 5 demandes de changement par client sur 24h.
+- La nouvelle date demandée reste dans la fenêtre client de 60 jours glissants ;
+  le sélecteur et l'API de création de demande appliquent la même borne que la
+  réservation en ligne, y compris pour les requêtes directes.
 - Nouvel écran staff pour consulter et approuver/refuser les demandes :
   - L'approbation vérifie dans une transaction le conflit avec les autres RDV
     du même praticien et les indisponibilités globales de l'organisation.
@@ -65,3 +68,5 @@ rendez-vous. Le staff approuve ou refuse la demande depuis le back-office.
    l'approbation contient l'invitation calendrier actualisée et le refus
    contient le motif lorsqu'il est renseigné. Une panne d'envoi ne revient
    pas sur la décision et est signalée au staff.
+9. La nouvelle date d'une demande reste dans la fenêtre client de 60 jours
+   glissants ; une requête directe au-delà de cette borne est refusée.

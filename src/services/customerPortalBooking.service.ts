@@ -3,6 +3,7 @@ import {
   buildAvailableSlots,
   getLocalDateForInstant,
   getUtcRangeForLocalDay,
+  isWithinPortalBookingHorizon,
   resolvePortalStaffSelection,
 } from '@/domain/customer-portal/scheduling'
 import { prisma } from '@/lib/prisma'
@@ -79,6 +80,14 @@ export async function createCustomerPortalAppointment(
     })
     if (!organization || !organization.slug) {
       throw new CustomerPortalHttpError(404, 'Portal not found')
+    }
+
+    if (!isWithinPortalBookingHorizon(startTime, now)) {
+      throw new CustomerPortalHttpError(400, 'La date est au-delà de la période de réservation de 60 jours.')
+    }
+
+    if (startTime < now) {
+      throw new CustomerPortalHttpError(409, 'Time slot is no longer available')
     }
 
     const [service, customer, staff] = await Promise.all([

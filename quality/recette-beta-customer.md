@@ -33,6 +33,7 @@ Créer ou demander les données de test suivantes dans l'interface staff :
 | `ORG-A` | Portail activé, slug connu, fuseau `Europe/Paris`, horaires renseignés ; identité du portail personnalisée avec un logo. |
 | `ORG-B` | Seconde organisation active, avec au moins un client et un rendez-vous. |
 | `ORG-SOLO` | Organisation de test avec un seul praticien actif, pour vérifier le sélecteur masqué. |
+| `DOMAIN-ORG-A` | Domaine de test associé à `ORG-A` par l'équipe admin_technique et dirigé vers l'environnement bêta. |
 | `SVC-30` / `SVC-60` | Prestations de 30 et 60 minutes, avec prix distincts. |
 | `STAFF-A1` / `STAFF-A2` | Deux praticiens actifs dans `ORG-A`; prévoir aussi un praticien inactif. |
 | `EMAIL-SINGLE` | Adresse de test reliée à une fiche client de `ORG-A`. |
@@ -58,39 +59,46 @@ date : `________` · navigateur/appareil : `________` · organisation : `_______
 
 ### Accès public et disponibilité
 
-#### [x] CUS-01 — Ouvrir la réservation du bon salon
+#### [ ] CUS-01 — Ouvrir la réservation du bon salon
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, DoD 1]
 
-**Étapes :** ouvrez le lien de réservation reçu et vérifiez que le nom et le
-logo affichés sont bien ceux du salon que vous souhaitez contacter. Regardez
-également la présentation choisie par le salon : police, couleur et taille du
-nom, ainsi que la forme du logo. Actualisez ensuite la page et vérifiez que la
-réservation reste accessible et que l'identité du salon est toujours affichée.
+**Étapes :** ouvrez le lien de réservation reçu, puis le domaine `DOMAIN-ORG-A`.
+Vérifiez que les deux pages affichent le nom et le logo du salon que vous
+souhaitez contacter. Regardez également la présentation choisie par le salon :
+police, couleur et taille du nom, ainsi que la forme du logo. Actualisez ensuite
+les pages et vérifiez que la réservation reste accessible et que l'identité du
+salon est toujours affichée.
 
-**Attendu :** la réservation s'ouvre pour le bon salon et présente son nom et
-son logo avec les réglages choisis par le salon, y compris la taille commune du
-logo et son adaptation à l'écran. Vous ne voyez aucune information appartenant
-à un autre salon.
+**Attendu :** le lien de réservation et le domaine dédié ouvrent le portail du
+même salon. Son nom et son logo suivent les réglages choisis, y compris la
+taille commune du logo et son adaptation à l'écran. Vous ne voyez aucune
+information appartenant à un autre salon.
 
-**Automatisé :** `test/api/customer-portal-public.spec.ts` (lecture publique).
-**Résultat / preuve :** PASS — le portail Osez l'Etre affiche le nom du salon
-et son logo. Après actualisation, la réservation reste accessible et
-l'identité reste affichée. Campagne « Test Création de rdv 1 », 20/10/2026.
+**Automatisé :** `test/api/customer-portal-public.spec.ts`,
+`test/homepage.spec.ts`,
+`test/domain/customer-portal/portalDomains.spec.ts`.
+**Résultat / preuve :** PARTIEL — le portail Osez l'Etre affiche le nom du salon
+et son logo après ouverture directe du lien. La racine `testing.osezletre.fr`
+redirige encore vers la connexion tant que l'équipe admin_technique n'a pas
+configuré son association dans `CUSTOMER_PORTAL_DOMAIN_MAP`.
 
-#### [ ] CUS-02 — Choisir une prestation, un coiffeur et un horaire
+#### [ ] CUS-02 — Choisir une prestation, un coiffeur, une date et un horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, parcours de réservation]
 
 **Étapes :** essayez de choisir différentes prestations, puis choisissez un
-coiffeur et un horaire disponible. Recommencez dans un salon où un seul
-coiffeur est proposé.
+coiffeur et un horaire disponible. Vérifiez que vous pouvez choisir un
+créneau jusqu'à 60 jours à l'avance et qu'aucun horaire au-delà de cette
+limite n'est proposé. Recommencez dans un salon où un seul coiffeur est proposé.
 
 **Attendu :** vous pouvez choisir parmi les coiffeurs disponibles ; si un
 seul coiffeur est proposé, il est sélectionné automatiquement. Les horaires
 proposés tiennent compte de la durée de la prestation et des disponibilités
-du salon.
+du salon. La réservation ne dépasse pas 60 jours à partir du moment où vous
+consultez l'agenda.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts`,
-`test/domain/customer-portal/scheduling.spec.ts`.
+`test/domain/customer-portal/scheduling.spec.ts`,
+`test/ui/portalBooking.spec.tsx`.
 **Résultat / preuve :** PARTIEL — 22/10/2026 en préproduction, le 24/10 la
 coupe homme de 30 minutes proposait des créneaux de 08 h à 19 h 30 et le
 brushing de 70 minutes de 08 h à 18 h 30. Une réservation de chaque prestation
@@ -98,6 +106,9 @@ brushing de 70 minutes de 08 h à 18 h 30. Une réservation de chaque prestation
 Les deux rendez-vous ont été annulés et le créneau de 17 h est redevenu
 disponible pour les deux durées. Un seul coiffeur étant proposé, le choix entre
 plusieurs coiffeurs et le cas `ORG-SOLO` restent à vérifier.
+La limite de 60 jours est couverte par des tests locaux de la date maximale,
+de la borne exacte et du refus côté API ; sa vérification manuelle en
+préproduction reste à faire après déploiement.
 
 #### [ ] CUS-03 — Vérifier les dates et heures des rendez-vous
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §5.4]
@@ -268,17 +279,20 @@ Aucun forfait n'était associé ; son solde reste à vérifier.
 ### Demande de changement de créneau — Phase 3
 
 #### [ ] CUS-13 — Demander un autre horaire
-**Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 1]
+**Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 1 et 9]
 
-**Étapes :** pour un rendez-vous à venir, choisissez un autre horaire proposé
-et envoyez votre demande, avec ou sans commentaire.
+**Étapes :** pour un rendez-vous à venir, vérifiez que le calendrier ne propose
+pas de date au-delà des 60 prochains jours, choisissez un autre horaire
+disponible et envoyez votre demande, avec ou sans commentaire.
 
 **Attendu :** votre demande apparaît comme en attente. Le rendez-vous garde son
-horaire actuel tant que le salon ne vous a pas répondu.
+horaire actuel tant que le salon ne vous a pas répondu. La borne de 60 jours
+s'applique également aux demandes de changement.
 
 **Automatisé :** `test/api/customer-portal-change-requests.spec.ts`,
 `test/services/customerPortalChangeRequests.spec.ts`,
-`test/ui/customerPortalAppointments.spec.tsx`.
+`test/ui/customerPortalAppointments.spec.tsx`,
+`test/domain/customer-portal/scheduling.spec.ts`.
 **Résultat / preuve :** `________`
 
 #### [ ] CUS-14 — Suivre une demande déjà envoyée
