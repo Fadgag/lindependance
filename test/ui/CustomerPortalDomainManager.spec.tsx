@@ -34,6 +34,7 @@ describe('CustomerPortalDomainManager', () => {
 
     expect(await screen.findByText('testing.osezletre.fr')).toBeInTheDocument()
     expect(screen.getByRole('option', { name: /Osez l’Etre/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ajouter le domaine' })).toHaveClass('bg-studio-primary')
     expect(screen.getByRole('button', { name: 'Supprimer testing.osezletre.fr' })).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/tech-admin/customer-portal-domains',
