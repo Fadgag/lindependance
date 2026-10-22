@@ -40,7 +40,7 @@ describe('AppointmentChangeRequests', () => {
   it('lists pending requests and removes a request after a successful approval', async () => {
     const fetchMock = vi.mocked(fetch)
     fetchMock.mockResolvedValueOnce(response(requestList))
-    fetchMock.mockResolvedValueOnce(response({ ok: true }))
+    fetchMock.mockResolvedValueOnce(response({ ok: true, notificationSent: true }))
 
     render(<AppointmentChangeRequests />)
     expect(await screen.findByText('Camille Martin')).toBeInTheDocument()
@@ -61,7 +61,7 @@ describe('AppointmentChangeRequests', () => {
   it('sends the staff rejection reason to the review endpoint', async () => {
     const fetchMock = vi.mocked(fetch)
     fetchMock.mockResolvedValueOnce(response(requestList))
-    fetchMock.mockResolvedValueOnce(response({ ok: true }))
+    fetchMock.mockResolvedValueOnce(response({ ok: true, notificationSent: true }))
 
     render(<AppointmentChangeRequests />)
     expect(await screen.findByText('Camille Martin')).toBeInTheDocument()
@@ -78,6 +78,27 @@ describe('AppointmentChangeRequests', () => {
           body: JSON.stringify({ reviewReason: 'Créneau non disponible' }),
         }),
       )
+    })
+  })
+
+  it('removes a reviewed request and warns staff if the decision email was not sent', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockResolvedValueOnce(response(requestList))
+    fetchMock.mockResolvedValueOnce(response({
+      ok: true,
+      notificationSent: false,
+      notificationWarning: 'La décision a été enregistrée, mais l’e-mail n’a pas pu être envoyé.',
+    }))
+
+    render(<AppointmentChangeRequests />)
+    expect(await screen.findByText('Camille Martin')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Approuver' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'La décision a été enregistrée, mais l’e-mail n’a pas pu être envoyé.',
+    )
+    await waitFor(() => {
+      expect(screen.queryByText('Camille Martin')).not.toBeInTheDocument()
     })
   })
 })

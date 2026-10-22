@@ -137,3 +137,9 @@ export const StaffAppointmentChangeRequestsSchema = z.object({
   timezone: timezoneSchema,
   requests: z.array(StaffAppointmentChangeRequestSchema),
 }).strict()
+
+export const StaffAppointmentChangeDecisionResultSchema = z.object({
+  ok: z.literal(true),
+  notificationSent: z.boolean(),
+  notificationWarning: z.string().min(1).optional(),
+}).strict()

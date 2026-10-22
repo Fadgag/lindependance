@@ -40,6 +40,27 @@ en cours de traitement.
   - Les règles sont couvertes par des tests de domaine et de service.
 - **Résultat :** Le domaine et la mise à jour transactionnelle bloquent les rendez-vous payés, y compris si seul `finalPrice` indique le paiement. Les tests ciblés, le lint et le type-check réussissent ; une vérification manuelle en bêta reste nécessaire.
 
+### Portail client — demandes de changement de créneau
+
+#### Notifier le client par e-mail de la décision sur sa demande de changement
+
+- **Type :** Amélioration
+- **Statut :** Implémenté localement ; migration et envoi réel à vérifier en préproduction.
+- **Priorité proposée :** P1
+- **Constat :** Après approbation ou refus d'une demande, le portail client affiche le nouvel horaire ou le motif de refus, mais aucun e-mail de décision n'est envoyé. Cette absence a été constatée en préproduction le 22 octobre 2026 pour une demande approuvée et une demande refusée.
+- **Amélioration souhaitée :** Informer par e-mail le client de la décision du salon afin qu'il sache si son rendez-vous a changé ou si l'horaire initial est maintenu.
+- **Impact :** Sans notification, le client peut manquer un changement d'horaire ou ne pas voir le refus de sa demande.
+- **Critères d'acceptation :**
+  - Après approbation, un e-mail confirme la nouvelle date et heure du rendez-vous, la prestation et le salon.
+  - L'e-mail d'approbation joint une invitation calendrier `.ics` qui met à jour le même rendez-vous avec une séquence incrémentée.
+  - Après refus, un e-mail indique que la demande a été refusée et inclut le motif du staff lorsqu'il existe ; sans motif, le message reste explicite et neutre.
+  - La notification est adressée uniquement à l'adresse vérifiée conservée à la création de la demande et respecte l'organisation du rendez-vous.
+  - L'envoi intervient après la décision enregistrée ; un échec d'e-mail ne rétablit pas l'ancien horaire ni ne transforme une décision déjà prise.
+  - Une demande historique sans adresse vérifiée reste traitable ; l'interface staff avertit qu'aucun e-mail n'a pu être envoyé.
+  - Des tests couvrent l'approbation, le refus avec et sans motif, l'absence d'envoi si la décision échoue, l'adresse vérifiée et l'isolation entre organisations.
+- **Décision prise :** l'e-mail d'approbation joint une invitation calendrier `.ics` mise à jour avec le même UID et une séquence incrémentée.
+- **Vérification restante :** appliquer la migration en préproduction, contrôler la réception réelle des e-mails dans une boîte de test et importer l'invitation mise à jour dans Google Calendar.
+
 ### Signalement du 19 octobre 2026
 
 #### Diagnostiquer l'erreur « Configuration » à la connexion staff en préproduction

@@ -21,7 +21,8 @@ autres organisations.
 ## Préparation — environnement bêta uniquement
 
 Ne pas tester sur la production. L'équipe technique doit confirmer que les
-migrations `20261001120000_customer_portal_phase_3` et
+migrations `20261001120000_customer_portal_phase_3`,
+`20261022095400_change_request_decision_emails`,
 `20261006182000_issue_reports` et
 `20261009100000_product_stock_movements` sont appliquées à la base bêta ; les
 testeurs ne doivent pas exécuter de migration.
@@ -33,6 +34,7 @@ Préparer dans l'interface staff et avec l'équipe technique :
 | `ORG-A` / `ORG-B` | Deux organisations actives distinctes ; compte staff dédié dans chacune. |
 | `TECH-ADMIN` | Compte technique habilité à consulter et traiter les signalements de toutes les organisations ; préparer des signalements `Nouveau`, `En cours` et `Résolu` dans `ORG-A` et `ORG-B`. |
 | `RATE-LIMIT-STAFF` / `UNKNOWN-EMAIL` | Compte staff de test avec boîte e-mail contrôlée, adresse de test sans compte, et IP dédiée pour vérifier les limites sans affecter les autres testeurs. |
+| `EMAIL-CHANGE-REQUEST` | Fiche client avec rendez-vous de test et boîte contrôlée ; utiliser cette adresse pour la vérification e-mail avant d'envoyer la demande de changement. |
 | `TEST-STAFF-INVITATION` | Avec `TECH-ADMIN`, créer un salon de test sur la preview de `preprod`, choisir le rôle `ADMIN` et une boîte de test contrôlée dont l'équipe autorise explicitement l'envoi. |
 | Portail `ORG-A` | Activé avec slug et fuseau connus ; préparer aussi `ORG-SOLO` si le test des praticiens mono-staff est nécessaire. |
 | Praticiens et services | Deux praticiens actifs, un inactif, services de 30 et 60 minutes, horaires connus. |
@@ -78,9 +80,11 @@ recharger toute la page.
 **Automatisé :** `test/api/appointment-portal-count.spec.ts`,
 `test/ui/portalBookingCounter.spec.tsx`. La cadence et le calcul de frontière
 de journée sont à confirmer dans le navigateur.
-**Résultat / preuve :** BLOQUÉ — le tableau de bord charge (5 rendez-vous affichés), mais aucune réservation ou demande n'a été créée pour vérifier la mise à jour des compteurs.
+**Résultat / preuve :** PARTIEL — 22/10/2026, l'agenda affichait 1 demande en
+attente après sa création, puis 0 après son approbation. La mise à jour sans
+recharger la page et le compteur des nouvelles réservations ne sont pas vérifiés.
 
-#### [ ] ADM-03 — Consulter les demandes en attente
+#### [x] ADM-03 — Consulter les demandes en attente
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3bis]
 
 **Étapes :** ouvrez la liste des demandes et choisissez une demande en attente.
@@ -92,23 +96,39 @@ n'apparaît plus dans la liste des demandes en attente.
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
 `test/api/appointment-change-requests.spec.ts`,
 `test/ui/appointmentChangeRequests.spec.tsx`.
-**Résultat / preuve :** BLOQUÉ — la page des demandes s'ouvre, mais la liste est vide ; aucune demande en attente n'est disponible pour ce test.
+**Résultat / preuve :** PASS — 22/10/2026, une demande QA affichait le client,
+la prestation, le coiffeur, l'horaire actuel et l'horaire demandé, ainsi que le
+commentaire client. Après traitement, elle n'apparaissait plus parmi les
+demandes en attente.
 
 ### Décision des demandes
 
 #### [ ] ADM-04 — Accepter un changement d'horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 1, 3 et 4]
 
-**Étapes :** acceptez une demande dont le nouvel horaire est toujours libre.
+**Étapes :** depuis un compte client vérifié avec `EMAIL-CHANGE-REQUEST`,
+envoyez une demande de changement pour un rendez-vous. Acceptez-la si le nouvel
+horaire est toujours libre, puis vérifiez l'e-mail reçu et ouvrez sa pièce
+jointe calendrier.
 
 **Attendu :** le rendez-vous est déplacé au nouvel horaire. La prestation,
 le coiffeur et le forfait restent les mêmes. Le client voit le changement
-dans son espace.
+dans son espace et reçoit un e-mail avec la nouvelle date et l'heure. La pièce
+jointe actualise le même événement calendrier, sans en créer un second.
 
 **Automatisé :** `test/services/customerPortalChangeRequests.spec.ts`,
+`test/services/appointmentChangeNotification.spec.ts`,
+`test/services/customerPortalEmail.spec.ts`,
 `test/ui/appointmentChangeRequests.spec.tsx`,
+`test/api/appointment-change-requests.spec.ts`,
 `test/services/customerPortalAppointments.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 22/10/2026 en préproduction, la demande QA
+pour la coupe homme de 30 minutes (17 h, avec Fanny) a été approuvée après
+vérification que 16 h 30 était libre. La demande a disparu ; l'agenda et
+l'historique client affichent le rendez-vous à 16 h 30–17 h. Le portail client
+affiche « Demande acceptée », le nouvel horaire et Fanny. Le maintien d'un
+éventuel forfait reste à vérifier. L'e-mail et l'import de l'invitation mise
+à jour restent à vérifier après déploiement de cette amélioration.
 
 #### [ ] ADM-05 — Vérifier si le nouvel horaire est encore libre
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 3–4]
@@ -129,18 +149,32 @@ praticien inactif et course réelle restent à vérifier en bêta.
 #### [ ] ADM-06 — Refuser une demande
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, workflow staff]
 
-**Étapes :** refusez une demande en expliquant la raison, puis refusez-en une
-autre sans ajouter de commentaire.
+**Étapes :** depuis un compte client vérifié avec `EMAIL-CHANGE-REQUEST`,
+envoyez une demande de changement. Refusez-la en expliquant la raison, puis
+vérifiez l'e-mail reçu. Si une autre demande sans motif est déjà disponible,
+refusez-la aussi et vérifiez que son message reste clair.
 
 **Attendu :** la demande est refusée et le rendez-vous garde son horaire. Le
 client voit que le changement n'a pas été accepté et peut lire votre
-commentaire, s'il y en a un.
+commentaire, s'il y en a un. Il reçoit un e-mail de refus ; le motif y figure
+lorsqu'il est renseigné.
 
 **Automatisé :** `test/api/appointment-change-requests.spec.ts`,
 `test/services/customerPortalChangeRequests.spec.ts`,
+`test/services/appointmentChangeNotification.spec.ts`,
+`test/services/customerPortalEmail.spec.ts`,
 `test/ui/appointmentChangeRequests.spec.tsx`. La répétition d'action est
 partiellement couverte par l'état pending requis côté service.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 22/10/2026, la demande QA avec commentaire
+client a été refusée avec le motif « Refus de test en préproduction. ». Elle a
+disparu des demandes en attente et le rendez-vous a conservé son horaire de
+14 h 30. Le portail client affiche « Demande refusée » avec le motif et
+l'horaire inchangé (14 h 30–15 h 40). Le second cas, sans motif, est bloqué :
+le portail indique « Vous avez atteint la limite de 5 demandes de changement
+sur 24 heures ». Aucun e-mail de refus n'a été reçu avant l'implémentation de
+cette amélioration. Aucune tentative de contournement du quota n'a été faite.
+La réception réelle et le comportement sans motif restent à vérifier après
+déploiement.
 
 #### [ ] ADM-07 — Modifier un rendez-vous ayant une demande en attente
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-3.md`, DoD 5]
@@ -447,7 +481,7 @@ e-mail d'activation n'est arrivé. Pas de nouvelle tentative avant vérification
 en lecture seule de l'existence du salon/compte et des événements d'envoi.
 Campagne « Test Création de rdv 1 », 20/10/2026.
 
-#### [ ] ADM-23 — Repérer un rendez-vous annulé sur une fiche client
+#### [x] ADM-23 — Repérer un rendez-vous annulé sur une fiche client
 **Priorité : P1 · Exigence :** [Req: formal — Issue #123]
 
 **Étapes :** ouvrez la fiche client qui contient `RDV-CANCELLED` et consultez
@@ -461,7 +495,10 @@ sans lancer ni confirmer d'encaissement.
 `test/ui/customerDetail.spec.tsx` et
 `test/ui/checkoutModalErrors.spec.tsx`. La vérification visuelle en bêta reste
 à effectuer après déploiement ; aucun encaissement réel ne doit être soumis.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PASS — 22/10/2026, sur la fiche QA `Enfant QA Recette`,
+l'historique affiche les rendez-vous annulés avec le statut « ANNULÉ », distinct
+de ceux « À ENCAISSER ». Aucun bouton ni commande d'encaissement n'est présenté
+sur la fiche ; aucun encaissement n'a été soumis.
 
 ## Couverture automatisée relue
 
