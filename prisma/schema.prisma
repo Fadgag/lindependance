@@ -46,6 +46,18 @@ model Organization {
   productStockMovements           ProductStockMovement[]
   unavailabilities                Unavailability[]
   customerEmailOtps               CustomerEmailOtp[]
+  customerPortalDomains           CustomerPortalDomain[]
+}
+
+model CustomerPortalDomain {
+  id             String       @id @default(cuid())
+  hostname       String       @unique
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
 }
 
 /// Unavailability: blocs d'indisponibilité (congés, RDV perso, etc.)

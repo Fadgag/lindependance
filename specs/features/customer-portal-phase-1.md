@@ -27,10 +27,10 @@ Le MVP est activable par organisation et ne crée pas de compte client autonome.
   d'une famille.
 - Ajouter l'écran staff `/settings/portail` pour renseigner le slug et activer
   ou désactiver le portail.
-- À la racine du site, l'équipe admin_technique peut configurer les domaines
-  publics avec `CUSTOMER_PORTAL_DOMAIN_MAP` (JSON nom d'hôte → slug). Un domaine
-  associé redirige vers la réservation de son salon, sans dépendre du nombre
-  d'autres portails activés.
+- À la racine du site, l'équipe admin_technique configure les domaines publics
+  depuis `/tech-admin/portal-domains`. Les associations nom d'hôte → salon sont
+  enregistrées en base. Un domaine associé redirige vers la réservation de son
+  salon, sans dépendre du nombre d'autres portails activés.
 - Le portail public résout toute organisation par slug et n'expose jamais
   l'id interne. Slug inconnu, portail désactivé ou absence de praticien actif :
   404 sur les pages et API publiques, y compris les sessions client existantes.

@@ -5,6 +5,32 @@ export const TechAdminOrganizationsSchema = z.array(z.object({
   name: z.string().min(1),
 }))
 
+export const TechAdminPortalDomainConfigurationSchema = z.object({
+  domains: z.array(z.object({
+    id: z.string().min(1),
+    hostname: z.string().min(1),
+    organizationId: z.string().min(1),
+    organizationName: z.string().min(1),
+    organizationSlug: z.string().nullable(),
+    portalAvailable: z.boolean(),
+  }).strict()),
+  organizations: z.array(z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    slug: z.string().min(1),
+  }).strict()),
+}).strict()
+
+export const CreateTechAdminPortalDomainSchema = z.object({
+  hostname: z.string().trim().min(1).max(253),
+  organizationId: z.string().trim().min(1).max(128),
+}).strict()
+
+export const TechAdminPortalDomainMutationResponseSchema = z.object({
+  id: z.string().min(1),
+  hostname: z.string().min(1),
+}).strict()
+
 export const TechAdminOrganizationFilterSchema = z.object({
   organizationIds: z.array(z.string().trim().min(1).max(128)),
 }).strict()

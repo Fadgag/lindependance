@@ -33,7 +33,7 @@ Créer ou demander les données de test suivantes dans l'interface staff :
 | `ORG-A` | Portail activé, slug connu, fuseau `Europe/Paris`, horaires renseignés ; identité du portail personnalisée avec un logo. |
 | `ORG-B` | Seconde organisation active, avec au moins un client et un rendez-vous. |
 | `ORG-SOLO` | Organisation de test avec un seul praticien actif, pour vérifier le sélecteur masqué. |
-| `DOMAIN-ORG-A` | Domaine de test associé à `ORG-A` par l'équipe admin_technique et dirigé vers l'environnement bêta. |
+| `DOMAIN-ORG-A` | Domaine de test déjà associé à `ORG-A` par un `TECH_ADMIN` depuis `/tech-admin/portal-domains` et dirigé vers l'environnement bêta. |
 | `SVC-30` / `SVC-60` | Prestations de 30 et 60 minutes, avec prix distincts. |
 | `STAFF-A1` / `STAFF-A2` | Deux praticiens actifs dans `ORG-A`; prévoir aussi un praticien inactif. |
 | `EMAIL-SINGLE` | Adresse de test reliée à une fiche client de `ORG-A`. |
@@ -62,12 +62,12 @@ date : `________` · navigateur/appareil : `________` · organisation : `_______
 #### [ ] CUS-01 — Ouvrir la réservation du bon salon
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, DoD 1]
 
-**Étapes :** ouvrez le lien de réservation reçu, puis le domaine `DOMAIN-ORG-A`.
-Vérifiez que les deux pages affichent le nom et le logo du salon que vous
-souhaitez contacter. Regardez également la présentation choisie par le salon :
-police, couleur et taille du nom, ainsi que la forme du logo. Actualisez ensuite
-les pages et vérifiez que la réservation reste accessible et que l'identité du
-salon est toujours affichée.
+**Étapes :** ouvrez le lien de réservation reçu, puis la page d'accueil de
+`DOMAIN-ORG-A`, déjà associé au salon que vous souhaitez contacter. Vérifiez
+que les deux pages affichent le nom et le logo du salon. Regardez également la
+présentation choisie par le salon : police, couleur et taille du nom, ainsi que
+la forme du logo. Actualisez ensuite les pages et vérifiez que la réservation
+reste accessible et que l'identité du salon est toujours affichée.
 
 **Attendu :** le lien de réservation et le domaine dédié ouvrent le portail du
 même salon. Son nom et son logo suivent les réglages choisis, y compris la
@@ -79,8 +79,8 @@ information appartenant à un autre salon.
 `test/domain/customer-portal/portalDomains.spec.ts`.
 **Résultat / preuve :** PARTIEL — le portail Osez l'Etre affiche le nom du salon
 et son logo après ouverture directe du lien. La racine `testing.osezletre.fr`
-redirige encore vers la connexion tant que l'équipe admin_technique n'a pas
-configuré son association dans `CUSTOMER_PORTAL_DOMAIN_MAP`.
+doit être associée au salon Osez l'Etre par un `TECH_ADMIN` depuis
+`/tech-admin/portal-domains` après application de la migration.
 
 #### [ ] CUS-02 — Choisir une prestation, un coiffeur, une date et un horaire
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal-phase-1.md`, parcours de réservation]
