@@ -154,6 +154,7 @@ model Appointment {
   startTime         DateTime
   endTime           DateTime
   duration          Int
+  calendarSequence  Int                        @default(0)
   note              String?
   status            String                     @default("CONFIRMED") // CONFIRMED, PAID, CANCELLED
   bookingSource     String                     @default("STAFF")
@@ -190,6 +191,7 @@ model AppointmentChangeRequest {
   customer         Customer     @relation(fields: [customerId], references: [id])
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  verifiedEmail    String?
   requestedStart   DateTime
   requestedEnd     DateTime
   reason           String?

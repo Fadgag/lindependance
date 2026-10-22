@@ -22,6 +22,26 @@ const CHANGE_REQUEST_LIMIT = 5
 const CHANGE_REQUEST_WINDOW_MS = 24 * 60 * 60 * 1000
 const OBSOLETE_REQUEST_REASON = 'RDV modifié directement par l’organisation'
 
+export interface AppointmentChangeDecisionNotification {
+  requestId: string
+  organizationId: string
+  verifiedEmail: string | null
+  decision: 'APPROVED' | 'REJECTED'
+  reviewReason: string | null
+  organizationName: string
+  organizationSlug: string | null
+  timezone: string
+  appointment: {
+    id: string
+    startTime: Date
+    endTime: Date
+    createdAt: Date
+    lastModified: Date
+    calendarSequence: number
+    serviceName: string
+  }
+}
+
 export async function createCustomerPortalChangeRequest(input: {
   appointmentId: string
   organizationId: string
@@ -119,6 +139,7 @@ export async function createCustomerPortalChangeRequest(input: {
           appointmentId: appointment.id,
           customerId: appointment.customerId,
           organizationId: organization.id,
+          verifiedEmail: input.verifiedEmail,
           requestedStart,
           requestedEnd: getAppointmentChangeEndTime(
             requestedStart,
@@ -251,9 +272,9 @@ export async function approveAppointmentChangeRequest(input: {
   organizationId: string
   reviewerId: string
   now?: Date
-}): Promise<void> {
+}): Promise<AppointmentChangeDecisionNotification> {
   const now = input.now ?? new Date()
-  await withSerializableRetry(async (transaction: PrismaTypes.TransactionClient) => {
+  return withSerializableRetry(async (transaction: PrismaTypes.TransactionClient) => {
     const changeRequest = await transaction.appointmentChangeRequest.findFirst({
       where: {
         id: input.requestId,
@@ -264,17 +285,22 @@ export async function approveAppointmentChangeRequest(input: {
       select: {
         id: true,
         status: true,
+        verifiedEmail: true,
         requestedStart: true,
         appointment: {
           select: {
             id: true,
             startTime: true,
+            createdAt: true,
+            calendarSequence: true,
             status: true,
             staffId: true,
-            service: { select: { durationMinutes: true } },
+            service: { select: { name: true, durationMinutes: true } },
             organization: {
               select: {
                 id: true,
+                name: true,
+                slug: true,
                 timezone: true,
                 openingTime: true,
                 closingTime: true,
@@ -363,6 +389,7 @@ export async function approveAppointmentChangeRequest(input: {
         startTime: changeRequest.requestedStart,
         endTime: requestedEnd,
         duration: appointment.service.durationMinutes,
+        calendarSequence: { increment: 1 },
       },
     })
     if (updatedAppointment.count !== 1) {
@@ -385,6 +412,25 @@ export async function approveAppointmentChangeRequest(input: {
       throw new CustomerPortalHttpError(409, 'Cette demande a déjà été traitée.')
     }
 
+    return {
+      requestId: changeRequest.id,
+      organizationId: appointment.organization.id,
+      verifiedEmail: changeRequest.verifiedEmail,
+      decision: 'APPROVED',
+      reviewReason: null,
+      organizationName: appointment.organization.name,
+      organizationSlug: appointment.organization.slug,
+      timezone: appointment.organization.timezone,
+      appointment: {
+        id: appointment.id,
+        startTime: changeRequest.requestedStart,
+        endTime: requestedEnd,
+        createdAt: appointment.createdAt,
+        lastModified: now,
+        calendarSequence: appointment.calendarSequence + 1,
+        serviceName: appointment.service.name,
+      },
+    }
   })
 }
 
@@ -394,24 +440,83 @@ export async function rejectAppointmentChangeRequest(input: {
   reviewerId: string
   reviewReason?: string
   now?: Date
-}): Promise<void> {
+}): Promise<AppointmentChangeDecisionNotification> {
   const now = input.now ?? new Date()
-  const result = await prisma.appointmentChangeRequest.updateMany({
-    where: {
-      id: input.requestId,
-      organizationId: input.organizationId,
-      status: 'PENDING',
-    },
-    data: {
-      status: 'REJECTED',
-      reviewReason: input.reviewReason ?? null,
-      reviewedByUserId: input.reviewerId,
-      reviewedAt: now,
-    },
+  const reviewReason = input.reviewReason?.trim() || null
+
+  return withSerializableRetry(async (transaction: PrismaTypes.TransactionClient) => {
+    const changeRequest = await transaction.appointmentChangeRequest.findFirst({
+      where: {
+        id: input.requestId,
+        organizationId: input.organizationId,
+        status: 'PENDING',
+        appointment: { is: { organizationId: input.organizationId } },
+      },
+      select: {
+        id: true,
+        verifiedEmail: true,
+        appointment: {
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            createdAt: true,
+            calendarSequence: true,
+            service: { select: { name: true } },
+            organization: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                timezone: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    const appointment = changeRequest?.appointment
+    if (!changeRequest || !appointment) {
+      throw new CustomerPortalHttpError(404, 'Pending change request not found')
+    }
+
+    const result = await transaction.appointmentChangeRequest.updateMany({
+      where: {
+        id: changeRequest.id,
+        organizationId: appointment.organization.id,
+        status: 'PENDING',
+      },
+      data: {
+        status: 'REJECTED',
+        reviewReason,
+        reviewedByUserId: input.reviewerId,
+        reviewedAt: now,
+      },
+    })
+    if (result.count !== 1) {
+      throw new CustomerPortalHttpError(404, 'Pending change request not found')
+    }
+
+    return {
+      requestId: changeRequest.id,
+      organizationId: appointment.organization.id,
+      verifiedEmail: changeRequest.verifiedEmail,
+      decision: 'REJECTED',
+      reviewReason,
+      organizationName: appointment.organization.name,
+      organizationSlug: appointment.organization.slug,
+      timezone: appointment.organization.timezone,
+      appointment: {
+        id: appointment.id,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        createdAt: appointment.createdAt,
+        lastModified: now,
+        calendarSequence: appointment.calendarSequence,
+        serviceName: appointment.service.name,
+      },
+    }
   })
-  if (result.count !== 1) {
-    throw new CustomerPortalHttpError(404, 'Pending change request not found')
-  }
 }
 
 export async function rejectPendingRequestsForAppointment(

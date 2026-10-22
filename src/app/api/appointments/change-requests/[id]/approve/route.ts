@@ -7,12 +7,13 @@ import {
   SerializableConflictError,
 } from '@/services/customerPortal.service'
 import { approveAppointmentChangeRequest } from '@/services/appointmentChangeRequests.service'
+import { sendAppointmentChangeDecisionNotification } from '@/services/appointmentChangeNotification.service'
 
 interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext) {
   const session = await auth()
   const organizationId = session?.user?.organizationId
   const reviewerId = session?.user?.id
@@ -27,12 +28,16 @@ export async function POST(_request: Request, context: RouteContext) {
   if (!parsedId.success) return NextResponse.json({ error: 'Invalid request id' }, { status: 400 })
 
   try {
-    await approveAppointmentChangeRequest({
+    const decision = await approveAppointmentChangeRequest({
       requestId: parsedId.data,
       organizationId,
       reviewerId,
     })
-    return NextResponse.json({ ok: true })
+    const notification = await sendAppointmentChangeDecisionNotification({
+      decision,
+      requestOrigin: new URL(request.url).origin,
+    })
+    return NextResponse.json({ ok: true, ...notification })
   } catch (error: unknown) {
     if (error instanceof CustomerPortalHttpError) {
       return NextResponse.json({ error: error.message }, { status: error.status })

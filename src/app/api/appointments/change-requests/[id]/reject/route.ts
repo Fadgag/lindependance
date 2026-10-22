@@ -3,8 +3,12 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import apiErrorResponse from '@/lib/api'
 import { AppointmentChangeRequestIdSchema } from '@/schemas/customerPortal'
-import { CustomerPortalHttpError } from '@/services/customerPortal.service'
+import {
+  CustomerPortalHttpError,
+  SerializableConflictError,
+} from '@/services/customerPortal.service'
 import { rejectAppointmentChangeRequest } from '@/services/appointmentChangeRequests.service'
+import { sendAppointmentChangeDecisionNotification } from '@/services/appointmentChangeNotification.service'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -42,16 +46,23 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    await rejectAppointmentChangeRequest({
+    const decision = await rejectAppointmentChangeRequest({
       requestId: parsedId.data,
       organizationId,
       reviewerId,
       reviewReason: parsedBody.data.reviewReason,
     })
-    return NextResponse.json({ ok: true })
+    const notification = await sendAppointmentChangeDecisionNotification({
+      decision,
+      requestOrigin: new URL(request.url).origin,
+    })
+    return NextResponse.json({ ok: true, ...notification })
   } catch (error: unknown) {
     if (error instanceof CustomerPortalHttpError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    if (error instanceof SerializableConflictError) {
+      return NextResponse.json({ error: 'Conflit lors du traitement, réessayez.' }, { status: 409 })
     }
     return apiErrorResponse(error)
   }

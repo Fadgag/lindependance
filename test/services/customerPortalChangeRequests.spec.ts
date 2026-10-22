@@ -40,18 +40,25 @@ const pendingRequest = {
   appointmentId: 'appointment-1',
   organizationId: 'org-1',
   customerId: 'customer-1',
+  verifiedEmail: 'parent@example.com',
   requestedStart: new Date('2026-10-04T08:30:00.000Z'),
   requestedEnd: new Date('2026-10-04T09:30:00.000Z'),
   reason: 'Un imprévu',
+  reviewReason: null,
   status: 'PENDING',
   appointment: {
     id: 'appointment-1',
     startTime: new Date('2026-10-03T08:00:00.000Z'),
+    endTime: new Date('2026-10-03T09:00:00.000Z'),
+    createdAt: new Date('2026-09-30T12:00:00.000Z'),
     status: 'CONFIRMED',
     staffId: 'staff-1',
-    service: { durationMinutes: 60 },
+    calendarSequence: 3,
+    service: { name: 'Coupe', durationMinutes: 60 },
     organization: {
       id: 'org-1',
+      name: 'Atelier',
+      slug: 'atelier',
       timezone: 'Europe/Paris',
       openingTime: '09:00',
       closingTime: '18:00',
@@ -122,6 +129,7 @@ describe('createCustomerPortalChangeRequest', () => {
         appointmentId: 'appointment-1',
         customerId: 'customer-1',
         organizationId: 'org-1',
+        verifiedEmail: 'parent@example.com',
         requestedStart: new Date('2026-10-04T08:30:00.000Z'),
         requestedEnd: new Date('2026-10-04T09:15:00.000Z'),
         reason: 'Un imprévu',
@@ -232,13 +240,21 @@ describe('staff review of appointment change requests', () => {
   })
 
   it('revalidates the slot in a serializable transaction and moves the original appointment without changing credits', async () => {
-    await approveAppointmentChangeRequest({
+    const notification = await approveAppointmentChangeRequest({
       requestId: 'request-1',
       organizationId: 'org-1',
       reviewerId: 'staff-user-1',
       now,
     })
 
+    expect(transactionMock.appointmentChangeRequest.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        id: 'request-1',
+        organizationId: 'org-1',
+        status: 'PENDING',
+        appointment: { is: { organizationId: 'org-1' } },
+      },
+    }))
     expect(transactionMock.appointment.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         id: { not: 'appointment-1' },
@@ -258,6 +274,7 @@ describe('staff review of appointment change requests', () => {
         startTime: new Date('2026-10-04T08:30:00.000Z'),
         endTime: new Date('2026-10-04T09:30:00.000Z'),
         duration: 60,
+        calendarSequence: { increment: 1 },
       },
     }))
     expect(transactionMock.appointmentChangeRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -267,6 +284,25 @@ describe('staff review of appointment change requests', () => {
         reviewedByUserId: 'staff-user-1',
       }),
     }))
+    expect(notification).toEqual({
+      requestId: 'request-1',
+      organizationId: 'org-1',
+      verifiedEmail: 'parent@example.com',
+      decision: 'APPROVED',
+      reviewReason: null,
+      organizationName: 'Atelier',
+      organizationSlug: 'atelier',
+      timezone: 'Europe/Paris',
+      appointment: {
+        id: 'appointment-1',
+        startTime: new Date('2026-10-04T08:30:00.000Z'),
+        endTime: new Date('2026-10-04T09:30:00.000Z'),
+        createdAt: new Date('2026-09-30T12:00:00.000Z'),
+        lastModified: now,
+        calendarSequence: 4,
+        serviceName: 'Coupe',
+      },
+    })
   })
 
   it('does not approve a paid appointment', async () => {
@@ -341,7 +377,7 @@ describe('staff review of appointment change requests', () => {
   })
 
   it('rejects a pending request with the staff reason and reviewer', async () => {
-    await rejectAppointmentChangeRequest({
+    const notification = await rejectAppointmentChangeRequest({
       requestId: 'request-1',
       organizationId: 'org-1',
       reviewerId: 'staff-user-1',
@@ -349,7 +385,15 @@ describe('staff review of appointment change requests', () => {
       now,
     })
 
-    expect(prisma.appointmentChangeRequest.updateMany).toHaveBeenCalledWith({
+    expect(transactionMock.appointmentChangeRequest.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        id: 'request-1',
+        organizationId: 'org-1',
+        status: 'PENDING',
+        appointment: { is: { organizationId: 'org-1' } },
+      },
+    }))
+    expect(transactionMock.appointmentChangeRequest.updateMany).toHaveBeenCalledWith({
       where: { id: 'request-1', organizationId: 'org-1', status: 'PENDING' },
       data: {
         status: 'REJECTED',
@@ -358,5 +402,39 @@ describe('staff review of appointment change requests', () => {
         reviewedAt: now,
       },
     })
+    expect(notification).toEqual({
+      requestId: 'request-1',
+      organizationId: 'org-1',
+      verifiedEmail: 'parent@example.com',
+      decision: 'REJECTED',
+      reviewReason: 'Créneau non disponible',
+      organizationName: 'Atelier',
+      organizationSlug: 'atelier',
+      timezone: 'Europe/Paris',
+      appointment: {
+        id: 'appointment-1',
+        startTime: new Date('2026-10-03T08:00:00.000Z'),
+        endTime: new Date('2026-10-03T09:00:00.000Z'),
+        createdAt: new Date('2026-09-30T12:00:00.000Z'),
+        lastModified: now,
+        calendarSequence: 3,
+        serviceName: 'Coupe',
+      },
+    })
+  })
+
+  it('normalizes a blank rejection reason to null for the decision email', async () => {
+    const notification = await rejectAppointmentChangeRequest({
+      requestId: 'request-1',
+      organizationId: 'org-1',
+      reviewerId: 'staff-user-1',
+      reviewReason: '   ',
+      now,
+    })
+
+    expect(notification.reviewReason).toBeNull()
+    expect(transactionMock.appointmentChangeRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ reviewReason: null }),
+    }))
   })
 })

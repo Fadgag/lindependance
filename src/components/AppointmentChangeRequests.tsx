@@ -3,7 +3,10 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
-import { StaffAppointmentChangeRequestsSchema } from '@/schemas/customerPortal'
+import {
+  StaffAppointmentChangeDecisionResultSchema,
+  StaffAppointmentChangeRequestsSchema,
+} from '@/schemas/customerPortal'
 
 type ChangeRequest = z.infer<typeof StaffAppointmentChangeRequestsSchema>['requests'][number]
 
@@ -21,6 +24,7 @@ export default function AppointmentChangeRequests() {
   const [loading, setLoading] = useState(true)
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -47,6 +51,7 @@ export default function AppointmentChangeRequests() {
   async function reviewRequest(request: ChangeRequest, action: 'approve' | 'reject') {
     setPendingId(request.id)
     setError('')
+    setNotice('')
     try {
       const response = await fetch(
         `/api/appointments/change-requests/${encodeURIComponent(request.id)}/${action}`,
@@ -60,7 +65,15 @@ export default function AppointmentChangeRequests() {
         },
       )
       if (!response.ok) throw new Error(await readError(response))
+      const body: unknown = await response.json()
+      const parsed = StaffAppointmentChangeDecisionResultSchema.safeParse(body)
+      if (!parsed.success) throw new Error('La réponse de traitement reçue est invalide.')
       setRequests((current) => current.filter((item) => item.id !== request.id))
+      if (parsed.data.notificationWarning) {
+        setNotice(parsed.data.notificationWarning)
+      } else if (!parsed.data.notificationSent) {
+        setNotice('La décision a été enregistrée, mais l’envoi de l’e-mail n’a pas été confirmé.')
+      }
     } catch (reviewError: unknown) {
       setError(reviewError instanceof Error ? reviewError.message : 'Impossible de traiter la demande.')
     } finally {
@@ -86,6 +99,7 @@ export default function AppointmentChangeRequests() {
 
       {loading && <p className="text-gray-500">Chargement des demandes…</p>}
       {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {notice && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{notice}</p>}
       {!loading && requests.length === 0 && (
         <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-500">
           Aucune demande de changement en attente.

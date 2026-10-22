@@ -21,7 +21,8 @@ Il complète les tests Vitest ; il ne les remplace pas.
 
 Ne pas effectuer cette recette sur la production ni avec de vrais clients.
 Vérifier auprès de l'équipe technique que les migrations
-`20261001120000_customer_portal_phase_3` et
+`20261001120000_customer_portal_phase_3`,
+`20261022095400_change_request_decision_emails` et
 `20261006182000_issue_reports` sont appliquées dans l'environnement bêta. Ne
 pas appliquer de migration depuis ce guide.
 
@@ -90,7 +91,13 @@ du salon.
 
 **Automatisé :** `test/api/customer-portal-public.spec.ts`,
 `test/domain/customer-portal/scheduling.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 22/10/2026 en préproduction, le 24/10 la
+coupe homme de 30 minutes proposait des créneaux de 08 h à 19 h 30 et le
+brushing de 70 minutes de 08 h à 18 h 30. Une réservation de chaque prestation
+à 17 h a réussi avec le coiffeur Fanny ; le brushing s'est terminé à 18 h 10.
+Les deux rendez-vous ont été annulés et le créneau de 17 h est redevenu
+disponible pour les deux durées. Un seul coiffeur étant proposé, le choix entre
+plusieurs coiffeurs et le cas `ORG-SOLO` restent à vérifier.
 
 #### [ ] CUS-03 — Vérifier les dates et heures des rendez-vous
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §5.4]
@@ -167,7 +174,15 @@ coiffeur choisi, l'horaire et le prix affichés avant la réservation.
 
 **Automatisé :** `test/api/customer-portal-booking.spec.ts`,
 `test/services/customerPortalBooking.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 22/10/2026 en préproduction, une coupe homme
+de 30 minutes puis un brushing de 70 minutes ont été réservés le 24/10 à 17 h.
+« Mes rendez-vous » a affiché les horaires 17 h–17 h 30 et 17 h–18 h 10 avec
+le coiffeur affecté ; les deux rendez-vous de recette ont ensuite été annulés.
+Avant l'envoi, le service et son prix, la date, le profil client et le créneau
+étaient visibles dans les champs, mais aucun écran récapitulatif distinct
+n'était présenté. Le portail a indiqué que les e-mails avec invitation
+calendrier étaient envoyés ; la réception de ces deux nouveaux messages n'a pas
+été revérifiée.
 
 #### [ ] CUS-09 — Éviter une double réservation
 **Priorité : P0 · Exigence :** [Req: formal — `customer-portal.md`, §4bis et protocole de test]
@@ -243,7 +258,12 @@ de séances du forfait associé, s'il y en a un, ne change pas.
 `test/services/customerPortalAppointments.spec.ts`,
 `test/ui/customerPortalAppointments.spec.tsx`,
 `test/api/customer-portal-appointments.spec.ts`.
-**Résultat / preuve :** `________`
+**Résultat / preuve :** PARTIEL — 22/10/2026 à 00 h 07 en préproduction, le
+rendez-vous non payé du 22/10 à 9 h (moins de 24 h) et celui payé du 23/10 à
+18 h ne proposaient pas « Annuler » et invitaient à contacter le salon. Les
+rendez-vous QA non payés du 24/10 à 17 h ont été annulés depuis le portail ;
+ils ont disparu des deux fenêtres client et leurs créneaux ont été libérés.
+Aucun forfait n'était associé ; son solde reste à vérifier.
 
 ### Demande de changement de créneau — Phase 3
 
@@ -276,18 +296,26 @@ Le rendez-vous ne change pas avant la réponse du salon.
 interaction avec les appels OTP sont à vérifier sur environnement dédié.
 **Résultat / preuve :** `________`
 
-#### [ ] CUS-15 — Voir la réponse du salon
+#### [ ] CUS-15 — Recevoir la réponse du salon
 **Priorité : P1 · Exigence :** [Req: formal — `customer-portal.md`, §3bis]
 
-**Étapes :** après la réponse du salon à votre demande, ouvrez ou actualisez
-la page « Mes rendez-vous ».
+**Étapes :** après la réponse du salon à votre demande, consultez votre boîte
+de test et ouvrez ou actualisez la page « Mes rendez-vous ». Si le salon a
+accepté le changement, ouvrez la pièce jointe calendrier du message dans votre
+application d'agenda.
 
 **Attendu :** vous voyez si le changement a été accepté ou refusé. Si le salon
-l'accepte, le rendez-vous apparaît au nouvel horaire.
+l'accepte, le rendez-vous apparaît au nouvel horaire et le message contient
+une invitation qui actualise le même événement calendrier. En cas de refus,
+le message confirme que le rendez-vous garde l'horaire initial et indique le
+motif du salon lorsqu'il est fourni.
 
 **Automatisé :** `test/services/customerPortalAppointments.spec.ts` vérifie la
-projection ; `test/ui/customerPortalAppointments.spec.tsx` vérifie l'état
-pendant l'envoi. Vérifier la propagation réelle après décision.
+projection ; `test/services/customerPortalEmail.spec.ts` et
+`test/services/appointmentChangeNotification.spec.ts` vérifient les messages
+et l'invitation ; `test/ui/customerPortalAppointments.spec.tsx` vérifie l'état
+du rendez-vous. La réception réelle et l'import calendrier restent à vérifier
+en bêta.
 **Résultat / preuve :** `________`
 
 ### Sécurité et expérience

@@ -6,6 +6,8 @@ export interface AppointmentConfirmation {
   startTime: Date
   endTime: Date
   createdAt: Date
+  lastModified?: Date
+  sequence?: number
   serviceName: string
   organizationName: string
   timezone: string
@@ -47,7 +49,8 @@ export function createAppointmentIcs(appointment: AppointmentConfirmation): stri
     `X-WR-TIMEZONE:${escapeIcsText(appointment.timezone)}`,
     'BEGIN:VEVENT',
     `UID:${escapeIcsText(appointment.id)}@customer-portal`,
-    `DTSTAMP:${formatUtcDate(appointment.createdAt)}`,
+    `DTSTAMP:${formatUtcDate(appointment.lastModified ?? appointment.createdAt)}`,
+    ...(appointment.sequence !== undefined ? [`SEQUENCE:${appointment.sequence}`] : []),
     `DTSTART:${formatUtcDate(appointment.startTime)}`,
     `DTEND:${formatUtcDate(appointment.endTime)}`,
     `SUMMARY:${escapeIcsText(appointment.serviceName)}`,
@@ -177,4 +180,67 @@ export async function sendAppointmentConfirmation(input: {
   })
 
   if (result.error) throw new Error(`Resend failed to send appointment confirmation: ${result.error.message}`)
+}
+
+export async function sendAppointmentChangeDecisionEmail(input: {
+  to: string
+  decision: 'APPROVED' | 'REJECTED'
+  reviewReason: string | null
+  appointment: AppointmentConfirmation & {
+    lastModified: Date
+    sequence: number
+  }
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured')
+
+  const appointment = input.appointment
+  const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: appointment.timezone,
+    dateStyle: 'full',
+  })
+  const timeFormatter = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: appointment.timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const localizedDate = dateFormatter.format(appointment.startTime)
+  const localizedStart = timeFormatter.format(appointment.startTime)
+  const localizedEnd = timeFormatter.format(appointment.endTime)
+  const isApproved = input.decision === 'APPROVED'
+  const organizationNameForSubject = appointment.organizationName.replace(/[\r\n]/g, ' ')
+  const subject = isApproved
+    ? `Votre rendez-vous a été modifié chez ${organizationNameForSubject}`
+    : `Réponse à votre demande de changement chez ${organizationNameForSubject}`
+  const emailContent = [
+    '<div style="font-family:system-ui,sans-serif;line-height:1.6">',
+    '<p>Bonjour,</p>',
+    isApproved
+      ? '<p>Votre demande de changement a été acceptée. Votre rendez-vous est maintenant prévu :</p>'
+      : '<p>Votre demande de changement a été refusée. Votre rendez-vous reste prévu :</p>',
+    `<p><strong>${escapeHtml(appointment.serviceName)}</strong><br>${escapeHtml(localizedDate)} de ${escapeHtml(localizedStart)} à ${escapeHtml(localizedEnd)}</p>`,
+    ...(input.reviewReason
+      ? [`<p><strong>Motif du salon :</strong> ${escapeHtml(input.reviewReason)}</p>`]
+      : []),
+    `<p><a href="${escapeHtml(appointment.portalUrl)}" style="display:inline-block;padding:12px 18px;background:#3730a3;color:#fff;text-decoration:none;border-radius:8px">Consulter mes rendez-vous</a></p>`,
+    `<p>À bientôt,<br>${escapeHtml(appointment.organizationName)}</p>`,
+    '</div>',
+  ].join('')
+
+  const result = await new Resend(apiKey).emails.send({
+    from: process.env.RESEND_FROM || 'no-reply@studio.test',
+    to: input.to,
+    subject,
+    html: emailContent,
+    ...(isApproved
+      ? {
+        attachments: [{
+          filename: 'rendez-vous-modifie.ics',
+          content: Buffer.from(createAppointmentIcs(appointment)),
+        }],
+      }
+      : {}),
+  })
+
+  if (result.error) throw new Error(`Resend failed to send appointment change decision: ${result.error.message}`)
 }

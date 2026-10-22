@@ -16,6 +16,7 @@ import {
   sendCustomerPortalSavedEmail,
   sendCustomerPortalDisabledEmail,
   sendAppointmentConfirmation,
+  sendAppointmentChangeDecisionEmail,
 } from '@/services/customerPortalEmail.service'
 
 beforeEach(() => {
@@ -118,6 +119,79 @@ describe('createAppointmentIcs', () => {
       expect(resendSendMock).toHaveBeenCalledWith(expect.objectContaining({
         html: expect.not.stringContaining('<Coupe>'),
       }))
+    })
+  })
+
+  describe('sendAppointmentChangeDecisionEmail', () => {
+    const appointment = {
+      id: 'appointment-123',
+      startTime: new Date('2026-10-01T08:00:00.000Z'),
+      endTime: new Date('2026-10-01T09:00:00.000Z'),
+      createdAt: new Date('2026-09-30T12:00:00.000Z'),
+      lastModified: new Date('2026-10-01T07:00:00.000Z'),
+      sequence: 4,
+      serviceName: 'Coupe',
+      organizationName: 'Atelier',
+      timezone: 'Europe/Paris',
+      portalUrl: 'https://example.test/portail/atelier/mes-rdv',
+    }
+
+    it('sends an accepted schedule with an updated calendar invitation', async () => {
+      await sendAppointmentChangeDecisionEmail({
+        to: 'verified@example.test',
+        decision: 'APPROVED',
+        reviewReason: null,
+        appointment,
+      })
+
+      const sentEmail = vi.mocked(resendSendMock).mock.lastCall?.[0]
+      expect(sentEmail).toMatchObject({
+        to: 'verified@example.test',
+        subject: 'Votre rendez-vous a été modifié chez Atelier',
+        attachments: [expect.objectContaining({ filename: 'rendez-vous-modifie.ics' })],
+      })
+      expect(sentEmail.html).toContain('Votre demande de changement a été acceptée.')
+      expect(sentEmail.html).toContain('jeudi 1 octobre 2026')
+      expect(sentEmail.html).toContain('10:00')
+      expect(sentEmail.html).toContain('href="https://example.test/portail/atelier/mes-rdv"')
+      const calendar = sentEmail.attachments[0].content.toString()
+      expect(calendar).toContain('UID:appointment-123@customer-portal')
+      expect(calendar).toContain('SEQUENCE:4')
+      expect(calendar).toContain('DTSTART:20261001T080000Z')
+      expect(calendar).toContain('DTSTAMP:20261001T070000Z')
+    })
+
+    it('sends a rejection and includes the staff reason without a calendar attachment', async () => {
+      await sendAppointmentChangeDecisionEmail({
+        to: 'verified@example.test',
+        decision: 'REJECTED',
+        reviewReason: 'Créneau <indisponible>',
+        appointment,
+      })
+
+      const sentEmail = vi.mocked(resendSendMock).mock.lastCall?.[0]
+      expect(sentEmail).toMatchObject({
+        to: 'verified@example.test',
+        subject: 'Réponse à votre demande de changement chez Atelier',
+      })
+      expect(sentEmail.html).toContain('Votre demande de changement a été refusée.')
+      expect(sentEmail.html).toContain('Créneau &lt;indisponible&gt;')
+      expect(sentEmail.html).toContain('rendez-vous reste prévu')
+      expect(sentEmail.html).not.toHaveProperty('attachments')
+    })
+
+    it('sends a neutral rejection email when no reason was provided', async () => {
+      await sendAppointmentChangeDecisionEmail({
+        to: 'verified@example.test',
+        decision: 'REJECTED',
+        reviewReason: null,
+        appointment,
+      })
+
+      const sentEmail = vi.mocked(resendSendMock).mock.lastCall?.[0]
+      expect(sentEmail.html).toContain('Votre demande de changement a été refusée.')
+      expect(sentEmail.html).not.toContain('Motif du salon')
+      expect(sentEmail.html).toContain('rendez-vous reste prévu')
     })
   })
 
