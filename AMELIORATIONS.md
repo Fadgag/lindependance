@@ -61,17 +61,17 @@ en cours de traitement.
 #### Associer les domaines publics aux portails des salons
 
 - **Type :** Bug
-- **Statut :** Correctif implémenté localement le 22 octobre 2026 ; association des domaines à configurer par admin_technique en préproduction.
+- **Statut :** Correctif et écran de configuration admin_technique implémentés localement ; migration à appliquer avant la configuration en préproduction.
 - **Priorité proposée :** P1
 - **Comportement observé :** À la racine du site, un visiteur arrive sur la connexion staff si plusieurs portails sont activés, même quand le domaine est dédié à un salon.
 - **Comportement attendu :** Chaque domaine configuré ouvre directement la réservation du salon qui lui est associé.
 - **Reproduction :** ouvrir la racine d'un domaine de salon lorsque plusieurs portails clients sont actifs ; le visiteur est redirigé vers `/auth/signin`.
 - **Critères d'acceptation :**
-  - L'équipe admin_technique associe chaque nom d'hôte à un slug avec `CUSTOMER_PORTAL_DOMAIN_MAP`.
+  - L'équipe admin_technique associe chaque nom d'hôte à un salon depuis `/tech-admin/portal-domains` ; l'association est stockée en base.
   - Un domaine associé redirige à la racine vers le bon portail, indépendamment du nombre d'autres portails actifs.
   - Si le portail associé est désactivé ou indisponible, la racine ne bascule pas vers un autre salon.
   - Un domaine non associé conserve le comportement de secours existant ; une configuration invalide est signalée explicitement.
-- **Résultat :** La résolution de l'hôte et le mapping technique sont implémentés et testés localement. Pour la préproduction, configurer `{"testing.osezletre.fr":"osezletre"}` dans `CUSTOMER_PORTAL_DOMAIN_MAP`, puis vérifier la racine après déploiement.
+- **Résultat :** La résolution de l'hôte et l'écran de gestion des associations sont implémentés localement. Après application de la migration en préproduction, associer `testing.osezletre.fr` au salon Osez l’Etre dans `/tech-admin/portal-domains`, puis vérifier la racine après déploiement.
 
 ### Portail client — demandes de changement de créneau
 

@@ -60,13 +60,14 @@ client doit d'abord être créé par le staff.
   exclusivement l'organisation de la session OTP ; si le slug est présent dans
   leur chemin, il doit correspondre à cette organisation. Ne jamais accepter
   un `organizationId` arbitraire du navigateur.
-- À la racine `/`, `CUSTOMER_PORTAL_DOMAIN_MAP` permet à l'équipe admin_technique
-  d'associer les noms d'hôte publics aux slugs (objet JSON, ex.
-  `{"testing.example.fr":"salon-dupont"}`). Un nom d'hôte associé ouvre
-  directement la réservation de ce salon. Si le portail associé est
-  indisponible, ne pas rediriger vers un autre salon. Pour un nom d'hôte sans
-  association, le comportement de secours ouvre le portail seulement lorsqu'un
-  unique salon actif existe ; sinon la page de connexion staff reste accessible.
+- À la racine `/`, l'équipe admin_technique gère les associations de domaines
+  publics depuis `/tech-admin/portal-domains`. Les associations sont enregistrées
+  en base et relient un nom d'hôte à un salon dont le portail est actif. Un nom
+  d'hôte associé ouvre directement la réservation de ce salon. Si le portail
+  associé devient indisponible, ne pas rediriger vers un autre salon. Pour un
+  nom d'hôte sans association, le comportement de secours ouvre le portail
+  seulement lorsqu'un unique salon actif existe ; sinon la page de connexion
+  staff reste accessible.
 - Si `portalEnabled` est `false`, si aucun praticien n'est actif ou si le
   `slug` est inconnu → `404` (pas de fuite d'existence de l'organisation).
   Cette vérification s'applique aux pages publiques, aux API et aux sessions
