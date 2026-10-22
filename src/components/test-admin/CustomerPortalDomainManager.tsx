@@ -175,7 +175,7 @@ export default function CustomerPortalDomainManager() {
         <button
           type="submit"
           disabled={loading || saving || !configuration?.organizations.length}
-          className="rounded-xl bg-(--studio-primary) px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-studio-primary px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving ? 'Enregistrement…' : 'Ajouter le domaine'}
         </button>

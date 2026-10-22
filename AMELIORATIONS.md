@@ -61,17 +61,18 @@ en cours de traitement.
 #### Associer les domaines publics aux portails des salons
 
 - **Type :** Bug
-- **Statut :** Correctif et écran de configuration admin_technique implémentés localement ; migration à appliquer avant la configuration en préproduction.
+- **Statut :** PR #127 fusionnée dans `preprod` ; migration à appliquer. Correction locale du bouton d'ajout invisible prête à publier.
 - **Priorité proposée :** P1
 - **Comportement observé :** À la racine du site, un visiteur arrive sur la connexion staff si plusieurs portails sont activés, même quand le domaine est dédié à un salon.
 - **Comportement attendu :** Chaque domaine configuré ouvre directement la réservation du salon qui lui est associé.
 - **Reproduction :** ouvrir la racine d'un domaine de salon lorsque plusieurs portails clients sont actifs ; le visiteur est redirigé vers `/auth/signin`.
 - **Critères d'acceptation :**
   - L'équipe admin_technique associe chaque nom d'hôte à un salon depuis `/tech-admin/portal-domains` ; l'association est stockée en base.
+  - Le formulaire affiche un bouton d'ajout visible et utilisable lorsqu'un domaine et un salon sont renseignés.
   - Un domaine associé redirige à la racine vers le bon portail, indépendamment du nombre d'autres portails actifs.
   - Si le portail associé est désactivé ou indisponible, la racine ne bascule pas vers un autre salon.
   - Un domaine non associé conserve le comportement de secours existant ; une configuration invalide est signalée explicitement.
-- **Résultat :** La résolution de l'hôte et l'écran de gestion des associations sont implémentés localement. Après application de la migration en préproduction, associer `testing.osezletre.fr` au salon Osez l’Etre dans `/tech-admin/portal-domains`, puis vérifier la racine après déploiement.
+- **Résultat :** La résolution de l'hôte et l'écran de gestion ont été fusionnés dans `preprod`. Le bouton d'ajout utilisait une variable CSS inexistante, ce qui rendait son fond transparent et son libellé blanc invisible ; une correction locale le rattache à la couleur de thème existante. Après publication de cette correction et application de la migration, associer `testing.osezletre.fr` au salon Osez l’Etre dans `/tech-admin/portal-domains`, puis vérifier la racine.
 
 ### Portail client — demandes de changement de créneau
 
