@@ -696,6 +696,19 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Portail client — accès, réservation et coordonnées
 
+#### Empêcher une fiche client de réserver deux rendez-vous simultanés
+
+- **Type :** Bug
+- **Statut :** Correction implémentée localement et vérifiée par tests automatisés le 23 octobre 2026 ; recette manuelle à reprendre après publication. Aucune donnée de préproduction n'a été consultée ou modifiée.
+- **Priorité :** P0 — réservation en double.
+- **Comportement observé :** Deux fenêtres de réservation restées ouvertes peuvent confirmer un même créneau pour une même fiche client.
+- **Cause reproduite dans le code :** La revalidation vérifiait les conflits du praticien sélectionné, mais pas les rendez-vous déjà confirmés de la fiche client. Le test local reproduit une seconde soumission sur le même horaire avec un autre praticien ; l'affectation des praticiens dans l'incident de préproduction n'a pas été vérifiée.
+- **Comportement attendu :** Une fiche client ne peut pas avoir deux rendez-vous qui se chevauchent, même si les praticiens sélectionnés sont différents. Une seconde soumission reçoit un conflit explicite et aucune réservation n'est créée.
+- **Critères d'acceptation :**
+  - Une seconde soumission séquentielle d'un créneau périmé pour la même fiche est refusée.
+  - Deux soumissions concurrentes pour la même fiche ne créent qu'un rendez-vous ; l'autre reçoit un conflit HTTP 409 exploitable.
+  - Les rendez-vous annulés et les rendez-vous appartenant à une autre fiche ne bloquent pas la réservation.
+
 #### Empêcher l'affichage des rendez-vous d'un autre salon
 
 - **Type :** Bug

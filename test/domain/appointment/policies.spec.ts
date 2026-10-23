@@ -5,6 +5,7 @@ import {
   isAppointmentCancelled,
   hasSchedulingConflict,
   findFirstSchedulingConflict,
+  hasCustomerSchedulingConflict,
 } from '@/domain/appointment/policies'
 
 describe('isAppointmentCancelled', () => {
@@ -109,5 +110,26 @@ describe('findFirstSchedulingConflict', () => {
     const candidate = slot('2026-01-01T10:00:00Z', '2026-01-01T11:00:00Z')
     const existingSlots = [slot('2026-01-01T08:00:00Z', '2026-01-01T09:00:00Z')]
     expect(findFirstSchedulingConflict(candidate, existingSlots)).toBeUndefined()
+  })
+})
+
+describe('hasCustomerSchedulingConflict', () => {
+  const candidate = {
+    startTime: new Date('2026-10-01T08:00:00.000Z'),
+    endTime: new Date('2026-10-01T09:00:00.000Z'),
+  }
+
+  it('blocks an overlapping appointment for the same customer', () => {
+    expect(hasCustomerSchedulingConflict(candidate, 'customer-1', [{
+      ...candidate,
+      customerId: 'customer-1',
+    }])).toBe(true)
+  })
+
+  it('allows an overlapping appointment for a different customer', () => {
+    expect(hasCustomerSchedulingConflict(candidate, 'customer-1', [{
+      ...candidate,
+      customerId: 'customer-2',
+    }])).toBe(false)
   })
 })
