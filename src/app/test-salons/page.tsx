@@ -18,11 +18,11 @@ export default async function TestSalonsPage() {
   }
 
   return (
-    <main className="min-h-full bg-(--studio-bg) px-4 py-8 md:px-10 md:py-12">
+    <main className="min-h-full bg-studio-bg px-4 py-8 md:px-10 md:py-12">
       <header className="mb-8">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-(--studio-primary)">Administration technique</p>
-        <h1 className="mt-2 text-3xl font-bold text-(--studio-text)">Salons de test</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-(--studio-muted)">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-studio-primary">Administration technique</p>
+        <h1 className="mt-2 text-3xl font-bold text-studio-text">Salons de test</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-studio-muted">
           Préparez un environnement fictif pour vérifier le portail client et l’isolation entre salons.
         </p>
       </header>

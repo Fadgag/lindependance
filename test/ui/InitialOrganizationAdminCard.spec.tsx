@@ -23,6 +23,9 @@ describe('InitialOrganizationAdminCard', () => {
     render(<InitialOrganizationAdminCard />)
     expect(await screen.findByRole('option', { name: 'Salon sans ADMIN' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'Salon déjà géré' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', {
+      name: 'Créer le premier ADMIN et envoyer l’invitation',
+    })).toHaveClass('bg-studio-primary', 'text-studio-text')
     fireEvent.change(screen.getByLabelText('Adresse e-mail du premier ADMIN'), {
       target: { value: 'admin@example.test' },
     })

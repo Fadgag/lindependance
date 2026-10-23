@@ -577,6 +577,21 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
   - Le résultat affiche l'organisation créée ; les erreurs de validation ou de création sont explicites.
   - Des tests couvrent l'autorisation, le garde-fou d'environnement, le provisionnement et l'isolation des données.
 
+#### Rendre visibles les actions de la page « Salons de test »
+
+- **Type :** Bug
+- **Statut :** Corrigé localement et vérifié par tests ciblés le 23 octobre 2026 ; vérification manuelle sur l'aperçu non effectuée.
+- **Priorité :** À définir
+- **Comportement observé :** Sur `/test-salons`, le texte des actions de création apparaît en blanc sur un fond transparent. Les classes de la page et des deux formulaires utilisent des variables `--studio-*` absentes, alors que les couleurs sont définies sous les tokens `--color-studio-*` de Tailwind v4.
+- **Comportement attendu :** La page, ses formulaires et leurs boutons utilisent les couleurs studio définies et les deux actions sont visuellement identifiables.
+- **Étapes de reproduction :** Ouvrir `/test-salons` sur l'aperçu de `preprod` avec un compte TECH_ADMIN autorisé ; constater l'absence de fond coloré sur les boutons « Créer le premier ADMIN et envoyer l’invitation » et « Créer le salon et envoyer l’activation ».
+- **Impact :** Les actions d'initialisation d'un compte et de création d'un salon de test sont difficiles à repérer et à utiliser.
+- **Critères d'acceptation :**
+  - La page et les deux cartes utilisent les classes Tailwind v4 dérivées des tokens `--color-studio-*`.
+  - Les deux boutons affichent la couleur primaire studio avec un texte studio foncé lisible.
+  - Des tests de composants vérifient la classe de couleur primaire sur chaque bouton.
+- **Vérification :** Tests ciblés des deux composants validés ; aucune donnée de préproduction n'a été créée et aucune invitation n'a été envoyée.
+
 #### Vérifier les e-mails personnalisés dans les campagnes de recette
 
 - **Type :** Amélioration
