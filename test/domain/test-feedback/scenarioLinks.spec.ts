@@ -43,5 +43,8 @@ describe('test scenario links', () => {
     expect(getTestScenarioLinks('ADMIN', 'ADM-03', 'osez-le-tre', false)).toEqual([
       { href: '/change-requests', label: 'Ouvrir les demandes de changement' },
     ])
+    expect(getTestScenarioLinks('ADMIN', 'ADM-24', 'osez-le-tre', false)).toEqual([
+      { href: '/settings/accounts', label: 'Gérer les comptes du salon' },
+    ])
   })
 })

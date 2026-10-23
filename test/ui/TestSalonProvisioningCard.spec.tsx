@@ -105,7 +105,7 @@ describe('TestSalonProvisioningCard', () => {
       staffAccount: { email: 'staff@example.test', role: 'USER' },
       invitation: {
         sent: false,
-        error: 'Le salon et le compte sont créés, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.',
+        error: 'Le compte est créé, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.',
       },
     }), { status: 201 })))
 

@@ -16,13 +16,13 @@ vi.mock('resend', () => ({
   }),
 }))
 
-import { sendTestStaffActivationEmail } from '@/services/testStaffActivationEmail.service'
+import { sendStaffActivationEmail } from '@/services/staffActivationEmail.service'
 
 afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('test staff activation email', () => {
+describe('staff activation email', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.stubEnv('RESEND_API_KEY', 'test-api-key')
@@ -36,9 +36,9 @@ describe('test staff activation email', () => {
   })
 
   it('sends a one-time setup link without returning the token', async () => {
-    const delivery = await sendTestStaffActivationEmail({
+    const delivery = await sendStaffActivationEmail({
       email: 'staff@example.test',
-      salonName: 'Salon de test',
+      organizationName: 'Salon de test',
     })
 
     expect(mocks.createOrReusePasswordResetToken).toHaveBeenCalledWith(
@@ -63,9 +63,9 @@ describe('test staff activation email', () => {
   it('does not create a setup token or send when delivery configuration is missing', async () => {
     vi.stubEnv('RESEND_API_KEY', '')
 
-    await expect(sendTestStaffActivationEmail({
+    await expect(sendStaffActivationEmail({
       email: 'staff@example.test',
-      salonName: 'Salon de test',
+      organizationName: 'Salon de test',
     })).resolves.toEqual({
       sent: false,
       error: expect.any(String),
@@ -81,9 +81,9 @@ describe('test staff activation email', () => {
       error: { message: 'provider error containing a private token' },
     })
 
-    const delivery = await sendTestStaffActivationEmail({
+    const delivery = await sendStaffActivationEmail({
       email: 'staff@example.test',
-      salonName: 'Salon de test',
+      organizationName: 'Salon de test',
     })
 
     expect(delivery).toEqual({ sent: false, error: expect.any(String) })
@@ -92,5 +92,21 @@ describe('test staff activation email', () => {
       'staff@example.test',
       expect.any(String),
     )
+  })
+
+  it('does not send an activation link when an existing token could not be replaced', async () => {
+    mocks.createOrReusePasswordResetToken.mockResolvedValueOnce({
+      token: 'a'.repeat(64),
+      created: false,
+    })
+
+    const delivery = await sendStaffActivationEmail({
+      email: 'staff@example.test',
+      organizationName: 'Salon de test',
+    })
+
+    expect(delivery).toEqual({ sent: false, error: expect.any(String) })
+    expect(mocks.emailSend).not.toHaveBeenCalled()
+    expect(mocks.deletePasswordResetToken).not.toHaveBeenCalled()
   })
 })

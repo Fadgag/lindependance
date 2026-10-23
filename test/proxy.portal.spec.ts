@@ -4,7 +4,7 @@ vi.mock('../src/auth', () => ({
   auth: (callback: (request: unknown) => unknown) => callback,
 }))
 
-import { config, middleware } from '../src/proxy'
+import { config, proxy } from '../src/proxy'
 
 function createRequest(pathname: string) {
   return {
@@ -31,7 +31,7 @@ describe('public customer portal pages', () => {
       auth: null,
     }
 
-    const response = await middleware(request as never)
+    const response = await proxy(request as never)
 
     expect(response).toBeUndefined()
   })
@@ -43,7 +43,7 @@ describe('public customer portal pages', () => {
       auth: { user: { accountType: 'STAFF' } },
     }
 
-    const response = await middleware(request as never)
+    const response = await proxy(request as never)
 
     expect(response?.headers.get('location')).toBe('https://example.test/dashboard')
   })
@@ -55,7 +55,7 @@ describe('public customer portal pages', () => {
       auth: { user: { accountType: 'STAFF', role: 'TECH_ADMIN' } },
     }
 
-    const response = await middleware(request as never)
+    const response = await proxy(request as never)
 
     expect(response?.headers.get('location')).toBe('https://example.test/test-campaigns')
   })
@@ -67,14 +67,14 @@ describe('public customer portal pages', () => {
       auth: null,
     }
 
-    const response = await middleware(request as never)
+    const response = await proxy(request as never)
 
     expect(response).toBeUndefined()
   })
 
   it('lets unauthenticated visitors open a campaign feedback link', async () => {
     const request = createRequest(`/retour-test/${'a'.repeat(43)}`)
-    const response = await middleware(request as never)
+    const response = await proxy(request as never)
 
     expect(response).toBeUndefined()
   })
@@ -98,7 +98,7 @@ describe('public customer portal pages', () => {
   ])('hides beta campaign routes in production (%s)', async (pathname) => {
     vi.stubEnv('VERCEL_ENV', 'production')
 
-    const response = await middleware(createRequest(pathname) as never)
+    const response = await proxy(createRequest(pathname) as never)
 
     expect(response?.status).toBe(404)
   })
@@ -106,13 +106,13 @@ describe('public customer portal pages', () => {
   it('hides beta campaign routes on preview deployments other than preprod', async () => {
     vi.stubEnv('VERCEL_GIT_COMMIT_REF', 'feature/other')
 
-    const response = await middleware(createRequest('/test-campaigns') as never)
+    const response = await proxy(createRequest('/test-campaigns') as never)
 
     expect(response?.status).toBe(404)
   })
 
   it('lets preprod beta APIs continue to their own authorization checks', async () => {
-    const response = await middleware(createRequest('/api/test-campaigns') as never)
+    const response = await proxy(createRequest('/api/test-campaigns') as never)
 
     expect(response).toBeUndefined()
   })
@@ -124,7 +124,7 @@ describe('public customer portal pages', () => {
       auth: { user: { accountType: 'STAFF', role: 'TECH_ADMIN' } },
     }
 
-    const response = await middleware(request as never)
+    const response = await proxy(request as never)
 
     expect(response?.headers.get('location')).toBe('https://example.test/dashboard')
   })

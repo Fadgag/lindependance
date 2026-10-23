@@ -3,7 +3,7 @@ import { canProvisionTestSalon } from '@/domain/tech-admin/testSalonProvisioning
 import { apiErrorResponse } from '@/lib/api'
 import { getTestCampaignAdminAccess } from '@/lib/testCampaignAccess'
 import { CreateTestSalonSchema } from '@/schemas/techAdmin'
-import { sendTestStaffActivationEmail } from '@/services/testStaffActivationEmail.service'
+import { sendStaffActivationEmail } from '@/services/staffActivationEmail.service'
 import { provisionTestSalon } from '@/services/testSalonProvisioning.service'
 
 export async function POST(request: Request) {
@@ -38,13 +38,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const salon = await provisionTestSalon({
+    const result = await provisionTestSalon({
       email: parsed.data.email,
       role: parsed.data.role,
     })
-    const invitation = await sendTestStaffActivationEmail({
+    if (result.kind === 'email_exists') {
+      return NextResponse.json({ error: 'Cette adresse e-mail est déjà associée à un compte.' }, { status: 409 })
+    }
+    const salon = result.salon
+    const invitation = await sendStaffActivationEmail({
       email: salon.staffAccount.email,
-      salonName: salon.name,
+      organizationName: salon.name,
     })
     return NextResponse.json({ ...salon, invitation }, {
       status: 201,

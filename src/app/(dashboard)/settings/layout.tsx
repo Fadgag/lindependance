@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Landmark, Scissors, User, Package, CalendarDays, Globe, Users } from "lucide-react";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { data: session } = useSession();
 
     const tabs = [
         { name: "General & CA", href: "/settings", icon: Landmark, disabled: false },
@@ -16,6 +18,9 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         { name: "Produits", href: "/settings/products", icon: Package, disabled: false },
         { name: "Mon Compte", href: "/settings/account", icon: User, disabled: false },
     ];
+    if (session?.user?.role === "ADMIN") {
+        tabs.splice(5, 0, { name: "Comptes", href: "/settings/accounts", icon: Users, disabled: false });
+    }
 
     return (
         <div className="p-8 max-w-7xl mx-auto">

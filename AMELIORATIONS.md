@@ -513,19 +513,21 @@ continue de vérifier l'accès à l'e-mail au moment de la connexion grâce au c
 
 ### Qualité terrain — retours et validation
 
-#### Provisionner un compte staff avec un salon de test
+#### Créer et gérer les comptes de connexion des salons
 
 - **Type :** Amélioration
-- **Statut :** Implémentée localement — vérification manuelle en bêta avec une boîte de test contrôlée encore à effectuer.
+- **Statut :** Implémentée localement — tests automatisés validés ; vérification manuelle en bêta avec des comptes et boîtes de test contrôlés encore à effectuer.
 - **Priorité proposée :** P1
-- **Constat :** Le `TECH_ADMIN` peut créer un salon de test isolé, mais aucun compte staff ne permet de se connecter au salon pour en vérifier les parcours.
-- **Amélioration souhaitée :** Créer dans le même parcours un compte staff normal, puis lui envoyer un lien à usage unique pour définir son mot de passe.
+- **Constat :** La gestion des praticiens ne permet pas de créer des comptes de connexion. Le `TECH_ADMIN` ne pouvait pas ajouter le premier `ADMIN` à un salon existant et les ADMIN d'un salon ne pouvaient ni inviter ni gérer les autres comptes.
+- **Amélioration souhaitée :** Permettre au `TECH_ADMIN` de choisir un salon existant sans ADMIN pour lui envoyer une invitation ADMIN, puis permettre aux ADMIN du salon d'inviter, de modifier le rôle et de supprimer les comptes de leur organisation.
 - **Critères d'acceptation :**
-  - Seul un `TECH_ADMIN` sur la preview de `preprod` peut lancer le provisionnement ; le compte est rattaché au salon créé côté serveur.
-  - Le rôle `USER` est proposé par défaut ; `ADMIN` peut être choisi explicitement et `TECH_ADMIN` ne peut jamais être attribué.
-  - L'adresse est confirmée comme boîte contrôlée avant l'envoi explicite ; aucun mot de passe ni jeton n'est exposé ou journalisé.
-  - L'échec d'envoi est présenté clairement et le parcours réel est vérifié en bêta avec une adresse de test autorisée.
-- **Mise à jour :** `specs/features/test-staff-provisioning.md` décrit le parcours et `ADM-22` couvre l'activation et la connexion. Tests automatisés ciblés validés ; l'envoi réel et la recette bêta restent à effectuer.
+  - Seul un `TECH_ADMIN` sur l'aperçu de la branche `preprod` peut créer le premier ADMIN d'une organisation existante ; une organisation déjà administrée est refusée.
+  - Les ADMIN ne consultent et ne gèrent que les comptes de leur organisation. Ils ne peuvent pas modifier leur propre compte ni retirer le dernier ADMIN.
+  - Une session déjà ouverte reprend le rôle et l'organisation actuels du compte ; une rétrogradation ou suppression ne conserve pas les anciens droits.
+  - Les rôles proposés sont `USER` et `ADMIN` ; aucun parcours de salon ne peut attribuer `TECH_ADMIN`.
+  - Toute invitation confirme le contrôle de la boîte, crée un compte sans mot de passe et transmet un lien à usage unique d'une heure. Aucun mot de passe ou jeton n'est exposé.
+  - Les doublons et échecs d'envoi sont signalés explicitement ; les tests n'envoient pas de vrais e-mails et ne créent aucun compte en préproduction.
+- **Mise à jour :** `specs/features/salon-account-management.md` décrit les parcours ; `ADM-24` couvre la gestion des comptes par un ADMIN et le lien mène à l'onglet Comptes, y compris l'application du nouveau rôle aux sessions ouvertes. `ADM-22` conserve le parcours d'activation du compte créé avec un salon de test. Les 724 tests automatisés, le type-check, le lint ciblé et le build passent ; aucune vérification bêta ni aucun envoi réel n'a été effectué.
 
 #### Permettre à l'utilisateur de signaler un problème ou un bug
 

@@ -13,12 +13,12 @@ vi.mock('../src/auth', () => ({
   },
 }))
 
-import { middleware } from '../src/proxy'
+import { proxy } from '../src/proxy'
 
-function createProxyRequest(path: string): Parameters<typeof middleware>[0] {
+function createProxyRequest(path: string): Parameters<typeof proxy>[0] {
   const url = new URL(`http://localhost${path}`)
-  // RAISON: Le proxy mocké ne lit que l’URL ; le middleware NextAuth fournit le reste à l’exécution.
-  return { nextUrl: url, url: url.toString() } as Parameters<typeof middleware>[0]
+  // RAISON: Le proxy mocké ne lit que l’URL ; NextAuth injecte le reste à l’exécution.
+  return { nextUrl: url, url: url.toString() } as Parameters<typeof proxy>[0]
 }
 
 beforeEach(() => {
@@ -32,21 +32,21 @@ afterEach(() => {
 describe('proxy middleware', () => {
   it('passe les pages /auth sans vérifier la session', async () => {
     mockSession = null // non authentifié
-    const res = await middleware(createProxyRequest('/auth/signin'))
+    const res = await proxy(createProxyRequest('/auth/signin'))
     // Pas de redirection — path public
     expect(res).toBeUndefined()
   })
 
   it('laisse passer un utilisateur authentifié', async () => {
     mockSession = { user: { id: 'u1', organizationId: 'org-1' } }
-    const res = await middleware(createProxyRequest('/dashboard'))
+    const res = await proxy(createProxyRequest('/dashboard'))
     // Pas de redirection
     expect(res).toBeUndefined()
   })
 
   it('redirige vers /auth/signin si non authentifié sur une page protégée', async () => {
     mockSession = null
-    const res = await middleware(createProxyRequest('/dashboard'))
+    const res = await proxy(createProxyRequest('/dashboard'))
     // Redirection vers signin
     expect(res?.status).toBeGreaterThanOrEqual(301)
     expect(res?.status).toBeLessThanOrEqual(308)
@@ -56,7 +56,7 @@ describe('proxy middleware', () => {
   it('redirige une session d’erreur Auth.js truthy vers /auth/signin', async () => {
     mockSession = { error: 'Configuration' }
 
-    const res = await middleware(createProxyRequest('/dashboard'))
+    const res = await proxy(createProxyRequest('/dashboard'))
 
     expect(res?.status).toBeGreaterThanOrEqual(301)
     expect(res?.status).toBeLessThanOrEqual(308)
@@ -67,7 +67,7 @@ describe('proxy middleware', () => {
     vi.stubEnv('VERCEL_ENV', 'production')
     vi.stubEnv('VERCEL_GIT_COMMIT_REF', 'preprod')
 
-    const res = await middleware(createProxyRequest('/test-salons'))
+    const res = await proxy(createProxyRequest('/test-salons'))
 
     expect(res?.status).toBe(404)
   })
@@ -77,8 +77,17 @@ describe('proxy middleware', () => {
     vi.stubEnv('VERCEL_GIT_COMMIT_REF', 'preprod')
     mockSession = { user: { id: 'tech-1', role: 'TECH_ADMIN' } }
 
-    const res = await middleware(createProxyRequest('/test-salons'))
+    const res = await proxy(createProxyRequest('/test-salons'))
 
     expect(res).toBeUndefined()
+  })
+
+  it('blocks initial salon admin creation outside the preprod preview deployment', async () => {
+    vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('VERCEL_GIT_COMMIT_REF', 'preprod')
+
+    const res = await proxy(createProxyRequest('/api/tech-admin/organizations/org-1/admin'))
+
+    expect(res?.status).toBe(404)
   })
 })

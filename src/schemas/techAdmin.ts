@@ -3,7 +3,29 @@ import { z } from 'zod'
 export const TechAdminOrganizationsSchema = z.array(z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  hasAdmin: z.boolean().default(false),
 }))
+
+export const CreateInitialOrganizationAdminSchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(254),
+  confirmControlledEmail: z.literal(true),
+}).strict()
+
+export const InitialOrganizationAdminResponseSchema = z.object({
+  organization: z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+  }).strict(),
+  account: z.object({
+    id: z.string().min(1),
+    email: z.string().email(),
+    role: z.literal('ADMIN'),
+  }).strict(),
+  invitation: z.object({
+    sent: z.boolean(),
+    error: z.string().nullable(),
+  }).strict(),
+}).strict()
 
 export const TechAdminPortalDomainConfigurationSchema = z.object({
   domains: z.array(z.object({

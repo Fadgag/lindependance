@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { authorizeCredentials } from "@/services/auth-rate-limit.service"
+import { refreshAuthTokenClaims } from "@/services/authSession.service"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -16,20 +17,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // RAISON: user shape declared in src/types/next-auth.d.ts — narrow to expected fields
-      if (user && typeof user === 'object') {
-        const u = user as {
-          id?: string
-          organizationId?: string | null
-          role?: string | null
-          accountType?: 'STAFF' | 'CUSTOMER'
-        }
-        if (u.id) token.id = u.id
-        if (u.organizationId) token.organizationId = u.organizationId
-        if (u.role) token.role = u.role
-        if (u.accountType) token.accountType = u.accountType
-      }
-      return token
+      return refreshAuthTokenClaims(token, user)
     },
     async session({ session, token }) {
       // RAISON: token (JWT) may contain organizationId/role claims
@@ -51,5 +39,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: { signIn: "/auth/signin" },
 })
-
 
