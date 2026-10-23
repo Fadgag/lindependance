@@ -69,10 +69,10 @@ export default function TestSalonProvisioningCard() {
   }
 
   return (
-    <section className="max-w-3xl rounded-3xl border border-(--studio-border) bg-white p-6 shadow-sm md:p-8">
+    <section className="max-w-3xl rounded-3xl border border-studio-border bg-white p-6 shadow-sm md:p-8">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-(--studio-text)">Créer un salon de test</h2>
-        <p className="mt-2 text-sm leading-6 text-(--studio-muted)">
+        <h2 className="text-xl font-bold text-studio-text">Créer un salon de test</h2>
+        <p className="mt-2 text-sm leading-6 text-studio-muted">
           Génère un salon isolé avec un portail client actif, une prestation, un praticien et des données fictives.
           Cette action est disponible uniquement sur l’aperçu de la branche preprod.
         </p>
@@ -81,7 +81,7 @@ export default function TestSalonProvisioningCard() {
       <form onSubmit={createSalon}>
         <div className="mb-5 grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="test-staff-email" className="mb-2 block text-sm font-semibold text-(--studio-text)">
+            <label htmlFor="test-staff-email" className="mb-2 block text-sm font-semibold text-studio-text">
               Adresse e-mail du compte staff
             </label>
             <input
@@ -91,25 +91,25 @@ export default function TestSalonProvisioningCard() {
               required
               value={staffEmail}
               onChange={(event) => setStaffEmail(event.target.value)}
-              className="w-full rounded-xl border border-(--studio-border) px-4 py-3 text-sm"
+              className="w-full rounded-xl border border-studio-border px-4 py-3 text-sm"
             />
           </div>
           <div>
-            <label htmlFor="test-staff-role" className="mb-2 block text-sm font-semibold text-(--studio-text)">
+            <label htmlFor="test-staff-role" className="mb-2 block text-sm font-semibold text-studio-text">
               Rôle du compte
             </label>
             <select
               id="test-staff-role"
               value={staffRole}
               onChange={(event) => setStaffRole(event.target.value === 'ADMIN' ? 'ADMIN' : 'USER')}
-              className="w-full rounded-xl border border-(--studio-border) px-4 py-3 text-sm"
+              className="w-full rounded-xl border border-studio-border px-4 py-3 text-sm"
             >
               <option value="USER">USER — accès staff standard</option>
               <option value="ADMIN">ADMIN — accès administrateur du salon</option>
             </select>
           </div>
         </div>
-        <label className="mb-5 flex items-start gap-3 text-sm leading-6 text-(--studio-muted)">
+        <label className="mb-5 flex items-start gap-3 text-sm leading-6 text-studio-muted">
           <input
             type="checkbox"
             checked={confirmControlledEmail}
@@ -121,7 +121,7 @@ export default function TestSalonProvisioningCard() {
         <button
           type="submit"
           disabled={creating || salon !== null || !staffEmail.trim() || !confirmControlledEmail}
-          className="rounded-2xl bg-(--studio-primary) px-5 py-3 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-2xl bg-studio-primary px-5 py-3 text-sm font-semibold text-studio-text transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
         >
           {creating ? 'Création en cours…' : 'Créer le salon et envoyer l’activation'}
         </button>

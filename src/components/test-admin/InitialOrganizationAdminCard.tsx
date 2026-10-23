@@ -104,22 +104,22 @@ export default function InitialOrganizationAdminCard() {
   const eligibleOrganizations = organizations.filter(({ hasAdmin }) => !hasAdmin)
 
   return (
-    <section className="mb-8 max-w-3xl rounded-3xl border border-(--studio-border) bg-white p-6 shadow-sm md:p-8">
+    <section className="mb-8 max-w-3xl rounded-3xl border border-studio-border bg-white p-6 shadow-sm md:p-8">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-(--studio-text)">Ajouter le premier ADMIN à un salon existant</h2>
-        <p className="mt-2 text-sm leading-6 text-(--studio-muted)">
+        <h2 className="text-xl font-bold text-studio-text">Ajouter le premier ADMIN à un salon existant</h2>
+        <p className="mt-2 text-sm leading-6 text-studio-muted">
           Cette action est réservée à l’administration technique. Elle n’est proposée que pour les salons qui n’ont pas encore d’ADMIN.
         </p>
       </div>
 
       {loading ? (
-        <p role="status" className="text-sm text-(--studio-muted)">Chargement des salons…</p>
+        <p role="status" className="text-sm text-studio-muted">Chargement des salons…</p>
       ) : eligibleOrganizations.length === 0 ? (
-        <p role="status" className="text-sm text-(--studio-muted)">Tous les salons possèdent déjà un compte ADMIN.</p>
+        <p role="status" className="text-sm text-studio-muted">Tous les salons possèdent déjà un compte ADMIN.</p>
       ) : (
         <form onSubmit={createInitialAdmin} className="space-y-5">
           <div>
-            <label htmlFor="initial-admin-organization" className="mb-2 block text-sm font-semibold text-(--studio-text)">
+            <label htmlFor="initial-admin-organization" className="mb-2 block text-sm font-semibold text-studio-text">
               Salon
             </label>
             <select
@@ -127,7 +127,7 @@ export default function InitialOrganizationAdminCard() {
               required
               value={selectedOrganizationId}
               onChange={(event) => setSelectedOrganizationId(event.target.value)}
-              className="w-full rounded-xl border border-(--studio-border) px-4 py-3 text-sm"
+              className="w-full rounded-xl border border-studio-border px-4 py-3 text-sm"
             >
               {eligibleOrganizations.map((organization) => (
                 <option key={organization.id} value={organization.id}>{organization.name}</option>
@@ -135,7 +135,7 @@ export default function InitialOrganizationAdminCard() {
             </select>
           </div>
           <div>
-            <label htmlFor="initial-admin-email" className="mb-2 block text-sm font-semibold text-(--studio-text)">
+            <label htmlFor="initial-admin-email" className="mb-2 block text-sm font-semibold text-studio-text">
               Adresse e-mail du premier ADMIN
             </label>
             <input
@@ -145,10 +145,10 @@ export default function InitialOrganizationAdminCard() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-xl border border-(--studio-border) px-4 py-3 text-sm"
+              className="w-full rounded-xl border border-studio-border px-4 py-3 text-sm"
             />
           </div>
-          <label className="flex items-start gap-3 text-sm leading-6 text-(--studio-muted)">
+          <label className="flex items-start gap-3 text-sm leading-6 text-studio-muted">
             <input
               type="checkbox"
               checked={confirmControlledEmail}
@@ -160,7 +160,7 @@ export default function InitialOrganizationAdminCard() {
           <button
             type="submit"
             disabled={submitting || !selectedOrganizationId || !email.trim() || !confirmControlledEmail}
-            className="rounded-2xl bg-(--studio-primary) px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-2xl bg-studio-primary px-5 py-3 text-sm font-semibold text-studio-text disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? 'Création en cours…' : 'Créer le premier ADMIN et envoyer l’invitation'}
           </button>
