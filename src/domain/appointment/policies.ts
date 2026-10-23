@@ -46,6 +46,10 @@ export interface TimeRange {
   endTime: Date
 }
 
+export interface CustomerTimeRange extends TimeRange {
+  customerId: string
+}
+
 /**
  * Deux créneaux sont en conflit s'ils se chevauchent strictement, en excluant le simple
  * contact aux bornes (un RDV qui se termine à 10h et un autre qui commence à 10h ne sont
@@ -60,4 +64,14 @@ export function hasSchedulingConflict(candidate: TimeRange, existing: TimeRange)
  */
 export function findFirstSchedulingConflict<T extends TimeRange>(candidate: TimeRange, existingSlots: T[]): T | undefined {
   return existingSlots.find((slot) => hasSchedulingConflict(candidate, slot))
+}
+
+export function hasCustomerSchedulingConflict(
+  candidate: TimeRange,
+  customerId: string,
+  existingAppointments: CustomerTimeRange[],
+): boolean {
+  return existingAppointments.some((appointment) =>
+    appointment.customerId === customerId && hasSchedulingConflict(candidate, appointment),
+  )
 }

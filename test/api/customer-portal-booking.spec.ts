@@ -19,7 +19,7 @@ vi.mock('@/services/customerPortalEmail.service', async (importOriginal) => ({
 vi.mock('@/lib/logger', () => ({ logger: loggerMock }))
 
 import { POST } from '@/app/api/portail/rdv/route'
-import { getCustomerPortalSession } from '@/services/customerPortal.service'
+import { CustomerPortalHttpError, getCustomerPortalSession } from '@/services/customerPortal.service'
 import { createCustomerPortalAppointment } from '@/services/customerPortalBooking.service'
 import { sendAppointmentConfirmation } from '@/services/customerPortalEmail.service'
 
@@ -112,5 +112,26 @@ describe('POST /api/portail/rdv', () => {
 
     expect(response.status).toBe(401)
     expect(createCustomerPortalAppointment).not.toHaveBeenCalled()
+  })
+
+  it('returns a usable conflict when the selected customer is already booked at that time', async () => {
+    vi.mocked(createCustomerPortalAppointment).mockRejectedValueOnce(
+      new CustomerPortalHttpError(
+        409,
+        'Cette fiche client a déjà un rendez-vous sur ce créneau. Choisissez un autre horaire.',
+      ),
+    )
+
+    const response = await POST(request({
+      customerId: 'customer-1',
+      serviceId: 'service-1',
+      start: '2026-10-01T08:00:00.000Z',
+    }))
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: 'Cette fiche client a déjà un rendez-vous sur ce créneau. Choisissez un autre horaire.',
+    })
+    expect(sendAppointmentConfirmation).not.toHaveBeenCalled()
   })
 })

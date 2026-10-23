@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { hasCustomerSchedulingConflict } from '@/domain/appointment/policies'
 import {
   buildAvailableSlots,
   getLocalDateForInstant,
@@ -139,7 +140,7 @@ export async function createCustomerPortalAppointment(
           startTime: { lt: range.end },
           endTime: { gt: range.start },
         },
-        select: { startTime: true, endTime: true, staffId: true, status: true },
+        select: { startTime: true, endTime: true, staffId: true, status: true, customerId: true },
       }),
       transaction.unavailability.findMany({
         where: {
@@ -169,6 +170,17 @@ export async function createCustomerPortalAppointment(
     })
     const slot = slots.find((candidate) => candidate.start === startTime.toISOString())
     if (!slot) throw new CustomerPortalHttpError(409, 'Time slot is no longer available')
+
+    if (hasCustomerSchedulingConflict(
+      { startTime, endTime: new Date(slot.end) },
+      customer.id,
+      appointments,
+    )) {
+      throw new CustomerPortalHttpError(
+        409,
+        'Cette fiche client a déjà un rendez-vous sur ce créneau. Choisissez un autre horaire.',
+      )
+    }
 
     const appointment = await transaction.appointment.create({
       data: {
