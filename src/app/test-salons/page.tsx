@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import TestSalonProvisioningCard from '@/components/test-admin/TestSalonProvisioningCard'
 import { canProvisionTestSalon } from '@/domain/tech-admin/testSalonProvisioning'
 import { getTestCampaignAdminAccess } from '@/lib/testCampaignAccess'
+import InitialOrganizationAdminCard from '@/components/test-admin/InitialOrganizationAdminCard'
 
 export default async function TestSalonsPage() {
   const access = await getTestCampaignAdminAccess()
@@ -25,6 +26,7 @@ export default async function TestSalonsPage() {
           Préparez un environnement fictif pour vérifier le portail client et l’isolation entre salons.
         </p>
       </header>
+      <InitialOrganizationAdminCard />
       <TestSalonProvisioningCard />
     </main>
   )

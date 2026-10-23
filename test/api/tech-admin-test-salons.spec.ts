@@ -12,8 +12,8 @@ vi.mock('@/lib/testCampaignAccess', () => ({
 vi.mock('@/services/testSalonProvisioning.service', () => ({
   provisionTestSalon: mocks.provisionTestSalon,
 }))
-vi.mock('@/services/testStaffActivationEmail.service', () => ({
-  sendTestStaffActivationEmail: mocks.sendActivationEmail,
+vi.mock('@/services/staffActivationEmail.service', () => ({
+  sendStaffActivationEmail: mocks.sendActivationEmail,
 }))
 
 import { POST } from '@/app/api/tech-admin/test-salons/route'
@@ -63,7 +63,7 @@ beforeEach(() => {
       },
     },
   })
-  vi.mocked(provisionTestSalon).mockResolvedValue(salon)
+  vi.mocked(provisionTestSalon).mockResolvedValue({ kind: 'created', salon })
   vi.mocked(mocks.sendActivationEmail).mockResolvedValue({ sent: true, error: null })
 })
 
@@ -131,18 +131,21 @@ describe('POST /api/tech-admin/test-salons', () => {
     })
     expect(mocks.sendActivationEmail).toHaveBeenCalledWith({
       email: 'staff@example.test',
-      salonName: salon.name,
+      organizationName: salon.name,
     })
   })
 
   it('surfaces invitation failure while preserving the provisioned salon result', async () => {
     vi.mocked(mocks.sendActivationEmail).mockResolvedValue({
       sent: false,
-      error: 'Le salon et le compte sont créés, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.',
+      error: 'Le compte est créé, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.',
     })
     vi.mocked(provisionTestSalon).mockResolvedValue({
-      ...salon,
-      staffAccount: { email: 'staff@example.test', role: 'ADMIN' },
+      kind: 'created',
+      salon: {
+        ...salon,
+        staffAccount: { email: 'staff@example.test', role: 'ADMIN' },
+      },
     })
 
     const response = await POST(post(JSON.stringify({
@@ -157,12 +160,27 @@ describe('POST /api/tech-admin/test-salons', () => {
       staffAccount: { email: 'staff@example.test', role: 'ADMIN' },
       invitation: {
         sent: false,
-        error: 'Le salon et le compte sont créés, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.',
+        error: 'Le compte est créé, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.',
       },
     })
     expect(provisionTestSalon).toHaveBeenCalledWith({
       email: 'staff@example.test',
       role: 'ADMIN',
     })
+  })
+
+  it('reports a duplicate account address without sending activation', async () => {
+    vi.mocked(provisionTestSalon).mockResolvedValueOnce({ kind: 'email_exists' })
+
+    const response = await POST(post(JSON.stringify({
+      email: 'staff@example.test',
+      confirmControlledEmail: true,
+    })))
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: 'Cette adresse e-mail est déjà associée à un compte.',
+    })
+    expect(mocks.sendActivationEmail).not.toHaveBeenCalled()
   })
 })

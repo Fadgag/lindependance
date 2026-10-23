@@ -15,8 +15,8 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
-const DELIVERY_ERROR = 'Le salon et le compte sont créés, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.'
-const TOKEN_CLEANUP_ERROR = 'The failed test staff activation token could not be removed'
+const DELIVERY_ERROR = 'Le compte est créé, mais l’envoi de l’e-mail d’activation a échoué ou n’a pas pu être confirmé.'
+const TOKEN_CLEANUP_ERROR = 'The failed staff activation token could not be removed'
 
 async function removeActivationToken(email: string, token: string): Promise<void> {
   try {
@@ -26,9 +26,9 @@ async function removeActivationToken(email: string, token: string): Promise<void
   }
 }
 
-export async function sendTestStaffActivationEmail(input: {
+export async function sendStaffActivationEmail(input: {
   email: string
-  salonName: string
+  organizationName: string
 }): Promise<{ sent: boolean; error: string | null }> {
   const apiKey = process.env.RESEND_API_KEY
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
@@ -58,17 +58,20 @@ export async function sendTestStaffActivationEmail(input: {
     logger.error('Test staff activation token could not be created')
     return { sent: false, error: DELIVERY_ERROR }
   }
+  if (!resetToken.created) {
+    return { sent: false, error: DELIVERY_ERROR }
+  }
   activationUrl.searchParams.set('token', resetToken.token)
 
   try {
     const result = await new Resend(apiKey).emails.send({
       from: process.env.RESEND_FROM || 'no-reply@studio.test',
       to: input.email,
-      subject: 'Activation de votre compte staff de test',
+      subject: 'Définir le mot de passe de votre compte',
       html: [
         '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#2D2424">',
-        '<h1 style="font-size:22px">Activez votre compte staff</h1>',
-        `<p>Un compte staff a été créé pour <strong>${escapeHtml(input.salonName)}</strong>.</p>`,
+        '<h1 style="font-size:22px">Activez votre compte</h1>',
+        `<p>Un compte a été créé pour <strong>${escapeHtml(input.organizationName)}</strong>.</p>`,
         '<p>Définissez votre mot de passe à l’aide du lien ci-dessous. Il est valable une heure et ne peut être utilisé qu’une fois.</p>',
         `<p><a href="${escapeHtml(activationUrl.toString())}">Définir mon mot de passe</a></p>`,
         '<p>Si vous n’attendiez pas ce message, vous pouvez l’ignorer.</p>',

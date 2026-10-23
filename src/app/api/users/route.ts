@@ -1,47 +1,83 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import apiErrorResponse from '@/lib/api'
-import bcrypt from 'bcryptjs'
-import { z } from 'zod'
-import { auth } from "@/auth"
-import { BCRYPT_ROUNDS } from '@/lib/crypto'
+import { apiErrorResponse } from '@/lib/api'
+import { getOrganizationAdminAccess } from '@/lib/organizationAdminAccess'
+import { CreateOrganizationAccountSchema } from '@/schemas/userAccounts'
+import {
+  createOrganizationAccount,
+  listOrganizationAccounts,
+} from '@/services/userAccounts.service'
+import { sendStaffActivationEmail } from '@/services/staffActivationEmail.service'
 
-const CreateUserSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1).optional(),
-  password: z.string().min(8),
-  role: z.enum(['USER', 'ADMIN']).optional(),
-})
+const PRIVATE_NO_STORE = { 'Cache-Control': 'private, no-store' }
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (session.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    if (!session.user?.organizationId ) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const access = await getOrganizationAdminAccess()
+    if (!access.authorized) {
+      return NextResponse.json(
+        { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },
+        { status: access.status },
+      )
+    }
 
-    const users = await prisma.user.findMany({ where: { organizationId: session.user?.organizationId  }, select: { id: true, name: true, email: true, role: true } })
-    return NextResponse.json(users)
-  } catch (err: unknown) {
-    return apiErrorResponse(err)
+    return NextResponse.json(await listOrganizationAccounts(access.organizationId), {
+      headers: PRIVATE_NO_STORE,
+    })
+  } catch (error: unknown) {
+    return apiErrorResponse(error)
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (session.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    if (!session.user?.organizationId ) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const access = await getOrganizationAdminAccess()
+    if (!access.authorized) {
+      return NextResponse.json(
+        { error: access.status === 401 ? 'Unauthorized' : 'Forbidden' },
+        { status: access.status },
+      )
+    }
 
-    const parsed = CreateUserSchema.safeParse(await req.json())
-    if (!parsed.success) return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 })
-    const { email, name, password, role } = parsed.data
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Corps JSON invalide.' }, { status: 400 })
+    }
+    const parsed = CreateOrganizationAccountSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Les données du compte sont invalides.' }, { status: 400 })
+    }
 
-    const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS)
-    const user = await prisma.user.create({ data: { email, name, hashedPassword: hashed, organizationId: session.user?.organizationId , role: role ?? 'USER' } })
-    return NextResponse.json({ id: user.id, email: user.email, name: user.name, role: user.role })
-  } catch (err: unknown) {
-    return apiErrorResponse(err)
+    const result = await createOrganizationAccount({
+      actorId: access.userId,
+      organizationId: access.organizationId,
+      email: parsed.data.email,
+      name: parsed.data.name,
+      role: parsed.data.role,
+    })
+    if (result.kind === 'email_exists') {
+      return NextResponse.json({ error: 'Cette adresse e-mail est déjà associée à un compte.' }, { status: 409 })
+    }
+    if (result.kind === 'organization_not_found') {
+      return NextResponse.json({ error: 'Le salon associé à ce compte est introuvable.' }, { status: 404 })
+    }
+    if (result.kind === 'actor_forbidden') {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs du salon.' }, { status: 403 })
+    }
+
+    const invitation = await sendStaffActivationEmail({
+      email: result.account.email,
+      organizationName: result.organizationName,
+    })
+    return NextResponse.json({
+      account: result.account,
+      invitation,
+    }, {
+      status: 201,
+      headers: PRIVATE_NO_STORE,
+    })
+  } catch (error: unknown) {
+    return apiErrorResponse(error)
   }
 }

@@ -21,6 +21,7 @@ function isPreprodOnlyApiPath(pathname: string): boolean {
     || pathname.startsWith('/api/test-feedback/')
     || pathname === '/api/tech-admin/test-salons'
     || pathname.startsWith('/api/tech-admin/test-salons/')
+    || (pathname.startsWith('/api/tech-admin/organizations/') && pathname.endsWith('/admin'))
 }
 
 function isPreprodDeployment(): boolean {
@@ -68,13 +69,10 @@ async function middlewareFn(req: NextAuthRequest) {
   // Authentifié ou page publique → Next.js continue
 }
 
-// RAISON: next-auth v5 beta types auth() return as AppRouteHandlerFn(req, ctx) — ctx required by type
-// but our middleware never reads ctx, and unit tests call middleware(req) without ctx.
-// Cast to optional-ctx signature to satisfy both runtime and test calls.
-// NextAuthRequest étend NextRequest, donc ce type couvre les deux cas (runtime + tests).
-type MiddlewareHandler = (req: NextAuthRequest, ctx?: Record<string, unknown>) => Response | void | Promise<Response | void>
-export const middleware: MiddlewareHandler = auth(middlewareFn) as unknown as MiddlewareHandler
-export default middleware
+// RAISON: NextAuth v5 types the wrapped handler with a required context although this
+// proxy does not read it; keep the runtime's optional context accepted by our tests.
+type ProxyHandler = (req: NextAuthRequest, ctx?: Record<string, unknown>) => Response | void | Promise<Response | void>
+export const proxy: ProxyHandler = auth(middlewareFn) as unknown as ProxyHandler
 
 export const config = {
   matcher: [
@@ -82,5 +80,6 @@ export const config = {
     '/api/test-campaigns/:path*',
     '/api/test-feedback/:path*',
     '/api/tech-admin/test-salons/:path*',
+    '/api/tech-admin/organizations/:organizationId/admin',
   ],
 }

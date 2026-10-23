@@ -473,7 +473,7 @@ lien ne permet pas de recommencer la configuration.
 
 **Automatisé :** `test/api/tech-admin-test-salons.spec.ts`,
 `test/services/testSalonProvisioning.service.spec.ts`,
-`test/services/testStaffActivationEmail.service.spec.ts` et
+`test/services/staffActivationEmail.service.spec.ts` et
 `test/ui/TestSalonProvisioningCard.spec.tsx`. Ces tests simulent l'envoi ;
 la boîte contrôlée, le lien réel et la connexion restent à vérifier en bêta.
 **Résultat / preuve :** BLOQUÉ — une tentative autorisée a renvoyé 500 et aucun
@@ -499,6 +499,38 @@ sans lancer ni confirmer d'encaissement.
 l'historique affiche les rendez-vous annulés avec le statut « ANNULÉ », distinct
 de ceux « À ENCAISSER ». Aucun bouton ni commande d'encaissement n'est présenté
 sur la fiche ; aucun encaissement n'a été soumis.
+
+#### [ ] ADM-24 — Gérer les comptes du salon
+**Priorité : P1 · Exigence :** [Req: formal — `salon-account-management.md`]
+
+**Étapes :** connectez-vous avec un compte administrateur du salon et ouvrez
+Paramètres puis Comptes. Vérifiez la liste, invitez une personne sur une boîte
+de test contrôlée en choisissant le rôle USER et confirmez l'envoi. Depuis la
+boîte de test, ouvrez le lien reçu et définissez le mot de passe. Revenez dans
+la liste, changez le rôle d'un autre compte entre USER et ADMIN, puis demandez
+la suppression d'un compte de recette qui n'est pas le dernier ADMIN. Si une
+session de ce compte est déjà ouverte, actualisez-la après le changement ou la
+suppression. Si deux salons de recette sont disponibles, vérifiez avec leurs
+comptes ADMIN que chaque liste ne montre que les comptes du salon correspondant.
+
+**Attendu :** seul un ADMIN voit l'onglet Comptes. La liste et les changements
+concernent uniquement son salon ; les rôles proposés sont USER et ADMIN. Le
+nouveau compte n'a pas de mot de passe initial et le lien reçu ne peut être
+utilisé qu'une fois. Un ADMIN ne peut pas modifier son propre compte ni retirer
+le dernier ADMIN du salon. Après actualisation, un changement de rôle applique
+les nouveaux droits et un compte supprimé ne conserve plus son accès.
+
+**Automatisé :** `test/api/users.spec.ts`,
+`test/services/userAccounts.service.spec.ts`,
+`test/services/authSession.service.spec.ts`,
+`test/lib/organizationAdminAccess.spec.ts`,
+`test/domain/user-accounts/management.spec.ts`,
+`test/ui/OrganizationAccountManager.spec.tsx` et
+`test/services/staffActivationEmail.service.spec.ts`. Ces tests simulent
+l'envoi et les accès ; l'e-mail et l'isolation réelle entre deux salons restent
+à vérifier en bêta avec des boîtes et comptes de recette autorisés.
+**Résultat / preuve :** À vérifier en bêta après publication. Aucun compte réel
+ni e-mail n'a été créé pendant le développement.
 
 ## Couverture automatisée relue
 
